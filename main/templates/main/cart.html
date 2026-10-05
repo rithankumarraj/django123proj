@@ -1,0 +1,327 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your cart | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <style>
+    .cart-page {
+      min-height: 100vh;
+      background: #0d1012;
+      color: #f5f5f3;
+    }
+
+    .cart-main {
+      padding-top: 44px;
+      padding-bottom: 64px;
+    }
+
+    .cart-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .cart-heading h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.07em;
+    }
+
+    .cart-panel {
+      padding: clamp(16px, 3vw, 28px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .cart-item {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 20px;
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.09);
+    }
+
+    .cart-item:first-child { padding-top: 0; }
+    .cart-item:last-child { border-bottom: 0; }
+
+    .cart-item img {
+      width: 92px;
+      height: 112px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .cart-item h2 {
+      margin: 0 0 5px;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .cart-muted {
+      color: rgba(255,255,255,0.62);
+      font-size: 0.86rem;
+    }
+
+    .cart-item-price {
+      margin-top: 8px;
+      font-weight: 700;
+    }
+
+    .cart-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .cart-quantity {
+      width: 84px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255,255,255,0.17);
+      border-radius: 10px;
+      background: #171b1e;
+      color: #fff;
+      font: inherit;
+      text-align: center;
+    }
+
+    .cart-remove {
+      border: 0;
+      background: transparent;
+      color: #ff9999;
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .cart-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .cart-total-label {
+      color: rgba(255,255,255,0.68);
+      font-size: 0.85rem;
+    }
+
+    .cart-total {
+      display: block;
+      margin-top: 3px;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+    }
+
+    .cart-footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .cart-action-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 11px 18px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      background: transparent;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .cart-action-primary {
+      border-color: #f5f5f3;
+      background: #f5f5f3;
+      color: #111;
+    }
+
+    .cart-checkout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .cart-checkout label {
+      display: block;
+      margin-bottom: 6px;
+      color: rgba(255,255,255,0.68);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .cart-checkout input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.035);
+      color: #fff;
+      font: inherit;
+    }
+
+    .cart-checkout .full-width { grid-column: 1 / -1; }
+
+    .cart-empty {
+      padding: 44px 16px;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+    }
+
+    .cart-message {
+      margin-bottom: 14px;
+      color: #8ee2b3;
+    }
+
+    @media (max-width: 575.98px) {
+      .cart-heading {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .cart-item {
+        grid-template-columns: 68px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .cart-item img {
+        width: 68px;
+        height: 90px;
+      }
+
+      .cart-item-actions {
+        grid-column: 2;
+        justify-content: space-between;
+      }
+
+      .cart-footer {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .cart-footer-actions {
+        justify-content: stretch;
+      }
+
+      .cart-footer-actions > * { flex: 1; }
+      .cart-checkout { grid-template-columns: 1fr; }
+      .cart-checkout .full-width { grid-column: auto; }
+    }
+  </style>
+</head>
+<body class="cart-page">
+  <header class="checkout-header">
+    <div class="container d-flex justify-content-between align-items-center py-3">
+      <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
+      <a href="{% url 'home' %}" class="back-link">← Continue shopping</a>
+    </div>
+  </header>
+
+  <main class="container cart-main">
+    <div class="cart-heading">
+      <div>
+        <p class="section-kicker" style="color: rgba(255,255,255,0.6);">Your selection</p>
+        <h1>Your cart</h1>
+      </div>
+      <span class="cart-muted">{{ cart_count }} item{{ cart_count|pluralize }}</span>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}<p class="cart-message">{{ message }}</p>{% endfor %}
+    {% endif %}
+
+    <section class="cart-panel">
+      {% if items %}
+        <form method="post" action="{% url 'update_cart' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update">
+          {% for item in items %}
+            <article class="cart-item">
+              <img src="{% static item.product.image %}" alt="{{ item.product.name }}">
+              <div>
+                <h2>{{ item.product.name }}</h2>
+                <div class="cart-muted">{{ item.product.volume }} · ₹{{ item.product.price }} each</div>
+                <div class="cart-item-price">₹{{ item.line_total|floatformat:2 }}</div>
+              </div>
+              <div class="cart-item-actions">
+                <label class="visually-hidden" for="quantity-{{ item.product.id }}">Quantity for {{ item.product.name }}</label>
+                <input class="cart-quantity" id="quantity-{{ item.product.id }}" name="quantity_{{ item.product.id }}" type="number" min="1" max="1000000" value="{{ item.quantity }}" required>
+                <button class="cart-remove" type="submit" form="remove-{{ item.product.id }}">Remove</button>
+              </div>
+            </article>
+          {% endfor %}
+          <div class="cart-footer">
+            <div>
+              <span class="cart-total-label">Cart total</span>
+              <strong class="cart-total">₹{{ cart_total|floatformat:2 }}</strong>
+            </div>
+            <div class="cart-footer-actions">
+              <button class="cart-action-button" type="submit">Update quantities</button>
+              <a class="cart-action-button cart-action-primary" href="#cart-checkout">Checkout</a>
+            </div>
+          </div>
+        </form>
+
+        {% for item in items %}
+          <form id="remove-{{ item.product.id }}" method="post" action="{% url 'update_cart' %}" hidden>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove">
+            <input type="hidden" name="product_id" value="{{ item.product.id }}">
+          </form>
+        {% endfor %}
+
+        <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}">
+          {% csrf_token %}
+          <div>
+            <label for="first-name">First name</label>
+            <input id="first-name" name="first_name" autocomplete="given-name" required>
+          </div>
+          <div>
+            <label for="last-name">Last name</label>
+            <input id="last-name" name="last_name" autocomplete="family-name" required>
+          </div>
+          <div class="full-width">
+            <label for="customer-email">Email</label>
+            <input id="customer-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="full-width">
+            <button class="cart-action-button cart-action-primary" type="submit">Continue to payment · ₹{{ cart_total|floatformat:2 }}</button>
+          </div>
+        </form>
+      {% else %}
+        <div class="cart-empty">
+          <h2>Your cart is empty</h2>
+          <p>Add a few flavours and they’ll be collected here.</p>
+          <a class="cart-action-button cart-action-primary" href="{% url 'home' %}#shop">Browse drinks</a>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

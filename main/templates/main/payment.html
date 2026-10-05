@@ -1,0 +1,222 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <style>
+    .payment-shell {
+      display: grid;
+      min-height: calc(100vh - 1px);
+      place-items: center;
+      padding: 32px 16px;
+    }
+
+    .payment-card {
+      width: min(100%, 520px);
+      padding: clamp(24px, 5vw, 40px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      background: rgba(255,255,255,0.035);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.24);
+    }
+
+    .payment-card h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.07em;
+    }
+
+    .payment-caption {
+      margin: 8px 0 26px;
+      color: rgba(255,255,255,0.65);
+    }
+
+    .payment-product {
+      padding: 16px 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .payment-line {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 0;
+    }
+
+    .payment-product img {
+      width: 64px;
+      height: 82px;
+      object-fit: contain;
+    }
+
+    .payment-product-name {
+      margin: 0 0 4px;
+      font-weight: 700;
+    }
+
+    .payment-muted {
+      color: rgba(255,255,255,0.62);
+      font-size: 0.85rem;
+    }
+
+    .payment-amount {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 22px 0;
+      font-size: 1rem;
+    }
+
+    .payment-amount strong {
+      font-size: 1.35rem;
+    }
+
+    .payment-notice {
+      margin-bottom: 20px;
+      padding: 12px 14px;
+      border: 1px solid rgba(246,190,93,0.25);
+      border-radius: 12px;
+      background: rgba(246,190,93,0.07);
+      color: #f3d79f;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .payment-error {
+      border-color: rgba(255,112,112,0.45);
+      background: rgba(255,112,112,0.08);
+      color: #ffc0c0;
+    }
+
+    .payment-actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .payment-confirm,
+    .payment-cancel {
+      width: 100%;
+      padding: 13px 18px;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .payment-confirm {
+      border: 0;
+      background: #f5f5f3;
+      color: #111;
+    }
+
+    .payment-cancel {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: transparent;
+      color: #fff;
+    }
+
+    .payment-result {
+      margin: 0 0 20px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .payment-result strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 1.2rem;
+    }
+
+    .status-paid { color: #55dd96; }
+    .status-failed { color: #ff9292; }
+    .status-pending { color: #f3d79f; }
+
+    .payment-back {
+      display: block;
+      margin-top: 20px;
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .payment-back:hover { color: #fff; }
+  </style>
+</head>
+<body class="checkout-page-body">
+  <header class="checkout-header">
+    <div class="container d-flex justify-content-between align-items-center py-3">
+      <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
+      <a href="{% url 'home' %}" class="back-link">Store</a>
+    </div>
+  </header>
+
+  <main class="container payment-shell">
+    <section class="payment-card">
+      {% if order.payment_status == "pending" %}
+        <h1>Review payment</h1>
+        <p class="payment-caption">Confirm the order details before completing this demo payment.</p>
+      {% else %}
+        <h1>Payment result</h1>
+        <p class="payment-caption">Your order payment status is shown below.</p>
+      {% endif %}
+
+      {% if error %}
+        <div class="payment-notice payment-error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <div class="payment-product">
+        {% for item in order_items %}
+          <div class="payment-line">
+            <img src="{% static item.product.image %}" alt="{{ item.product.name }}">
+            <div>
+              <p class="payment-product-name">{{ item.product.name }}</p>
+              <span class="payment-muted">{{ item.product.volume }} · Quantity {{ item.quantity }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="payment-amount">
+        <span>Total to confirm</span>
+        <strong>₹{{ order.total_amount|floatformat:2 }}</strong>
+      </div>
+
+      {% if order.payment_status == "pending" %}
+        {% if simulation_enabled %}
+          <div class="payment-notice">
+            Demo only: confirming records a simulated successful payment. No card, bank, or UPI payment is made.
+          </div>
+          <form method="post" class="payment-actions">
+            {% csrf_token %}
+            <button class="payment-confirm" type="submit" name="action" value="confirm">Confirm demo payment</button>
+            <button class="payment-cancel" type="submit" name="action" value="cancel">Cancel payment</button>
+          </form>
+        {% else %}
+          <div class="payment-notice">
+            No payment provider is connected. This order is pending; no payment has been collected.
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="payment-result">
+          Payment status
+          <strong class="status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</strong>
+          <span class="payment-muted">Order #{{ order.id }}</span>
+        </div>
+      {% endif %}
+
+      <a class="payment-back" href="{% url 'home' %}">Back to store</a>
+    </section>
+  </main>
+</body>
+</html>

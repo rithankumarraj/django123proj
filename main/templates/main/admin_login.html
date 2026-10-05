@@ -1,0 +1,204 @@
+{% load static %}
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin login | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <style>
+    .login-shell {
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(145deg, rgba(10, 12, 14, 0.78), rgba(10, 12, 14, 0.92)),
+        url("{% static 'main/images/hero-banner.png' %}") center / cover no-repeat;
+    }
+
+    .login-card {
+      width: min(100%, 440px);
+      padding: clamp(24px, 6vw, 40px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 24px;
+      background: rgba(16, 20, 22, 0.88);
+      color: #f5f5f3;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+    }
+
+    .login-brand {
+      display: inline-block;
+      margin-bottom: 26px;
+      font-size: 1.6rem;
+    }
+
+    .login-card h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.06em;
+    }
+
+    .login-subtitle {
+      margin: 8px 0 26px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .login-field {
+      margin-bottom: 18px;
+    }
+
+    .login-field label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+      outline: none;
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      font: inherit;
+    }
+
+    .login-input:focus {
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+
+    .login-errors {
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 112, 112, 0.5);
+      border-radius: 12px;
+      background: rgba(255, 112, 112, 0.1);
+      color: #ffc0c0;
+      font-size: 0.9rem;
+      list-style: none;
+    }
+
+    .login-errors p {
+      margin: 4px 0;
+    }
+
+    .login-submit {
+      width: 100%;
+      margin-top: 6px;
+      padding: 13px 18px;
+      border: 0;
+      border-radius: 999px;
+      background: #f5f5f3;
+      color: #111;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .login-divider::before,
+    .login-divider::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .google-login {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .google-login:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .login-back {
+      display: block;
+      margin-top: 18px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .login-back:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+<body class="product-page-body">
+  <main class="login-shell">
+    <section class="login-card">
+      <a href="{% url 'home' %}" class="brand-mark login-brand">J CSD</a>
+      <h1>Admin login</h1>
+      <p class="login-subtitle">Sign in with your username or email and password.</p>
+
+      {% if form.non_field_errors or form.username.errors or form.password.errors %}
+        <div class="login-errors" role="alert">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+          {% for error in form.username.errors %}<p>{{ error }}</p>{% endfor %}
+          {% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="login-field">
+          <label for="{{ form.username.id_for_label }}">Username or email</label>
+          {{ form.username }}
+        </div>
+        <div class="login-field">
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password }}
+        </div>
+        <button class="login-submit" type="submit">Log in</button>
+      </form>
+
+      {% if google_login_enabled %}
+        <div class="login-divider">or</div>
+        <a class="google-login" href="{% provider_login_url 'google' process='login' %}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.9 6.1-15z"/>
+            <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.6-5.1c-1.8 1.2-4.1 2-6.9 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20.4 20.4 0 0 0 24 44z"/>
+            <path fill="#FBBC05" d="M12.6 27.6a12.3 12.3 0 0 1 0-7.2v-5.3H5.8a20.4 20.4 0 0 0 0 17.8l6.8-5.3z"/>
+            <path fill="#EA4335" d="M24 12c3 0 5.7 1 7.8 3.1l5.9-5.9C34.1 5.8 29.5 4 24 4A20.4 20.4 0 0 0 5.8 15.1l6.8 5.3C14.2 15.6 18.7 12 24 12z"/>
+          </svg>
+          Continue with Google
+        </a>
+      {% endif %}
+
+      <a href="{% url 'home' %}" class="login-back">Back to store</a>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,458 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0e10;
+      --panel: #14191c;
+      --card: #171d20;
+      --muted: #a9b1b8;
+      --white: #f3f5f7;
+      --line: rgba(255,255,255,0.08);
+      --green: #2fcf7a;
+      --orange: #f6be5d;
+      --blue: #5aa3ff;
+      --red: #ff7676;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      background: linear-gradient(180deg, #0b0e10 0%, #12181b 100%);
+      color: var(--white);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .admin-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.06em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.02);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px 18px;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.07em;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
+      gap: 22px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 1.3rem;
+      letter-spacing: -0.04em;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+      color: var(--white);
+      font: inherit;
+    }
+
+    .field textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .checkbox-wrap input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: #fff;
+      color: #101417;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: var(--white);
+      border: 1px solid var(--line);
+    }
+
+    .list-panel {
+      margin-top: 0;
+    }
+
+    .product-list,
+    .status-list {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .product-list th,
+    .product-list td,
+    .status-list th,
+    .status-list td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .product-list th,
+    .status-list th {
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .product-name {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .status-delivered { background: rgba(47, 207, 122, 0.12); color: var(--green); }
+    .status-pending { background: rgba(246, 190, 93, 0.12); color: var(--orange); }
+    .status-paid { background: rgba(47, 207, 122, 0.12); color: var(--green); }
+    .status-failed { background: rgba(255, 118, 118, 0.12); color: var(--red); }
+    .status-packed { background: rgba(90, 163, 255, 0.12); color: var(--blue); }
+    .status-out_for_delivery { background: rgba(255, 118, 118, 0.12); color: var(--red); }
+
+    .table-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .mini-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 860px) {
+      .stats-grid,
+      .content-grid,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-shell">
+    <header class="topbar">
+      <div class="brand">J CSD Admin</div>
+      <div class="nav-actions">
+        <a class="chip" href="{% url 'home' %}">Storefront</a>
+        <a class="chip" href="/admin/">Django Admin</a>
+      </div>
+    </header>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Products</span>
+        <div class="stat-value">{{ total_products }}</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Delivered</span>
+        <div class="stat-value">{{ delivered_count }}</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Pending</span>
+        <div class="stat-value">{{ pending_count }}</div>
+      </div>
+    </section>
+
+    <div class="content-grid">
+      <section class="panel">
+        <h2>{% if editing_product %}Edit product{% else %}Add product{% endif %}</h2>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="chip" style="margin-bottom: 14px; display: inline-flex;">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="form-grid">
+            <div class="field full">
+              <label for="id_name">Product name</label>
+              {{ product_form.name }}
+            </div>
+
+            <div class="field full">
+              <label for="id_description">Description</label>
+              {{ product_form.description }}
+            </div>
+
+            <div class="field">
+              <label for="id_price">Price</label>
+              {{ product_form.price }}
+            </div>
+
+            <div class="field">
+              <label for="id_volume">Volume</label>
+              {{ product_form.volume }}
+            </div>
+
+            <div class="field full">
+              <label for="id_image">Image path</label>
+              {{ product_form.image }}
+            </div>
+
+            <div class="field full">
+              <div class="checkbox-wrap">
+                {{ product_form.available }}
+                <label for="id_available">Available for storefront</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn btn-primary">{% if editing_product %}Save changes{% else %}Add product{% endif %}</button>
+            {% if editing_product %}
+              <a class="btn btn-secondary" href="{% url 'admin_dashboard' %}">Cancel</a>
+            {% endif %}
+          </div>
+        </form>
+      </section>
+
+      <section class="panel list-panel">
+        <h2>Product list</h2>
+        <table class="product-list">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in products %}
+            <tr>
+              <td>
+                <div class="product-name">{{ product.name }}</div>
+                <div class="muted">{{ product.volume }}</div>
+              </td>
+              <td>₹{{ product.price }}</td>
+              <td>
+                {% if product.available %}
+                  <span class="status-badge status-delivered">Active</span>
+                {% else %}
+                  <span class="status-badge status-pending">Hidden</span>
+                {% endif %}
+              </td>
+              <td class="table-actions">
+                <a class="mini-btn" href="?edit={{ product.id }}">Edit</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="muted">No products found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>Delivery status</h2>
+      <table class="status-list">
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Product</th>
+            <th>Customer</th>
+            <th>Payment</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td>#{{ order.id }}</td>
+            <td>
+              {% for item in order.items.all %}
+                <div>{{ item.product.name }} × {{ item.quantity }}</div>
+              {% empty %}
+                {% if order.product %}{{ order.product.name }} × {{ order.quantity }}{% else %}Order items unavailable{% endif %}
+              {% endfor %}
+            </td>
+            <td>{{ order.customer_name }}</td>
+            <td>
+              <span class="status-badge status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+            </td>
+            <td>
+              <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="muted">No delivery orders found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>
