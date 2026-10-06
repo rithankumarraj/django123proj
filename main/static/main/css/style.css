@@ -148,7 +148,7 @@ a {
   margin: 0;
   max-width: 100%;
   font-family: "Bebas Neue", "Arial Black", sans-serif;
-  letter-spacing: -0.09em;
+  letter-spacing: 0.015em;
   line-height: 0.72;
   font-size: clamp(5rem, 13vw, 18rem);
   font-weight: 400;
@@ -219,7 +219,7 @@ a {
   margin: 0;
   font-size: clamp(2.2rem, 4vw, 4rem);
   line-height: 1;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
   font-weight: 800;
 }
 
@@ -745,7 +745,7 @@ a {
     max-width: 92vw;
     font-size: clamp(2.9rem, 16vw, 5.3rem);
     line-height: 0.78;
-    letter-spacing: -0.06em;
+    letter-spacing: 0.01em;
     word-break: break-word;
     overflow-wrap: anywhere;
   }
