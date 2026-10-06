@@ -29,7 +29,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    ".vercel.app",
+    "jcs-plrad7ytn-rithan-s-projects.vercel.app",
 ]
 LOGIN_URL = "/admin-login/"
 LOGIN_REDIRECT_URL = "/admin-profile/"
