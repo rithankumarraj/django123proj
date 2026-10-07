@@ -39,6 +39,10 @@ ALLOWED_HOSTS = [
     "jcs-pearl.vercel.app",
     ".vercel.app",
 ]
+CSRF_TRUSTED_ORIGINS = [
+    "https://jcs-pearl.vercel.app",
+    "https://*.vercel.app",
+]
 LOGIN_URL = "/admin-login/"
 LOGIN_REDIRECT_URL = "/admin-profile/"
 SITE_ID = 1
@@ -125,10 +129,18 @@ WSGI_APPLICATION = 'django123proj.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_UNPOOLED")
+if os.environ.get("VERCEL") == "1" and not DATABASE_URL:
+    raise ImproperlyConfigured("Set DATABASE_URL or DATABASE_URL_UNPOOLED in the Vercel environment.")
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+    "default": (
+        dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        if DATABASE_URL
+        else dj_database_url.config(
+            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+            conn_max_age=600,
+        )
     )
 }
 
