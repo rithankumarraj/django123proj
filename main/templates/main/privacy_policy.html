@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy policy | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <style>
+    .policy-page {
+      min-height: 100vh;
+      background: #0d1012;
+      color: #f5f5f3;
+    }
+
+    .policy-header {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .policy-main {
+      max-width: 900px;
+      padding-top: 3.5rem;
+      padding-bottom: 5rem;
+    }
+
+    .policy-main h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      font-weight: 800;
+      letter-spacing: -0.08em;
+    }
+
+    .policy-updated,
+    .policy-main p,
+    .policy-main li {
+      color: rgba(255,255,255,0.72);
+      line-height: 1.7;
+    }
+
+    .policy-updated {
+      margin: 0.75rem 0 2.5rem;
+      font-size: 0.86rem;
+    }
+
+    .policy-section {
+      padding: 1.4rem 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .policy-section h2 {
+      margin: 0 0 0.6rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .policy-section p:last-child,
+    .policy-section ul:last-child {
+      margin-bottom: 0;
+    }
+
+    .policy-contact {
+      color: #f5f5f3;
+      text-decoration: none;
+    }
+
+    .policy-contact:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  </style>
+</head>
+<body class="policy-page">
+  <header class="policy-header">
+    <div class="container d-flex justify-content-between align-items-center py-3">
+      <a href="{% url 'home' %}" class="brand-mark checkout-brand text-decoration-none">J CSD</a>
+      <a href="{% url 'home' %}" class="back-link">← Back to store</a>
+    </div>
+  </header>
+
+  <main class="container policy-main">
+    <p class="section-kicker" style="color: rgba(255,255,255,0.58);">Your information</p>
+    <h1>Privacy policy</h1>
+    <p class="policy-updated">Last updated: October 22, 2026</p>
+
+    <section class="policy-section">
+      <h2>Information we handle</h2>
+      <p>
+        When you create an account or place an order, we handle the account
+        details you provide, such as your username, email address and name, along
+        with the items you order and the delivery address you enter. Your cart
+        is stored in your session so it can be kept while you shop.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>How we use it</h2>
+      <p>
+        We use this information to manage your account, keep your cart, prepare
+        and deliver orders, show order and payment status, and respond to
+        customer support requests.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>Orders and payment information</h2>
+      <p>
+        Order records include products, quantities, totals, delivery details and
+        payment status. The current site does not ask for or store full payment
+        card details. Payment processing may change if a payment provider is
+        added in the future; this policy should be updated if that happens.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>Who can access order details</h2>
+      <p>
+        Order and delivery details are available to authorized store staff and
+        delivery personnel so they can process and fulfil orders. We do not
+        publish customer addresses or account details on the public storefront.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>Sessions and security</h2>
+      <p>
+        The site uses session cookies for sign-in and cart functionality. Keep
+        your sign-in credentials private and contact us if you believe your
+        account has been accessed without permission. We take reasonable steps
+        to protect account and order information.
+      </p>
+    </section>
+
+    <section class="policy-section">
+      <h2>Access and questions</h2>
+      <p>
+        For questions about your information, or to request access, correction or
+        deletion, contact us at
+        <a class="policy-contact" href="mailto:support@jcsd.com">support@jcsd.com</a>.
+        We may need to retain some order information to complete transactions
+        and meet applicable obligations.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

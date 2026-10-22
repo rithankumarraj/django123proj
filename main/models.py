@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 import uuid
 
 
@@ -12,6 +13,18 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class DeliveryProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        related_name="delivery_profile",
+        on_delete=models.CASCADE,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Delivery profile for {self.user.get_username()}"
 
 
 class Order(models.Model):
@@ -29,7 +42,18 @@ class Order(models.Model):
     ]
 
     product = models.ForeignKey(Product, related_name="orders", on_delete=models.CASCADE)
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="orders",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     customer_name = models.CharField(max_length=100, default="Walk-in customer")
+    delivery_address = models.CharField(max_length=255, blank=True)
+    delivery_city = models.CharField(max_length=100, blank=True)
+    delivery_state = models.CharField(max_length=100, blank=True)
+    delivery_postal_code = models.CharField(max_length=20, blank=True)
     quantity = models.PositiveIntegerField(default=1)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(

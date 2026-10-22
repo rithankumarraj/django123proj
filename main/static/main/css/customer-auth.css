@@ -1,0 +1,105 @@
+.customer-auth-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(145deg, rgba(10, 12, 14, 0.78), rgba(10, 12, 14, 0.92)),
+    url("../images/hero-banner.png") center / cover no-repeat;
+}
+
+.customer-auth-card {
+  width: min(100%, 440px);
+  padding: clamp(24px, 6vw, 40px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background: rgba(16, 20, 22, 0.88);
+  color: #f5f5f3;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+}
+
+.customer-auth-brand {
+  display: inline-block;
+  margin-bottom: 26px;
+  font-size: 1.6rem;
+}
+
+.customer-auth-card h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.06em;
+}
+
+.customer-auth-subtitle {
+  margin: 8px 0 26px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.customer-auth-field {
+  margin-bottom: 18px;
+}
+
+.customer-auth-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.customer-auth-field input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font: inherit;
+}
+
+.customer-auth-field input:focus {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.customer-auth-errors {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 112, 112, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 112, 112, 0.1);
+  color: #ffc0c0;
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.customer-auth-errors p {
+  margin: 4px 0;
+}
+
+.customer-auth-submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f5f3;
+  color: #111;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.customer-auth-back {
+  display: block;
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.customer-auth-back:hover {
+  color: #fff;
+}

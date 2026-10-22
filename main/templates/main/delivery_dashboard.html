@@ -1,0 +1,182 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery profile | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, sans-serif;
+      background: #0b0e10;
+      color: #f3f5f7;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: linear-gradient(180deg, #0b0e10, #12181b); }
+    a { color: inherit; text-decoration: none; }
+    .shell { width: min(1200px, 100%); margin: 0 auto; padding: 28px 20px 56px; }
+    .topbar, .section-heading, .order-heading, .order-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .topbar { padding-bottom: 20px; border-bottom: 1px solid #ffffff18; }
+    .brand { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.06em; }
+    .nav-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .nav-link { padding: 9px 13px; border: 1px solid #ffffff22; border-radius: 999px; color: #f3f5f7; font-size: .85rem; }
+    h1 { margin: 30px 0 8px; font-size: clamp(2rem, 5vw, 3.4rem); letter-spacing: -.07em; }
+    .muted { color: #a9b1b8; }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 24px 0; }
+    .stat, .panel, .order-card { border: 1px solid #ffffff14; border-radius: 18px; background: #ffffff06; }
+    .stat { padding: 18px; }
+    .stat-label { display: block; color: #a9b1b8; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 6px; font-size: 2rem; }
+    .panel { margin-top: 22px; padding: 20px; overflow-x: auto; }
+    .section-heading { margin-bottom: 16px; }
+    h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.04em; }
+    .stock-table { width: 100%; border-collapse: collapse; }
+    .stock-table th, .stock-table td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #ffffff14; }
+    .stock-table th { color: #a9b1b8; font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; }
+    .availability { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #2fcf7a1f; color: #55dd96; font-size: .78rem; font-weight: 700; }
+    .availability.unavailable { background: #ff76761f; color: #ff9292; }
+    .order-list { display: grid; gap: 14px; }
+    .order-card { padding: 18px; }
+    .order-heading { align-items: flex-start; }
+    .order-heading h3 { margin: 0 0 5px; font-size: 1.05rem; }
+    .order-status { color: #f3d79f; font-size: .82rem; font-weight: 700; }
+    .order-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; margin: 16px 0; }
+    .detail-label { display: block; margin-bottom: 4px; color: #a9b1b8; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
+    .order-footer { align-items: flex-end; padding-top: 14px; border-top: 1px solid #ffffff14; }
+    .status-form { display: flex; align-items: center; gap: 8px; }
+    select, button { min-height: 40px; padding: 8px 12px; border: 1px solid #ffffff25; border-radius: 10px; background: #14191c; color: #f3f5f7; font: inherit; }
+    button { border: 0; border-radius: 999px; background: #f3f5f7; color: #101417; font-weight: 700; cursor: pointer; }
+    .messages { margin: 14px 0; color: #55dd96; }
+
+    @media (max-width: 640px) {
+      .topbar, .section-heading, .order-footer { align-items: flex-start; flex-direction: column; }
+      .stats, .order-details { grid-template-columns: 1fr; }
+      .status-form { width: 100%; }
+      .status-form select { flex: 1; min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="{% url 'delivery_dashboard' %}">J CSD Delivery</a>
+      <nav class="nav-actions">
+        <a class="nav-link" href="{% url 'home' %}">Storefront</a>
+        <form method="post" action="{% url 'customer_logout' %}">
+          {% csrf_token %}
+          <button type="submit">Log out</button>
+        </form>
+      </nav>
+    </header>
+
+    <h1>Delivery profile</h1>
+    <p class="muted">Review product availability, delivery addresses, and update order progress.</p>
+
+    {% if messages %}
+      {% for message in messages %}<p class="messages">{{ message }}</p>{% endfor %}
+    {% endif %}
+
+    <section class="stats">
+      <article class="stat">
+        <span class="stat-label">Products available</span>
+        <strong>{{ available_stock_count }}</strong>
+      </article>
+      <article class="stat">
+        <span class="stat-label">Products unavailable</span>
+        <strong>{{ unavailable_stock_count }}</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Stock availability</h2>
+        <span class="muted">Availability is maintained by store admins.</span>
+      </div>
+      <table class="stock-table">
+        <thead>
+          <tr><th>Product</th><th>Pack size</th><th>Availability</th></tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr>
+              <td>{{ product.name }}</td>
+              <td>{{ product.volume }}</td>
+              <td>
+                {% if product.available %}
+                  <span class="availability">Available</span>
+                {% else %}
+                  <span class="availability unavailable">Unavailable</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="muted">No products found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Delivery orders</h2>
+        <span class="muted">{{ orders|length }} order{{ orders|length|pluralize }}</span>
+      </div>
+      <div class="order-list">
+        {% for order in orders %}
+          <article class="order-card">
+            <div class="order-heading">
+              <div>
+                <h3>Order #{{ order.id }} · {{ order.customer_name }}</h3>
+                <span class="muted">
+                  {% for item in order.items.all %}
+                    {{ item.product.name }} × {{ item.quantity }}{% if not forloop.last %}, {% endif %}
+                  {% empty %}
+                    {{ order.product.name }} × {{ order.quantity }}
+                  {% endfor %}
+                </span>
+              </div>
+              <span class="order-status">{{ order.get_status_display }}</span>
+            </div>
+
+            <div class="order-details">
+              <div>
+                <span class="detail-label">Delivery address</span>
+                {% if order.delivery_address %}
+                  {{ order.delivery_address }}<br>
+                  {{ order.delivery_city }}, {{ order.delivery_state }} {{ order.delivery_postal_code }}
+                {% else %}
+                  <span class="muted">No delivery address on this order.</span>
+                {% endif %}
+              </div>
+              <div>
+                <span class="detail-label">Order total</span>
+                ₹{{ order.total_amount|floatformat:2 }}
+              </div>
+            </div>
+
+            <div class="order-footer">
+              <span class="muted">Payment: {{ order.get_payment_status_display }}</span>
+              <form class="status-form" method="post" action="{% url 'update_delivery_status' order.id %}">
+                {% csrf_token %}
+                <label class="visually-hidden" for="status-{{ order.id }}">Update order status</label>
+                <select id="status-{{ order.id }}" name="status">
+                  {% for status, label in order.STATUS_CHOICES %}
+                    <option value="{{ status }}" {% if order.status == status %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit">Update</button>
+              </form>
+            </div>
+          </article>
+        {% empty %}
+          <p class="muted">No delivery orders yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

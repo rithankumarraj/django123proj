@@ -299,6 +299,7 @@
       <div class="brand">J CSD Admin</div>
       <div class="nav-actions">
         <a class="chip" href="{% url 'home' %}">Storefront</a>
+        <a class="chip" href="{% url 'delivery_login' %}">Delivery login</a>
         <a class="chip" href="/admin/">Django Admin</a>
       </div>
     </header>
@@ -415,6 +416,26 @@
     </div>
 
     <section class="panel">
+      <h2>Create delivery account</h2>
+      <p class="muted">Delivery staff can view product availability and customer delivery addresses, and update order status.</p>
+      <form method="post" action="{% url 'create_delivery_account' %}">
+        {% csrf_token %}
+        <div class="form-grid">
+          {% for field in delivery_account_form %}
+            <div class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for error in field.errors %}<span class="muted">{{ error }}</span>{% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Create delivery account</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
       <h2>Delivery status</h2>
       <table class="status-list">
         <thead>
@@ -422,6 +443,7 @@
             <th>Order</th>
             <th>Product</th>
             <th>Customer</th>
+            <th>Delivery address</th>
             <th>Payment</th>
             <th>Status</th>
           </tr>
@@ -439,6 +461,13 @@
             </td>
             <td>{{ order.customer_name }}</td>
             <td>
+              {% if order.delivery_address %}
+                {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }} {{ order.delivery_postal_code }}
+              {% else %}
+                <span class="muted">Address not provided</span>
+              {% endif %}
+            </td>
+            <td>
               <span class="status-badge status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
             </td>
             <td>
@@ -447,7 +476,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="muted">No delivery orders found.</td>
+            <td colspan="6" class="muted">No delivery orders found.</td>
           </tr>
           {% endfor %}
         </tbody>

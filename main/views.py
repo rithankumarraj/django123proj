@@ -2,23 +2,45 @@ from decimal import Decimal
 import json
 import uuid
 
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
 from django.db import transaction
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .forms import AdminLoginForm, ProductForm
-from .models import Order, OrderItem, Product
+from .forms import (
+    AdminLoginForm,
+    CustomerRegistrationForm,
+    DeliveryAccountForm,
+    DeliveryAddressForm,
+    EmailAuthenticationForm,
+    ProductForm,
+)
+from .models import DeliveryProfile, Order, OrderItem, Product
 from .payments import process_payment_webhook, sign_webhook_payload
 
 MAX_CART_QUANTITY = 1_000_000
 CART_SESSION_KEY = "cart"
+
+
+def _customer_redirect_target(request):
+    next_url = request.POST.get("next") or request.GET.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return reverse("customer_orders")
 
 
 def _cart_items(request):
@@ -61,6 +83,10 @@ def _cart_quantity(request):
     return sum(item["quantity"] for item in _cart_items(request))
 
 
+def _is_delivery_user(user):
+    return user.is_authenticated and DeliveryProfile.objects.filter(user=user).exists()
+
+
 def home(request):
     products = [
         {
@@ -81,8 +107,20 @@ def home(request):
     return render(
         request,
         "main/home.html",
-        {"products": products, "cart_count": _cart_quantity(request)},
+        {
+            "products": products,
+            "cart_count": _cart_quantity(request),
+            "is_delivery_user": _is_delivery_user(request.user),
+        },
     )
+
+
+def about(request):
+    return render(request, "main/about.html")
+
+
+def privacy_policy(request):
+    return render(request, "main/privacy_policy.html")
 
 
 def product_detail(request, product_id):
@@ -100,6 +138,7 @@ def product_detail(request, product_id):
                 "image": static(product.image),
             },
             "cart_count": _cart_quantity(request),
+            "is_delivery_user": _is_delivery_user(request.user),
         },
     )
 
@@ -127,6 +166,9 @@ def add_to_cart(request, product_id):
 
     cart[str(product.id)] = new_quantity
     request.session[CART_SESSION_KEY] = cart
+    if request.headers.get("Accept") == "application/json":
+        return JsonResponse({"cart_count": _cart_quantity(request)})
+
     messages.success(request, f"{product.name} added to your cart.")
     return redirect("cart")
 
@@ -159,6 +201,24 @@ def update_cart(request):
 
     request.session[CART_SESSION_KEY] = cart
     request.session.modified = True
+    if action == "update" and request.headers.get("Accept") == "application/json":
+        items = _cart_items(request)
+        return JsonResponse(
+            {
+                "cart_count": sum(item["quantity"] for item in items),
+                "cart_total": str(
+                    sum((item["line_total"] for item in items), Decimal("0.00"))
+                ),
+                "items": [
+                    {
+                        "product_id": item["product"].id,
+                        "quantity": item["quantity"],
+                        "line_total": str(item["line_total"]),
+                    }
+                    for item in items
+                ],
+            }
+        )
     return redirect("cart")
 
 
@@ -176,23 +236,42 @@ def cart_page(request):
     )
 
 
+@login_required(login_url="customer_login")
+def customer_orders(request):
+    orders = (
+        Order.objects.filter(customer=request.user)
+        .select_related("product")
+        .prefetch_related("items__product")
+        .order_by("-created_at", "-pk")
+    )
+    return render(request, "main/customer_orders.html", {"orders": orders})
+
+
 @require_POST
 def cart_checkout(request):
+    if not request.user.is_authenticated:
+        return redirect_to_login(reverse("cart"), login_url=reverse("customer_login"))
+
     items = _cart_items(request)
     if not items:
         return redirect("cart")
 
-    first_name = request.POST.get("first_name", "").strip()
-    last_name = request.POST.get("last_name", "").strip()
-    if not first_name or not last_name:
-        return HttpResponseBadRequest("First and last name are required.")
+    address_form = DeliveryAddressForm(request.POST)
+    if not address_form.is_valid():
+        return HttpResponseBadRequest("Complete all required delivery details.")
+    details = address_form.cleaned_data
 
     total_amount = sum((item["line_total"] for item in items), Decimal("0.00"))
     total_quantity = sum(item["quantity"] for item in items)
     with transaction.atomic():
         order = Order.objects.create(
             product=items[0]["product"],
-            customer_name=f"{first_name} {last_name}",
+            customer=request.user,
+            customer_name=f"{details['first_name']} {details['last_name']}",
+            delivery_address=details["address"],
+            delivery_city=details["city"],
+            delivery_state=details["state"],
+            delivery_postal_code=details["postal_code"],
             quantity=total_quantity,
             total_amount=total_amount,
         )
@@ -212,6 +291,7 @@ def cart_checkout(request):
     return redirect("payment_page", payment_reference=order.payment_reference)
 
 
+@login_required(login_url="customer_login")
 def checkout(request, product_id):
     product = get_object_or_404(Product, id=product_id, available=True)
     raw_quantity = request.GET.get("qty", "1")
@@ -226,13 +306,18 @@ def checkout(request, product_id):
     total_price = unit_price * quantity
     order = None
     if request.method == "POST":
-        first_name = request.POST.get("first_name", "").strip()
-        last_name = request.POST.get("last_name", "").strip()
-        if not first_name or not last_name:
-            return HttpResponseBadRequest("First and last name are required.")
+        address_form = DeliveryAddressForm(request.POST)
+        if not address_form.is_valid():
+            return HttpResponseBadRequest("Complete all required delivery details.")
+        details = address_form.cleaned_data
         order = Order.objects.create(
             product=product,
-            customer_name=f"{first_name} {last_name}",
+            customer=request.user,
+            customer_name=f"{details['first_name']} {details['last_name']}",
+            delivery_address=details["address"],
+            delivery_city=details["city"],
+            delivery_state=details["state"],
+            delivery_postal_code=details["postal_code"],
             quantity=quantity,
             total_amount=total_price,
         )
@@ -260,15 +345,25 @@ def checkout(request, product_id):
             "unit_price": unit_price,
             "total_price": total_price,
             "payment_simulation_enabled": settings.PAYMENT_SIMULATION_ENABLED,
+            "customer_first_name": request.user.first_name,
+            "customer_last_name": request.user.last_name,
+            "customer_address_form": {
+                "address": request.POST.get("address", ""),
+                "city": request.POST.get("city", ""),
+                "state": request.POST.get("state", ""),
+                "postal_code": request.POST.get("postal_code", ""),
+            },
         },
     )
 
 
+@login_required(login_url="customer_login")
 def payment_page(request, payment_reference):
     order = get_object_or_404(
         Order.objects.select_related("product").prefetch_related(
             "items__product"
         ),
+        customer=request.user,
         payment_reference=payment_reference,
     )
     order_items = list(order.items.all())
@@ -359,6 +454,119 @@ def admin_login(request):
     )
 
 
+def delivery_login(request):
+    if request.user.is_authenticated and DeliveryProfile.objects.filter(user=request.user).exists():
+        return redirect("delivery_dashboard")
+
+    form = EmailAuthenticationForm(request, data=request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.get_user()
+        if DeliveryProfile.objects.filter(user=user).exists():
+            login(request, user)
+            return redirect("delivery_dashboard")
+        form.add_error(None, "This account does not have delivery access.")
+
+    return render(request, "main/delivery_login.html", {"form": form})
+
+
+@login_required(login_url="delivery_login")
+def delivery_dashboard(request):
+    if not DeliveryProfile.objects.filter(user=request.user).exists():
+        return HttpResponseForbidden("Delivery access is required.")
+
+    orders = (
+        Order.objects.select_related("product")
+        .prefetch_related("items__product")
+        .order_by("status", "-created_at")
+    )
+    products = Product.objects.order_by("name")
+    return render(
+        request,
+        "main/delivery_dashboard.html",
+        {
+            "orders": orders,
+            "products": products,
+            "available_stock_count": products.filter(available=True).count(),
+            "unavailable_stock_count": products.filter(available=False).count(),
+        },
+    )
+
+
+@login_required(login_url="delivery_login")
+@require_POST
+def update_delivery_status(request, order_id):
+    if not DeliveryProfile.objects.filter(user=request.user).exists():
+        return HttpResponseForbidden("Delivery access is required.")
+
+    order = get_object_or_404(Order, pk=order_id)
+    status = request.POST.get("status")
+    valid_statuses = {choice for choice, _label in Order.STATUS_CHOICES}
+    if status not in valid_statuses:
+        return HttpResponseBadRequest("Choose a valid delivery status.")
+
+    order.status = status
+    order.delivered_at = timezone.now() if status == "delivered" else None
+    order.save(update_fields=["status", "delivered_at"])
+    messages.success(request, f"Order #{order.pk} delivery status updated.")
+    return redirect("delivery_dashboard")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def create_delivery_account(request):
+    form = DeliveryAccountForm(request.POST)
+    if form.is_valid():
+        with transaction.atomic():
+            user = form.save()
+            DeliveryProfile.objects.create(user=user)
+        messages.success(request, f"Delivery account created for {user.get_username()}.")
+    else:
+        for error in form.errors.values():
+            for message in error:
+                messages.error(request, message)
+    return redirect("admin_dashboard")
+
+
+def customer_login(request):
+    if request.user.is_authenticated:
+        return redirect(_customer_redirect_target(request))
+
+    form = EmailAuthenticationForm(request, data=request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        login(request, form.get_user())
+        return redirect(_customer_redirect_target(request))
+
+    return render(
+        request,
+        "main/customer_login.html",
+        {"form": form, "next": request.POST.get("next") or request.GET.get("next", "")},
+    )
+
+
+def customer_register(request):
+    if request.user.is_authenticated:
+        return redirect(_customer_redirect_target(request))
+
+    form = CustomerRegistrationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        return redirect(_customer_redirect_target(request))
+
+    return render(
+        request,
+        "main/customer_register.html",
+        {"form": form, "next": request.POST.get("next") or request.GET.get("next", "")},
+    )
+
+
+@require_POST
+def customer_logout(request):
+    logout(request)
+    return redirect("home")
+
+
 @login_required
 @user_passes_test(lambda user: user.is_staff)
 def admin_dashboard(request):
@@ -392,5 +600,6 @@ def admin_dashboard(request):
         "total_products": products.count(),
         "delivered_count": orders.filter(status="delivered").count(),
         "pending_count": orders.filter(status="pending").count(),
+        "delivery_account_form": DeliveryAccountForm(),
     }
     return render(request, "main/admin_dashboard.html", context)

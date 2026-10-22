@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create account | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'main/css/customer-auth.css' %}">
+</head>
+<body class="product-page-body">
+  <main class="customer-auth-shell">
+    <section class="customer-auth-card">
+      <a href="{% url 'home' %}" class="brand-mark customer-auth-brand">J CSD</a>
+      <h1>Create account</h1>
+      <p class="customer-auth-subtitle">Create a customer account to place and track your orders.</p>
+
+      {% if form.errors %}
+        <div class="customer-auth-errors" role="alert">
+          {% for field in form %}
+            {% for error in field.errors %}<p>{{ error }}</p>{% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% for field in form %}
+          <div class="customer-auth-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
+          </div>
+        {% endfor %}
+        <button class="customer-auth-submit" type="submit">Create account</button>
+      </form>
+
+      <a class="customer-auth-back" href="{% url 'customer_login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Already have an account? Sign in</a>
+      <a class="customer-auth-back" href="{% url 'home' %}">Back to store</a>
+    </section>
+  </main>
+</body>
+</html>

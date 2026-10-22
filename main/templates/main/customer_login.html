@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer sign in | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'main/css/customer-auth.css' %}">
+</head>
+<body class="product-page-body">
+  <main class="customer-auth-shell">
+    <section class="customer-auth-card">
+      <a href="{% url 'home' %}" class="brand-mark customer-auth-brand">J CSD</a>
+      <h1>Welcome back</h1>
+      <p class="customer-auth-subtitle">Sign in to your customer account to continue shopping.</p>
+
+      {% if form.errors %}
+        <div class="customer-auth-errors" role="alert">
+          <p>We couldn't sign you in with those details.</p>
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="customer-auth-field">
+          <label for="{{ form.username.id_for_label }}">Username or email</label>
+          {{ form.username }}
+        </div>
+        <div class="customer-auth-field">
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password }}
+        </div>
+        <button class="customer-auth-submit" type="submit">Sign in</button>
+      </form>
+
+      <a class="customer-auth-back" href="{% url 'customer_register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">New here? Create a customer account</a>
+      <a class="customer-auth-back" href="{% url 'home' %}">Back to store</a>
+    </section>
+  </main>
+</body>
+</html>

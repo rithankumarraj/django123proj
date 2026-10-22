@@ -32,31 +32,27 @@
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
                                     <label for="firstName">First name</label>
-                                    <input id="firstName" name="first_name" type="text" autocomplete="given-name" required>
+                                    <input id="firstName" name="first_name" type="text" value="{{ customer_first_name }}" autocomplete="given-name" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label for="lastName">Last name</label>
-                                    <input id="lastName" name="last_name" type="text" autocomplete="family-name" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="email">Email</label>
-                                    <input id="email" name="email" type="email" autocomplete="email" required>
+                                    <input id="lastName" name="last_name" type="text" value="{{ customer_last_name }}" autocomplete="family-name" required>
                                 </div>
                                 <div class="col-12">
                                     <label for="address">Address</label>
-                                    <input id="address" name="address" type="text" autocomplete="street-address" required>
+                                    <input id="address" name="address" type="text" value="{{ customer_address_form.address }}" autocomplete="street-address" required>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label for="city">City</label>
-                                    <input id="city" name="city" type="text" autocomplete="address-level2" required>
+                                    <input id="city" name="city" type="text" value="{{ customer_address_form.city }}" autocomplete="address-level2" required>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label for="state">State</label>
-                                    <input id="state" name="state" type="text" autocomplete="address-level1" required>
+                                    <input id="state" name="state" type="text" value="{{ customer_address_form.state }}" autocomplete="address-level1" required>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label for="zip">ZIP</label>
-                                    <input id="zip" name="zip" type="text" autocomplete="postal-code" required>
+                                    <input id="zip" name="postal_code" type="text" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
                                 </div>
                             </div>
                         </div>

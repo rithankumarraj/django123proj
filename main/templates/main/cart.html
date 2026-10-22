@@ -87,14 +87,51 @@
     }
 
     .cart-quantity {
-      width: 84px;
-      padding: 9px 10px;
-      border: 1px solid rgba(255,255,255,0.17);
-      border-radius: 10px;
+      width: 46px;
+      padding: 9px 0;
+      border: 0;
+      outline: none;
       background: #171b1e;
       color: #fff;
       font: inherit;
       text-align: center;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    .cart-quantity::-webkit-inner-spin-button,
+    .cart-quantity::-webkit-outer-spin-button {
+      margin: 0;
+      appearance: none;
+    }
+
+    .cart-quantity-control {
+      display: inline-flex;
+      align-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.17);
+      border-radius: 10px;
+      background: #171b1e;
+    }
+
+    .cart-quantity-step {
+      width: 34px;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      font: inherit;
+      font-size: 1.25rem;
+      cursor: pointer;
+    }
+
+    .cart-quantity-step:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .cart-quantity-step:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: -3px;
     }
 
     .cart-remove {
@@ -249,7 +286,7 @@
         <p class="section-kicker" style="color: rgba(255,255,255,0.6);">Your selection</p>
         <h1>Your cart</h1>
       </div>
-      <span class="cart-muted">{{ cart_count }} item{{ cart_count|pluralize }}</span>
+      <span class="cart-muted" data-cart-count>{{ cart_count }} item{{ cart_count|pluralize }}</span>
     </div>
 
     {% if messages %}
@@ -258,7 +295,7 @@
 
     <section class="cart-panel">
       {% if items %}
-        <form method="post" action="{% url 'update_cart' %}">
+        <form method="post" action="{% url 'update_cart' %}" data-cart-update-form>
           {% csrf_token %}
           <input type="hidden" name="action" value="update">
           {% for item in items %}
@@ -267,11 +304,15 @@
               <div>
                 <h2>{{ item.product.name }}</h2>
                 <div class="cart-muted">{{ item.product.volume }} · ₹{{ item.product.price }} each</div>
-                <div class="cart-item-price">₹{{ item.line_total|floatformat:2 }}</div>
+                <div class="cart-item-price" data-line-total>₹{{ item.line_total|floatformat:2 }}</div>
               </div>
               <div class="cart-item-actions">
                 <label class="visually-hidden" for="quantity-{{ item.product.id }}">Quantity for {{ item.product.name }}</label>
-                <input class="cart-quantity" id="quantity-{{ item.product.id }}" name="quantity_{{ item.product.id }}" type="number" min="1" max="1000000" value="{{ item.quantity }}" required>
+                <span class="cart-quantity-control">
+                  <button class="cart-quantity-step" type="button" data-quantity-step="-1" aria-label="Decrease quantity for {{ item.product.name }}">−</button>
+                  <input class="cart-quantity" id="quantity-{{ item.product.id }}" name="quantity_{{ item.product.id }}" type="number" min="1" max="1000000" step="1" value="{{ item.quantity }}" data-unit-price="{{ item.product.price }}" required>
+                  <button class="cart-quantity-step" type="button" data-quantity-step="1" aria-label="Increase quantity for {{ item.product.name }}">+</button>
+                </span>
                 <button class="cart-remove" type="submit" form="remove-{{ item.product.id }}">Remove</button>
               </div>
             </article>
@@ -279,12 +320,16 @@
           <div class="cart-footer">
             <div>
               <span class="cart-total-label">Cart total</span>
-              <strong class="cart-total">₹{{ cart_total|floatformat:2 }}</strong>
+              <strong class="cart-total" data-cart-total>₹{{ cart_total|floatformat:2 }}</strong>
             </div>
             <div class="cart-footer-actions">
-              <button class="cart-action-button" type="submit">Update quantities</button>
-              <a class="cart-action-button cart-action-primary" href="#cart-checkout">Checkout</a>
+              {% if user.is_authenticated %}
+                <a class="cart-action-button cart-action-primary" href="#cart-checkout">Checkout</a>
+              {% else %}
+                <a class="cart-action-button cart-action-primary" href="{% url 'customer_login' %}?next={% url 'cart' %}">Sign in to checkout</a>
+              {% endif %}
             </div>
+            <p class="cart-message" data-cart-save-status aria-live="polite" role="status"></p>
           </div>
         </form>
 
@@ -296,24 +341,38 @@
           </form>
         {% endfor %}
 
-        <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}">
-          {% csrf_token %}
-          <div>
-            <label for="first-name">First name</label>
-            <input id="first-name" name="first_name" autocomplete="given-name" required>
-          </div>
-          <div>
-            <label for="last-name">Last name</label>
-            <input id="last-name" name="last_name" autocomplete="family-name" required>
-          </div>
-          <div class="full-width">
-            <label for="customer-email">Email</label>
-            <input id="customer-email" name="email" type="email" autocomplete="email" required>
-          </div>
-          <div class="full-width">
-            <button class="cart-action-button cart-action-primary" type="submit">Continue to payment · ₹{{ cart_total|floatformat:2 }}</button>
-          </div>
-        </form>
+        {% if user.is_authenticated %}
+          <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}">
+            {% csrf_token %}
+            <div>
+              <label for="first-name">First name</label>
+              <input id="first-name" name="first_name" value="{{ user.first_name }}" autocomplete="given-name" required>
+            </div>
+            <div>
+              <label for="last-name">Last name</label>
+              <input id="last-name" name="last_name" value="{{ user.last_name }}" autocomplete="family-name" required>
+            </div>
+            <div class="full-width">
+              <label for="delivery-address">Delivery address</label>
+              <input id="delivery-address" name="address" autocomplete="street-address" required>
+            </div>
+            <div>
+              <label for="delivery-city">City</label>
+              <input id="delivery-city" name="city" autocomplete="address-level2" required>
+            </div>
+            <div>
+              <label for="delivery-state">State</label>
+              <input id="delivery-state" name="state" autocomplete="address-level1" required>
+            </div>
+            <div class="full-width">
+              <label for="delivery-postal-code">ZIP / postal code</label>
+              <input id="delivery-postal-code" name="postal_code" autocomplete="postal-code" required>
+            </div>
+            <div class="full-width">
+              <button class="cart-action-button cart-action-primary" type="submit" data-cart-checkout-total>Continue to payment · ₹{{ cart_total|floatformat:2 }}</button>
+            </div>
+          </form>
+        {% endif %}
       {% else %}
         <div class="cart-empty">
           <h2>Your cart is empty</h2>
@@ -323,5 +382,6 @@
       {% endif %}
     </section>
   </main>
+  <script src="{% static 'main/cart.js' %}?v=instant-cart-2" defer></script>
 </body>
 </html>
