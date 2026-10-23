@@ -10,7 +10,7 @@ from decimal import Decimal
 from allauth.core.exceptions import ImmediateHttpResponse
 
 from .adapters import AdminGoogleAccountAdapter
-from .models import DeliveryProfile, Order, OrderItem, Product
+from .models import CustomerProfile, DeliveryProfile, Order, OrderItem, Product
 from .payments import sign_webhook_payload
 
 
@@ -213,6 +213,80 @@ class CustomerAuthenticationTests(TestCase):
         self.assertRedirects(response, reverse("customer_orders"))
 
 
+class CustomerProfileTests(TestCase):
+    def setUp(self):
+        self.customer = get_user_model().objects.create_user(
+            username="profile-customer",
+            password="old-profile-password",
+            first_name="Profile",
+            last_name="Customer",
+        )
+
+    def test_profile_page_requires_sign_in(self):
+        response = self.client.get(reverse("customer_profile"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('customer_login')}?next={reverse('customer_profile')}",
+        )
+
+    def test_profile_page_shows_password_change_for_signed_in_customer(self):
+        self.client.force_login(self.customer)
+
+        response = self.client.get(reverse("customer_profile"))
+
+        self.assertContains(response, "Change password")
+        self.assertContains(response, "Enter it below to set a new password.")
+
+    def test_profile_updates_username_and_saved_delivery_details(self):
+        self.client.force_login(self.customer)
+
+        response = self.client.post(
+            reverse("customer_profile"),
+            {
+                "action": "save_profile",
+                "username": "updated-profile",
+                "first_name": "Profile",
+                "last_name": "Customer",
+                "phone": "+91 98765 43210",
+                "address": "10 Profile Road",
+                "city": "Pune",
+                "state": "Maharashtra",
+                "postal_code": "411001",
+            },
+        )
+
+        self.assertRedirects(response, reverse("customer_profile"))
+        self.customer.refresh_from_db()
+        profile = CustomerProfile.objects.get(user=self.customer)
+        self.assertEqual(self.customer.username, "updated-profile")
+        self.assertEqual(profile.phone, "+91 98765 43210")
+        self.assertEqual(profile.address, "10 Profile Road")
+        self.assertEqual(profile.city, "Pune")
+        self.assertEqual(profile.state, "Maharashtra")
+        self.assertEqual(profile.postal_code, "411001")
+
+    def test_profile_changes_password_and_keeps_customer_signed_in(self):
+        self.client.force_login(self.customer)
+
+        response = self.client.post(
+            reverse("customer_profile"),
+            {
+                "action": "change_password",
+                "old_password": "old-profile-password",
+                "new_password1": "new-secure-profile-password-927!",
+                "new_password2": "new-secure-profile-password-927!",
+            },
+        )
+
+        self.assertRedirects(response, reverse("customer_profile"))
+        self.customer.refresh_from_db()
+        self.assertTrue(
+            self.customer.check_password("new-secure-profile-password-927!")
+        )
+        self.assertEqual(response.wsgi_request.user, self.customer)
+
+
 class CustomerOrderHistoryTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -237,6 +311,7 @@ class CustomerOrderHistoryTests(TestCase):
             product=cls.product,
             customer=cls.customer,
             customer_name="History Customer",
+            customer_phone="+91 98765 43210",
             delivery_address="15 History Street",
             delivery_city="Pune",
             delivery_state="Maharashtra",
@@ -271,6 +346,7 @@ class CustomerOrderHistoryTests(TestCase):
         self.assertContains(response, "Payment: Paid")
         self.assertContains(response, "History Cola")
         self.assertContains(response, "15 History Street")
+        self.assertContains(response, "+91 98765 43210")
         self.assertNotContains(response, f"Order #{self.order.pk + 1}")
 
     def test_order_history_requires_sign_in(self):
@@ -281,12 +357,93 @@ class CustomerOrderHistoryTests(TestCase):
             f"{reverse('customer_login')}?next={reverse('customer_orders')}",
         )
 
+    def test_order_history_searches_order_number_product_and_delivery_address(self):
+        second_order = Order.objects.create(
+            product=self.product,
+            customer=self.customer,
+            customer_name="History Customer",
+            delivery_address="88 Lime Avenue",
+            delivery_city="Mumbai",
+            delivery_state="Maharashtra",
+            delivery_postal_code="400001",
+            quantity=1,
+            total_amount="90.00",
+        )
+        lime = Product.objects.create(
+            name="Searchable Lime",
+            description="Search test product",
+            price="90.00",
+            volume="330 ml",
+            image="main/images/cola.png",
+        )
+        OrderItem.objects.create(
+            order=second_order,
+            product=lime,
+            quantity=1,
+            unit_price="90.00",
+        )
+        self.client.force_login(self.customer)
+
+        for query, expected in (
+            (str(self.order.pk), self.order),
+            ("Searchable Lime", second_order),
+            ("Lime Avenue", second_order),
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(reverse("customer_orders"), {"q": query})
+                self.assertEqual(list(response.context["orders"]), [expected])
+                self.assertContains(response, f"Order #{expected.pk}")
+
+    def test_order_history_sorts_by_date_and_total(self):
+        lower_total_order = Order.objects.create(
+            product=self.product,
+            customer=self.customer,
+            customer_name="History Customer",
+            quantity=1,
+            total_amount="45.00",
+        )
+        higher_total_order = Order.objects.create(
+            product=self.product,
+            customer=self.customer,
+            customer_name="History Customer",
+            quantity=1,
+            total_amount="250.00",
+        )
+        self.client.force_login(self.customer)
+
+        expected_orders = {
+            "newest": [higher_total_order, lower_total_order, self.order],
+            "oldest": [self.order, lower_total_order, higher_total_order],
+            "total_high": [higher_total_order, self.order, lower_total_order],
+            "total_low": [lower_total_order, self.order, higher_total_order],
+        }
+        for sort_order, expected in expected_orders.items():
+            with self.subTest(sort=sort_order):
+                response = self.client.get(
+                    reverse("customer_orders"), {"sort": sort_order}
+                )
+                self.assertEqual(list(response.context["orders"]), expected)
+                self.assertEqual(response.context["sort_order"], sort_order)
+
+    def test_order_history_ignores_unknown_sort_option(self):
+        self.client.force_login(self.customer)
+
+        response = self.client.get(reverse("customer_orders"), {"sort": "random"})
+
+        self.assertEqual(response.context["sort_order"], "newest")
+        self.assertEqual(list(response.context["orders"]), [self.order])
+
     def test_storefront_shows_my_orders_link_for_signed_in_customer(self):
         self.client.force_login(self.customer)
 
         response = self.client.get(reverse("home"))
 
         self.assertContains(response, f'href="{reverse("customer_orders")}">My orders</a>')
+        self.assertContains(
+            response,
+            '<summary class="admin-access-button">history-customer</summary>',
+        )
+        self.assertContains(response, f'href="{reverse("customer_profile")}">My profile</a>')
 
 
 class CheckoutQuantityTests(TestCase):
@@ -321,12 +478,114 @@ class CheckoutQuantityTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    def test_checkout_requires_customer_login(self):
+    def test_checkout_is_available_without_customer_login(self):
         response = self.client.get(f"/checkout/{self.product.id}/?qty=3")
 
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="phone"')
+
+    def test_checkout_prefills_saved_profile_details(self):
+        self.client.force_login(self.customer)
+        CustomerProfile.objects.create(
+            user=self.customer,
+            phone="+91 98765 43210",
+            address="10 Profile Road",
+            city="Pune",
+            state="Maharashtra",
+            postal_code="411001",
+        )
+
+        response = self.client.get(f"/checkout/{self.product.id}/?qty=1")
+
+        self.assertContains(
+            response,
+            'id="phone" name="phone" type="tel" value="+91 98765 43210"',
+        )
+        self.assertContains(
+            response,
+            'id="address" name="address" type="text" value="10 Profile Road"',
+        )
+
+    def test_guest_checkout_creates_account_and_signs_customer_in(self):
+        response = self.client.post(
+            f"/checkout/{self.product.id}/?qty=2",
+            {
+                "first_name": "Guest",
+                "last_name": "Shopper",
+                "phone": "+91 98765 43210",
+                "address": "2 Guest Street",
+                "city": "Mumbai",
+                "state": "Maharashtra",
+                "postal_code": "400001",
+            },
+        )
+
+        order = Order.objects.get()
+        self.assertIsNotNone(order.customer)
+        self.assertEqual(order.customer_name, "Guest Shopper")
+        self.assertEqual(order.customer_phone, "+91 98765 43210")
+        self.assertEqual(order.customer.username, "guest")
+        self.assertEqual(order.customer.first_name, "Guest")
+        self.assertTrue(order.customer.has_usable_password())
+        self.assertFalse(order.customer.check_password("+91 98765 43210"))
+        self.assertTrue(
+            CustomerProfile.objects.filter(
+                user=order.customer,
+                phone="+91 98765 43210",
+                address="2 Guest Street",
+            ).exists()
+        )
+        self.assertEqual(order.quantity, 2)
         self.assertRedirects(
             response,
-            f"{reverse('customer_login')}?next=%2Fcheckout%2F{self.product.id}%2F%3Fqty%3D3",
+            reverse("payment_page", kwargs={"payment_reference": order.payment_reference}),
+        )
+        payment_page = self.client.get(response.url)
+        self.assertEqual(payment_page.status_code, 200)
+        self.assertContains(payment_page, "Delivery status")
+        self.assertContains(payment_page, "+91 98765 43210")
+        self.assertContains(payment_page, "Your account username is")
+        self.assertContains(payment_page, "set a password in your profile")
+        profile_page = self.client.get(reverse("customer_profile"))
+        self.assertContains(profile_page, "Set a password")
+        set_password_response = self.client.post(
+            reverse("customer_profile"),
+            {
+                "action": "set_password",
+                "new_password1": "NewSecurePass!358",
+                "new_password2": "NewSecurePass!358",
+            },
+        )
+        self.assertRedirects(set_password_response, reverse("customer_profile"))
+        self.client.logout()
+        self.assertTrue(
+            self.client.login(
+                username=order.customer.username,
+                password="NewSecurePass!358",
+            )
+        )
+
+    def test_guest_checkout_adds_suffix_when_first_name_username_exists(self):
+        get_user_model().objects.create_user(username="guest", password="ExistingPass!123")
+
+        response = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "Guest",
+                "last_name": "Shopper",
+                "phone": "+91 98765 43210",
+                "address": "2 Guest Street",
+                "city": "Mumbai",
+                "state": "Maharashtra",
+                "postal_code": "400001",
+            },
+        )
+
+        order = Order.objects.get()
+        self.assertEqual(order.customer.username, "guest1")
+        self.assertRedirects(
+            response,
+            reverse("payment_page", kwargs={"payment_reference": order.payment_reference}),
         )
 
     def test_product_page_includes_live_quantity_subtotal(self):
@@ -343,7 +602,7 @@ class CheckoutQuantityTests(TestCase):
             {
                 "first_name": "Test",
                 "last_name": "Customer",
-                "email": "customer@example.com",
+                "phone": "+91 98765 43210",
                 "address": "1 Test Street",
                 "city": "Mumbai",
                 "state": "Maharashtra",
@@ -362,11 +621,14 @@ class CheckoutQuantityTests(TestCase):
         self.assertContains(payment_page, "Confirm demo payment")
         self.assertContains(payment_page, "₹270.00")
         self.assertContains(payment_page, "No card, bank, or UPI payment is made.")
+        self.assertContains(payment_page, "payment-card--pending")
+        self.assertContains(payment_page, "payment-status-hero--unpaid")
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "pending")
         self.assertEqual(order.quantity, 3)
         self.assertEqual(str(order.total_amount), "270.00")
         self.assertEqual(order.delivery_address, "1 Test Street")
+        self.assertEqual(order.customer_phone, "+91 98765 43210")
         self.assertEqual(order.delivery_city, "Mumbai")
         self.assertEqual(order.delivery_state, "Maharashtra")
         self.assertEqual(order.delivery_postal_code, "400001")
@@ -400,6 +662,9 @@ class CheckoutQuantityTests(TestCase):
         confirmation = self.client.get(response.url)
         self.assertContains(confirmation, "Payment status")
         self.assertContains(confirmation, "Paid")
+        self.assertContains(confirmation, "payment-card--paid")
+        self.assertContains(confirmation, "payment-status-hero--paid")
+        self.assertContains(confirmation, "Total paid")
 
     @override_settings(
         PAYMENT_SIMULATION_ENABLED=True,
@@ -426,6 +691,9 @@ class CheckoutQuantityTests(TestCase):
         )
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "failed")
+        result = self.client.get(response.url)
+        self.assertContains(result, "payment-card--failed")
+        self.assertContains(result, "payment-status-hero--unpaid")
 
     @override_settings(PAYMENT_SIMULATION_ENABLED=False)
     def test_payment_page_does_not_claim_payment_when_simulation_disabled(self):
@@ -493,6 +761,11 @@ class HomeAddToCartTests(TestCase):
             f'action="/cart/add/{selected_product_id}/" data-product-add-to-cart',
         )
         self.assertContains(response, "Add to cart")
+        self.assertContains(response, 'data-product-image-link')
+        self.assertContains(
+            response,
+            f'href="{reverse("product_detail", kwargs={"product_id": selected_product_id})}"',
+        )
         self.assertContains(response, f'href="{reverse("about")}">')
         self.assertContains(response, "About us")
         self.assertContains(response, '<footer class="store-footer">')
@@ -501,6 +774,7 @@ class HomeAddToCartTests(TestCase):
         self.assertContains(response, 'href="https://wa.me/918056838888"')
         self.assertContains(response, f'href="{reverse("privacy_policy")}">Privacy policy</a>')
         self.assertContains(response, 'class="store-footer-mark"')
+        self.assertNotContains(response, 'href="/customer-register/">Create account</a>')
         self.assertContains(response, "Double-click a product to add it to your cart")
         self.assertContains(response, "Double-click to add")
         self.assertContains(response, "data-cart-feedback")
@@ -525,12 +799,10 @@ class HomeAddToCartTests(TestCase):
 
         self.assertContains(response, 'aria-label="Shopping cart, 2 items"')
         self.assertContains(response, 'class="cart-count" aria-hidden="true">2</span>')
-        self.assertContains(product_response, 'aria-label="Shopping cart, 2 items"')
-        self.assertContains(product_response, 'class="cart-count" aria-hidden="true">2</span>')
-        self.assertContains(
-            product_response,
-            'class="admin-access-button cart-access-button" data-scroll-cart',
-        )
+        self.assertContains(product_response, 'class="back-link">← Back</a>')
+        self.assertNotContains(product_response, 'data-scroll-cart')
+        self.assertNotContains(product_response, "wishlist-access-button")
+        self.assertNotContains(product_response, "Sign in")
 
     def test_ajax_add_to_cart_returns_updated_count_without_redirecting(self):
         product = Product.objects.create(
@@ -719,8 +991,8 @@ class DeliveryProfileTests(TestCase):
 
         self.assertContains(home, reverse("delivery_dashboard"))
         self.assertContains(home, "Delivery dashboard")
-        self.assertContains(product, reverse("delivery_dashboard"))
-        self.assertContains(product, "Delivery dashboard")
+        self.assertContains(product, 'class="back-link">← Back</a>')
+        self.assertNotContains(product, reverse("delivery_dashboard"))
 
     def test_customer_cannot_access_delivery_dashboard_or_change_status(self):
         self.client.force_login(self.customer)
@@ -928,7 +1200,7 @@ class CartTests(TestCase):
             {
                 "first_name": "Cart",
                 "last_name": "Customer",
-                "email": "cart@example.com",
+                "phone": "+91 98765 43210",
                 "address": "1 Cart Street",
                 "city": "Pune",
                 "state": "Maharashtra",
@@ -944,6 +1216,7 @@ class CartTests(TestCase):
         )
         self.assertEqual(order.total_amount, Decimal("290.00"))
         self.assertEqual(order.quantity, 3)
+        self.assertEqual(order.customer_phone, "+91 98765 43210")
         self.assertEqual(order.delivery_address, "1 Cart Street")
         self.assertEqual(order.delivery_city, "Pune")
         self.assertEqual(order.delivery_state, "Maharashtra")
@@ -955,7 +1228,7 @@ class CartTests(TestCase):
         self.assertContains(payment_page, "₹290.00")
         self.assertEqual(self.client.get(reverse("cart")).context["items"], [])
 
-    def test_cart_checkout_requires_customer_login_and_keeps_cart(self):
+    def test_cart_checkout_rejects_missing_delivery_details_and_keeps_cart(self):
         self.add_item(self.cola, "2")
 
         response = self.client.post(
@@ -963,17 +1236,148 @@ class CartTests(TestCase):
             {"first_name": "Cart", "last_name": "Customer"},
         )
 
-        self.assertRedirects(
-            response,
-            f"{reverse('customer_login')}?next=%2Fcart%2F",
-        )
+        self.assertEqual(response.status_code, 400)
         self.assertFalse(Order.objects.exists())
         self.assertEqual(self.client.get(reverse("cart")).context["cart_count"], 2)
+
+    def test_guest_can_checkout_cart_and_view_payment_by_order_reference(self):
+        self.add_item(self.cola, "2")
+
+        response = self.client.post(
+            reverse("cart_checkout"),
+            {
+                "first_name": "Guest",
+                "last_name": "Customer",
+                "phone": "+91 98765 43210",
+                "address": "1 Guest Street",
+                "city": "Pune",
+                "state": "Maharashtra",
+                "postal_code": "411001",
+            },
+        )
+
+        order = Order.objects.get()
+        self.assertIsNotNone(order.customer)
+        self.assertEqual(order.customer.username, "guest")
+        self.assertEqual(order.customer_name, "Guest Customer")
+        self.assertEqual(order.customer_phone, "+91 98765 43210")
+        self.assertRedirects(
+            response,
+            reverse("payment_page", kwargs={"payment_reference": order.payment_reference}),
+        )
+        self.assertEqual(self.client.get(response.url).status_code, 200)
+        self.assertEqual(self.client.get(reverse("cart")).context["items"], [])
+
+    def test_cart_shows_checkout_form_without_customer_login(self):
+        self.add_item(self.cola, "1")
+
+        response = self.client.get(reverse("cart"))
+
+        self.assertContains(response, 'id="cart-checkout"')
+        self.assertContains(response, 'name="phone"')
+        self.assertNotContains(response, "Sign in to checkout")
 
     def test_cart_rejects_invalid_quantity(self):
         response = self.add_item(self.cola, "0")
 
         self.assertEqual(response.status_code, 400)
+
+
+class WishlistTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.product = Product.objects.create(
+            name="Wishlist Cola",
+            description="Wishlist test product",
+            price="90.00",
+            volume="330 ml",
+            image="main/images/cola.png",
+        )
+
+    def test_guest_can_save_product_and_view_wishlist(self):
+        response = self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "toggle", "next": reverse("product_detail", kwargs={"product_id": self.product.pk})},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("product_detail", kwargs={"product_id": self.product.pk}),
+        )
+        self.assertEqual(self.client.session["wishlist"], [str(self.product.pk)])
+        wishlist = self.client.get(reverse("wishlist"))
+        self.assertContains(wishlist, "My wishlist")
+        self.assertContains(wishlist, "Wishlist Cola")
+        self.assertContains(wishlist, "wishlist is saved for this browser session")
+
+    def test_wishlist_toggle_removes_saved_product(self):
+        self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "add"},
+        )
+
+        response = self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "toggle", "next": reverse("wishlist")},
+        )
+
+        self.assertRedirects(response, reverse("wishlist"))
+        self.assertEqual(self.client.session["wishlist"], [])
+        self.assertContains(self.client.get(response.url), "Your wishlist is empty")
+
+    def test_wishlist_remove_and_invalid_action(self):
+        self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "add"},
+        )
+        remove_response = self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "remove", "next": reverse("wishlist")},
+        )
+        self.assertRedirects(remove_response, reverse("wishlist"))
+        self.assertEqual(self.client.session["wishlist"], [])
+
+        invalid_response = self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "unknown"},
+        )
+        self.assertEqual(invalid_response.status_code, 400)
+
+    def test_home_and_product_page_have_wishlist_controls_and_count(self):
+        home = self.client.get(reverse("home"))
+        product_page = self.client.get(
+            reverse("product_detail", kwargs={"product_id": self.product.pk})
+        )
+
+        self.assertContains(home, 'aria-label="Wishlist, 0 saved items"')
+        self.assertContains(home, "♡ Wishlist")
+        self.assertContains(home, reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}))
+        self.assertContains(product_page, "♡ Add to wishlist")
+        self.assertNotContains(product_page, 'aria-label="Wishlist, 0 saved items"')
+        self.assertContains(product_page, 'class="back-link">← Back</a>')
+
+    def test_wishlist_discards_unavailable_products(self):
+        unavailable = Product.objects.create(
+            name="Unavailable wishlist drink",
+            description="Not available",
+            price="90.00",
+            volume="330 ml",
+            image="main/images/cola.png",
+            available=False,
+        )
+        self.client.post(
+            reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}),
+            {"action": "add"},
+        )
+        session = self.client.session
+        session["wishlist"] = [str(unavailable.pk), str(self.product.pk)]
+        session.save()
+
+        response = self.client.get(reverse("wishlist"))
+
+        self.assertContains(response, "Wishlist Cola")
+        self.assertNotContains(response, "Unavailable wishlist drink")
+        self.assertEqual(self.client.session["wishlist"], [str(self.product.pk)])
 
 
 class CustomerOrderAccessTests(TestCase):

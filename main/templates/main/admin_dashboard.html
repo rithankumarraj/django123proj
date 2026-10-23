@@ -459,7 +459,7 @@
                 {% if order.product %}{{ order.product.name }} × {{ order.quantity }}{% else %}Order items unavailable{% endif %}
               {% endfor %}
             </td>
-            <td>{{ order.customer_name }}</td>
+            <td>{{ order.customer_name }}{% if order.customer_phone %}<br><span class="muted">{{ order.customer_phone }}</span>{% endif %}</td>
             <td>
               {% if order.delivery_address %}
                 {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }} {{ order.delivery_postal_code }}

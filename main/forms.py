@@ -1,8 +1,32 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 
-from .models import Product
+from .models import CustomerProfile, Product
+
+
+class CustomerAccountForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = ("username", "first_name", "last_name")
+        widgets = {
+            "username": forms.TextInput(attrs={"autocomplete": "username"}),
+            "first_name": forms.TextInput(attrs={"autocomplete": "given-name"}),
+            "last_name": forms.TextInput(attrs={"autocomplete": "family-name"}),
+        }
+
+
+class CustomerProfileForm(forms.ModelForm):
+    class Meta:
+        model = CustomerProfile
+        fields = ("phone", "address", "city", "state", "postal_code")
+        widgets = {
+            "phone": forms.TextInput(attrs={"autocomplete": "tel"}),
+            "address": forms.TextInput(attrs={"autocomplete": "street-address"}),
+            "city": forms.TextInput(attrs={"autocomplete": "address-level2"}),
+            "state": forms.TextInput(attrs={"autocomplete": "address-level1"}),
+            "postal_code": forms.TextInput(attrs={"autocomplete": "postal-code"}),
+        }
 
 
 class EmailAuthenticationForm(AuthenticationForm):
@@ -82,6 +106,7 @@ class DeliveryAccountForm(UserCreationForm):
 class DeliveryAddressForm(forms.Form):
     first_name = forms.CharField(max_length=150)
     last_name = forms.CharField(max_length=150)
+    phone = forms.CharField(min_length=7, max_length=20)
     address = forms.CharField(max_length=255)
     city = forms.CharField(max_length=100)
     state = forms.CharField(max_length=100)

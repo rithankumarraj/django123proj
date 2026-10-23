@@ -107,6 +107,77 @@ a {
   color: #111;
 }
 
+.profile-menu {
+  position: relative;
+}
+
+.profile-menu summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.profile-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.profile-menu summary::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: -0.2rem 0 0 0.65rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.profile-menu[open] summary::after {
+  margin-top: 0.2rem;
+  transform: rotate(225deg);
+}
+
+.profile-menu-panel {
+  position: absolute;
+  z-index: 1200;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  display: grid;
+  min-width: 190px;
+  padding: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(18, 18, 18, 0.96);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+}
+
+.profile-menu-panel a,
+.profile-menu-panel button {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  text-decoration: none;
+}
+
+.profile-menu-panel a:hover,
+.profile-menu-panel button:hover,
+.profile-menu-panel a:focus-visible,
+.profile-menu-panel button:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.profile-menu-panel form {
+  margin: 0;
+}
+
 .cart-access-button {
   position: relative;
   width: 44px;
@@ -115,6 +186,48 @@ a {
   padding: 0;
   border-color: rgba(255,255,255,0.72);
   background: rgba(15,15,15,0.42);
+}
+
+.wishlist-access-button {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.wishlist-add-form {
+  margin: 0;
+}
+
+.btn-wishlist {
+  min-width: 170px;
+  padding: 0.95rem 1.3rem;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+}
+
+.btn-wishlist:hover {
+  border-color: #fff;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.add-to-wishlist-button {
+  min-width: 135px;
+  border: 1px solid #111;
+  background: transparent;
+  color: #111;
+}
+
+.add-to-wishlist-button:hover {
+  background: #111;
+  color: #fff;
 }
 
 .cart-access-button.is-floating {
@@ -332,6 +445,12 @@ a {
 
 .store-footer-bottom {
   margin-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.store-footer-logo-link {
+  display: block;
+  line-height: 0;
 }
 
 .store-footer-bottom-inner {
@@ -339,15 +458,14 @@ a {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  min-height: 74px;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  min-height: 54px;
   color: rgba(255,255,255,0.62);
   font-size: 0.68rem;
 }
 
 .store-footer-mark {
   display: block;
-  width: min(56vw, 760px);
+  width: 100%;
   height: auto;
 }
 
@@ -544,6 +662,52 @@ a {
 
 .home-purchase-actions form {
   margin: 0;
+}
+
+.product-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.product-name-row h3 {
+  flex: 0 1 auto;
+}
+
+.product-description-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+}
+
+.product-description-toggle::after {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: "";
+  transform: translateY(-0.15rem) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.product-description-toggle[aria-expanded="true"]::after {
+  transform: translateY(0.15rem) rotate(225deg);
+}
+
+.product-description-disclosure {
+  max-width: 36rem;
+  margin: 0.65rem 0 0;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .add-to-cart-button {
@@ -904,7 +1068,7 @@ a {
   }
 
   .store-footer-mark {
-    width: min(48vw, 360px);
+    width: 100%;
   }
 
   .store-footer-inner {

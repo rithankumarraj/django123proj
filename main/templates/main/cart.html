@@ -323,11 +323,7 @@
               <strong class="cart-total" data-cart-total>₹{{ cart_total|floatformat:2 }}</strong>
             </div>
             <div class="cart-footer-actions">
-              {% if user.is_authenticated %}
-                <a class="cart-action-button cart-action-primary" href="#cart-checkout">Checkout</a>
-              {% else %}
-                <a class="cart-action-button cart-action-primary" href="{% url 'customer_login' %}?next={% url 'cart' %}">Sign in to checkout</a>
-              {% endif %}
+              <a class="cart-action-button cart-action-primary" href="#cart-checkout">Checkout</a>
             </div>
             <p class="cart-message" data-cart-save-status aria-live="polite" role="status"></p>
           </div>
@@ -341,38 +337,41 @@
           </form>
         {% endfor %}
 
-        {% if user.is_authenticated %}
-          <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}">
+        <p class="cart-muted">No account needed. Enter your delivery details to continue.</p>
+        <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}">
             {% csrf_token %}
             <div>
               <label for="first-name">First name</label>
-              <input id="first-name" name="first_name" value="{{ user.first_name }}" autocomplete="given-name" required>
+              <input id="first-name" name="first_name" value="{% if user.is_authenticated %}{{ user.first_name }}{% endif %}" autocomplete="given-name" required>
             </div>
             <div>
               <label for="last-name">Last name</label>
-              <input id="last-name" name="last_name" value="{{ user.last_name }}" autocomplete="family-name" required>
+              <input id="last-name" name="last_name" value="{% if user.is_authenticated %}{{ user.last_name }}{% endif %}" autocomplete="family-name" required>
+            </div>
+            <div>
+              <label for="delivery-phone">Phone number</label>
+              <input id="delivery-phone" name="phone" type="tel" value="{% if customer_profile %}{{ customer_profile.phone }}{% endif %}" autocomplete="tel" minlength="7" maxlength="20" required>
             </div>
             <div class="full-width">
               <label for="delivery-address">Delivery address</label>
-              <input id="delivery-address" name="address" autocomplete="street-address" required>
+              <input id="delivery-address" name="address" value="{% if customer_profile %}{{ customer_profile.address }}{% endif %}" autocomplete="street-address" required>
             </div>
             <div>
               <label for="delivery-city">City</label>
-              <input id="delivery-city" name="city" autocomplete="address-level2" required>
+              <input id="delivery-city" name="city" value="{% if customer_profile %}{{ customer_profile.city }}{% endif %}" autocomplete="address-level2" required>
             </div>
             <div>
               <label for="delivery-state">State</label>
-              <input id="delivery-state" name="state" autocomplete="address-level1" required>
+              <input id="delivery-state" name="state" value="{% if customer_profile %}{{ customer_profile.state }}{% endif %}" autocomplete="address-level1" required>
             </div>
             <div class="full-width">
               <label for="delivery-postal-code">ZIP / postal code</label>
-              <input id="delivery-postal-code" name="postal_code" autocomplete="postal-code" required>
+              <input id="delivery-postal-code" name="postal_code" value="{% if customer_profile %}{{ customer_profile.postal_code }}{% endif %}" autocomplete="postal-code" required>
             </div>
             <div class="full-width">
               <button class="cart-action-button cart-action-primary" type="submit" data-cart-checkout-total>Continue to payment · ₹{{ cart_total|floatformat:2 }}</button>
             </div>
-          </form>
-        {% endif %}
+        </form>
       {% else %}
         <div class="cart-empty">
           <h2>Your cart is empty</h2>

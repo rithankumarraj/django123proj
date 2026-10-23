@@ -19,12 +19,25 @@
     }
 
     .payment-card {
-      width: min(100%, 520px);
+      width: min(100%, 600px);
       padding: clamp(24px, 5vw, 40px);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 24px;
       background: rgba(255,255,255,0.035);
       box-shadow: 0 24px 70px rgba(0,0,0,0.24);
+      transition: border-color 220ms ease, box-shadow 220ms ease;
+    }
+
+    .payment-card--paid {
+      border-color: rgba(70, 220, 145, 0.45);
+      background: linear-gradient(145deg, rgba(26, 112, 70, 0.2), rgba(255,255,255,0.035) 55%);
+      box-shadow: 0 24px 80px rgba(12, 148, 80, 0.17);
+    }
+
+    .payment-card--pending,
+    .payment-card--failed {
+      border-color: rgba(255, 173, 77, 0.38);
+      background: linear-gradient(145deg, rgba(129, 77, 20, 0.17), rgba(255,255,255,0.035) 55%);
     }
 
     .payment-card h1 {
@@ -39,10 +52,75 @@
       color: rgba(255,255,255,0.65);
     }
 
+    .payment-status-hero {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 173, 77, 0.3);
+      border-radius: 16px;
+      background: rgba(255, 173, 77, 0.08);
+      color: #ffbd70;
+    }
+
+    .payment-status-hero--paid {
+      border-color: rgba(70, 220, 145, 0.36);
+      background: rgba(48, 190, 116, 0.1);
+      color: #6ce6a4;
+    }
+
+    .payment-status-icon {
+      display: grid;
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .payment-status-hero--paid .payment-status-icon {
+      animation: payment-success-pulse 1.8s ease-out infinite;
+    }
+
+    .payment-status-copy {
+      display: grid;
+      gap: 2px;
+    }
+
+    .payment-status-eyebrow {
+      color: rgba(255,255,255,0.65);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .payment-status-title {
+      color: inherit;
+      font-size: 1.15rem;
+    }
+
+    @keyframes payment-success-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(70, 220, 145, 0.32); }
+      55% { box-shadow: 0 0 0 10px rgba(70, 220, 145, 0); }
+    }
+
     .payment-product {
       padding: 16px 0;
       border-top: 1px solid rgba(255,255,255,0.1);
       border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .payment-card--paid .payment-product {
+      border-color: rgba(70, 220, 145, 0.22);
+    }
+
+    .payment-card--pending .payment-product,
+    .payment-card--failed .payment-product {
+      border-color: rgba(255, 173, 77, 0.2);
     }
 
     .payment-line {
@@ -80,6 +158,18 @@
       font-size: 1.35rem;
     }
 
+    .payment-card--paid .payment-amount strong,
+    .status-paid {
+      color: #55dd96;
+    }
+
+    .payment-card--pending .payment-amount strong,
+    .payment-card--failed .payment-amount strong,
+    .status-pending,
+    .status-failed {
+      color: #ffb45f;
+    }
+
     .payment-notice {
       margin-bottom: 20px;
       padding: 12px 14px;
@@ -95,6 +185,12 @@
       border-color: rgba(255,112,112,0.45);
       background: rgba(255,112,112,0.08);
       color: #ffc0c0;
+    }
+
+    .payment-notice a {
+      color: inherit;
+      font-weight: 700;
+      text-underline-offset: 3px;
     }
 
     .payment-actions {
@@ -132,15 +228,31 @@
       background: rgba(255,255,255,0.035);
     }
 
+    .payment-card--paid .payment-result--status {
+      border-color: rgba(70, 220, 145, 0.32);
+      background: rgba(48, 190, 116, 0.09);
+    }
+
+    .payment-card--pending .payment-result--status,
+    .payment-card--failed .payment-result--status {
+      border-color: rgba(255, 173, 77, 0.3);
+      background: rgba(255, 173, 77, 0.07);
+    }
+
     .payment-result strong {
       display: block;
       margin-top: 5px;
       font-size: 1.2rem;
     }
 
-    .status-paid { color: #55dd96; }
-    .status-failed { color: #ff9292; }
-    .status-pending { color: #f3d79f; }
+    .payment-card--paid .payment-back {
+      color: #70e8a8;
+    }
+
+    .payment-card--pending .payment-back,
+    .payment-card--failed .payment-back {
+      color: #ffc47f;
+    }
 
     .payment-back {
       display: block;
@@ -151,6 +263,14 @@
     }
 
     .payment-back:hover { color: #fff; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .payment-card,
+      .payment-status-hero--paid .payment-status-icon {
+        animation: none;
+        transition: none;
+      }
+    }
   </style>
 </head>
 <body class="checkout-page-body">
@@ -162,7 +282,15 @@
   </header>
 
   <main class="container payment-shell">
-    <section class="payment-card">
+    <section class="payment-card payment-card--{% if order.payment_status == 'paid' %}paid{% elif order.payment_status == 'pending' %}pending{% else %}failed{% endif %}">
+      <div class="payment-status-hero payment-status-hero--{% if order.payment_status == 'paid' %}paid{% else %}unpaid{% endif %}" role="status">
+        <span class="payment-status-icon" aria-hidden="true">{% if order.payment_status == "paid" %}✓{% elif order.payment_status == "failed" %}×{% else %}!{% endif %}</span>
+        <span class="payment-status-copy">
+          <span class="payment-status-eyebrow">Payment status</span>
+          <strong class="payment-status-title">{{ order.get_payment_status_display }}</strong>
+        </span>
+      </div>
+
       {% if order.payment_status == "pending" %}
         <h1>Review payment</h1>
         <p class="payment-caption">Confirm the order details before completing this demo payment.</p>
@@ -173,6 +301,12 @@
 
       {% if error %}
         <div class="payment-notice payment-error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      {% if password_setup_required %}
+        <div class="payment-notice" role="status">
+          Your account username is <strong>{{ request.user.get_username }}</strong>. You are signed in; <a href="{% url 'customer_profile' %}">set a password in your profile</a> before signing out. Your mobile number is not used as your password.
+        </div>
       {% endif %}
 
       <div class="payment-product">
@@ -188,8 +322,15 @@
       </div>
 
       <div class="payment-amount">
-        <span>Total to confirm</span>
+        <span>{% if order.payment_status == "paid" %}Total paid{% else %}Total to confirm{% endif %}</span>
         <strong>₹{{ order.total_amount|floatformat:2 }}</strong>
+      </div>
+
+      <div class="payment-result payment-result--delivery">
+        <span>Delivery status <strong>{{ order.get_status_display }}</strong></span>
+        {% if order.customer_phone %}
+          <span class="payment-muted">Contact: {{ order.customer_name }} · {{ order.customer_phone }}</span>
+        {% endif %}
       </div>
 
       {% if order.payment_status == "pending" %}
@@ -208,7 +349,7 @@
           </div>
         {% endif %}
       {% else %}
-        <div class="payment-result">
+        <div class="payment-result payment-result--status">
           Payment status
           <strong class="status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</strong>
           <span class="payment-muted">Order #{{ order.id }}</span>

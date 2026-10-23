@@ -42,6 +42,65 @@
       gap: 16px;
     }
 
+    .orders-tools {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(190px, 0.45fr) auto auto;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .orders-tool-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .orders-tool-field label {
+      color: rgba(255,255,255,0.68);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .orders-tool-field input,
+    .orders-tool-field select {
+      width: 100%;
+      min-height: 44px;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 10px;
+      background: #151719;
+      color: #f5f5f3;
+      font: inherit;
+    }
+
+    .orders-tool-submit,
+    .orders-tool-clear {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 16px;
+      border: 1px solid rgba(255,255,255,0.65);
+      border-radius: 999px;
+      background: transparent;
+      color: #f5f5f3;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .orders-tool-submit:hover,
+    .orders-tool-clear:hover {
+      background: #f5f5f3;
+      color: #111;
+    }
+
     .order-card {
       padding: clamp(18px, 3vw, 28px);
       border: 1px solid rgba(255,255,255,0.1);
@@ -168,6 +227,8 @@
         flex-direction: column;
       }
 
+      .orders-tools { grid-template-columns: 1fr 1fr; }
+      .orders-tools .orders-tool-field:first-child { grid-column: 1 / -1; }
       .order-address { max-width: 100%; }
     }
   </style>
@@ -178,10 +239,7 @@
       <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
       <div class="d-flex align-items-center gap-3">
         <a href="{% url 'home' %}#shop" class="back-link">Continue shopping</a>
-        <form method="post" action="{% url 'customer_logout' %}">
-          {% csrf_token %}
-          <button class="admin-access-button" type="submit">Log out</button>
-        </form>
+        {% include "main/includes/profile_menu.html" %}
       </div>
     </div>
   </header>
@@ -194,6 +252,26 @@
       </div>
       <span class="order-muted">{{ orders|length }} order{{ orders|length|pluralize }}</span>
     </div>
+
+    <form class="orders-tools" method="get" role="search">
+      <div class="orders-tool-field">
+        <label for="order-search">Search orders</label>
+        <input id="order-search" type="search" name="q" value="{{ search_query }}" placeholder="Product, order number, or address">
+      </div>
+      <div class="orders-tool-field">
+        <label for="order-sort">Sort orders</label>
+        <select id="order-sort" name="sort">
+          <option value="newest"{% if sort_order == "newest" %} selected{% endif %}>Newest first</option>
+          <option value="oldest"{% if sort_order == "oldest" %} selected{% endif %}>Oldest first</option>
+          <option value="total_high"{% if sort_order == "total_high" %} selected{% endif %}>Total: high to low</option>
+          <option value="total_low"{% if sort_order == "total_low" %} selected{% endif %}>Total: low to high</option>
+        </select>
+      </div>
+      <button class="orders-tool-submit" type="submit">Apply</button>
+      {% if search_query or sort_order != "newest" %}
+        <a class="orders-tool-clear" href="{% url 'customer_orders' %}">Clear</a>
+      {% endif %}
+    </form>
 
     {% if orders %}
       <section class="orders-list" aria-label="Recent orders">
@@ -235,6 +313,7 @@
                   {% else %}
                     Address not available
                   {% endif %}
+                  {% if order.customer_phone %}<br>Phone: {{ order.customer_phone }}{% endif %}
                 </p>
               </div>
               <div class="text-end">
@@ -248,9 +327,15 @@
       </section>
     {% else %}
       <section class="orders-empty">
-        <h2>No orders yet</h2>
-        <p>Your completed and in-progress orders will appear here.</p>
-        <a class="orders-action" href="{% url 'home' %}#shop">Browse drinks</a>
+        {% if search_query %}
+          <h2>No matching orders</h2>
+          <p>Try a different product, order number, or delivery address.</p>
+          <a class="orders-action" href="{% url 'customer_orders' %}">Clear search</a>
+        {% else %}
+          <h2>No orders yet</h2>
+          <p>Your completed and in-progress orders will appear here.</p>
+          <a class="orders-action" href="{% url 'home' %}#shop">Browse drinks</a>
+        {% endif %}
       </section>
     {% endif %}
   </main>

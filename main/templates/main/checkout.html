@@ -27,6 +27,7 @@
                 <div class="col-12 col-lg-7">
                     <div class="checkout-card">
                         <h1>Checkout</h1>
+                        <p>No account needed. Enter your delivery and contact details below.</p>
 
                         <div class="checkout-form">
                             <div class="row g-3">
@@ -37,6 +38,10 @@
                                 <div class="col-12 col-md-6">
                                     <label for="lastName">Last name</label>
                                     <input id="lastName" name="last_name" type="text" value="{{ customer_last_name }}" autocomplete="family-name" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="phone">Phone number</label>
+                                    <input id="phone" name="phone" type="tel" value="{{ customer_address_form.phone }}" autocomplete="tel" minlength="7" maxlength="20" required>
                                 </div>
                                 <div class="col-12">
                                     <label for="address">Address</label>

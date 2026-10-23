@@ -1,0 +1,233 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <style>
+    .profile-page {
+      min-height: 100vh;
+      background: #0d1012;
+      color: #f5f5f3;
+    }
+
+    .profile-main {
+      max-width: 900px;
+      padding-top: 44px;
+      padding-bottom: 64px;
+    }
+
+    .profile-heading {
+      margin-bottom: 26px;
+    }
+
+    .profile-heading h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.07em;
+    }
+
+    .profile-card {
+      margin-bottom: 18px;
+      padding: clamp(18px, 3vw, 28px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .profile-card h2 {
+      margin: 0 0 18px;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .profile-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .profile-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .profile-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .profile-field label {
+      color: rgba(255,255,255,0.68);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .profile-field input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 13px;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 11px;
+      outline: none;
+      background: rgba(255,255,255,0.045);
+      color: #f5f5f3;
+      font: inherit;
+    }
+
+    .profile-field input:focus {
+      border-color: rgba(255,255,255,0.65);
+    }
+
+    .profile-help,
+    .profile-help ul,
+    .profile-message {
+      color: rgba(255,255,255,0.68);
+      font-size: 0.88rem;
+    }
+
+    .profile-errors {
+      margin: 0;
+      color: #ffb4a9;
+      font-size: 0.85rem;
+      list-style: none;
+      padding: 0;
+    }
+
+    .profile-save {
+      min-height: 44px;
+      margin-top: 18px;
+      padding: 10px 18px;
+      border: 1px solid #f5f5f3;
+      border-radius: 999px;
+      background: #f5f5f3;
+      color: #111;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    .profile-save:hover {
+      background: transparent;
+      color: #f5f5f3;
+    }
+
+    .profile-notices {
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 575.98px) {
+      .profile-fields { grid-template-columns: 1fr; }
+      .profile-field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body class="profile-page">
+  <header class="checkout-header">
+    <div class="container d-flex justify-content-between align-items-center py-3">
+      <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="{% url 'home' %}#shop" class="back-link">Continue shopping</a>
+        {% include "main/includes/profile_menu.html" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="container profile-main">
+    <div class="profile-heading">
+      <p class="section-kicker" style="color: rgba(255,255,255,0.6);">Your account</p>
+      <h1>Profile</h1>
+    </div>
+
+    {% if messages %}
+      <div class="profile-notices" aria-live="polite">
+        {% for message in messages %}<p class="profile-message">{{ message }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <section class="profile-card">
+      <h2>Account and delivery details</h2>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_profile">
+        <div class="profile-fields">
+          {% for field in account_form %}
+            <div class="profile-field">
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.errors %}<ul class="profile-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+          {% endfor %}
+          {% for field in profile_form %}
+            <div class="profile-field{% if field.name == 'address' %} full{% endif %}">
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.errors %}<ul class="profile-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+          {% endfor %}
+          {% if account_form.non_field_errors or profile_form.non_field_errors %}
+            <div class="profile-field full profile-errors">
+              {{ account_form.non_field_errors }}{{ profile_form.non_field_errors }}
+            </div>
+          {% endif %}
+        </div>
+        <button class="profile-save" type="submit">Save profile</button>
+      </form>
+    </section>
+
+    {% if password_setup_required %}
+      <section class="profile-card">
+        <h2>Set a password</h2>
+        <p class="profile-help">Choose a password so you can sign in to your new account after this session. Your phone number is contact information, not your password.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="set_password">
+          <div class="profile-fields">
+            {% for field in password_setup_form %}
+              <div class="profile-field full">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}<div class="profile-help">{{ field.help_text|safe }}</div>{% endif %}
+                {% if field.errors %}<ul class="profile-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+              </div>
+            {% endfor %}
+            {% if password_setup_form.non_field_errors %}
+              <div class="profile-field full profile-errors">{{ password_setup_form.non_field_errors }}</div>
+            {% endif %}
+          </div>
+          <button class="profile-save" type="submit">Set password</button>
+        </form>
+      </section>
+    {% else %}
+      <section class="profile-card">
+        <h2>Change password</h2>
+        <p class="profile-help">For your security, your current password is never displayed. Enter it below to set a new password.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_password">
+          <div class="profile-fields">
+            {% for field in password_form %}
+              <div class="profile-field full">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}<div class="profile-help">{{ field.help_text|safe }}</div>{% endif %}
+                {% if field.errors %}<ul class="profile-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+              </div>
+            {% endfor %}
+            {% if password_form.non_field_errors %}
+              <div class="profile-field full profile-errors">{{ password_form.non_field_errors }}</div>
+            {% endif %}
+          </div>
+          <button class="profile-save" type="submit">Change password</button>
+        </form>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

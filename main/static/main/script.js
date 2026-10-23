@@ -4,12 +4,17 @@ const switcher = document.querySelector('[data-product-switcher]');
 if (switcher && productData.length) {
     const display = switcher.querySelector('[data-product-display]');
     const image = switcher.querySelector('[data-product-image]');
+    const imageLink = switcher.querySelector('[data-product-image-link]');
     const count = switcher.querySelector('[data-product-count]');
     const name = switcher.querySelector('[data-product-name]');
+    const description = switcher.querySelector('[data-product-description]');
+    const descriptionToggle = switcher.querySelector('[data-product-description-toggle]');
     const volume = switcher.querySelector('[data-product-volume]');
     const price = switcher.querySelector('[data-product-price]');
     const tiles = [...switcher.querySelectorAll('[data-product-index]')];
     const cartForm = switcher.querySelector('[data-product-add-to-cart]');
+    const wishlistForm = switcher.querySelector('[data-product-wishlist]');
+    const wishlistButton = wishlistForm?.querySelector('[data-wishlist-button]');
     const cartFeedback = switcher.querySelector('[data-cart-feedback]');
     const cartLink = document.querySelector('[data-scroll-cart]');
     let currentProduct = 0;
@@ -21,12 +26,28 @@ if (switcher && productData.length) {
         const update = () => {
             image.src = product.image;
             image.alt = product.name;
+            if (imageLink) {
+                imageLink.href = tiles[index].dataset.productUrl;
+                imageLink.setAttribute('aria-label', `View ${product.name} details`);
+            }
             count.textContent = `${index + 1} / ${productData.length}`;
             name.textContent = product.name;
+            if (description) {
+                description.textContent = product.description;
+            }
+            if (descriptionToggle) {
+                descriptionToggle.setAttribute('aria-label', `Show ${product.name} description`);
+            }
             volume.textContent = product.volume;
             price.textContent = `₹${Number(product.price).toFixed(0)}`;
             if (cartForm) {
                 cartForm.action = tiles[index].dataset.addToCartUrl;
+            }
+            if (wishlistForm) {
+                wishlistForm.action = tiles[index].dataset.wishlistUrl;
+                const isWishlisted = tiles[index].dataset.isWishlisted === 'true';
+                wishlistButton.textContent = isWishlisted ? '♥ Saved' : '♡ Wishlist';
+                wishlistButton.setAttribute('aria-pressed', String(isWishlisted));
             }
 
             tiles.forEach((tile, tileIndex) => {
@@ -45,6 +66,14 @@ if (switcher && productData.length) {
 
         if (display) display.classList.add('is-changing');
         window.setTimeout(update, 180);
+    }
+
+    if (descriptionToggle && description) {
+        descriptionToggle.addEventListener('click', () => {
+            const isExpanded = descriptionToggle.getAttribute('aria-expanded') === 'true';
+            descriptionToggle.setAttribute('aria-expanded', String(!isExpanded));
+            description.hidden = isExpanded;
+        });
     }
 
     tiles.forEach((tile) => {

@@ -1,0 +1,14 @@
+<details class="profile-menu">
+  <summary class="admin-access-button">{{ user.first_name|default:user.username }}</summary>
+  <div class="profile-menu-panel">
+    <a href="{% url 'customer_profile' %}">My profile</a>
+    <a href="{% url 'wishlist' %}">Wishlist</a>
+    {% if not is_delivery_user %}
+      <a href="{% url 'customer_orders' %}">My orders</a>
+    {% endif %}
+    <form method="post" action="{% url 'customer_logout' %}">
+      {% csrf_token %}
+      <button type="submit">Log out</button>
+    </form>
+  </div>
+</details>

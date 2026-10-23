@@ -27,6 +27,22 @@ class DeliveryProfile(models.Model):
         return f"Delivery profile for {self.user.get_username()}"
 
 
+class CustomerProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        related_name="customer_profile",
+        on_delete=models.CASCADE,
+    )
+    phone = models.CharField(max_length=20, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
+
+    def __str__(self):
+        return f"Customer profile for {self.user.get_username()}"
+
+
 class Order(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Payment pending"),
@@ -50,6 +66,7 @@ class Order(models.Model):
         on_delete=models.SET_NULL,
     )
     customer_name = models.CharField(max_length=100, default="Walk-in customer")
+    customer_phone = models.CharField(max_length=20, blank=True)
     delivery_address = models.CharField(max_length=255, blank=True)
     delivery_city = models.CharField(max_length=100, blank=True)
     delivery_state = models.CharField(max_length=100, blank=True)

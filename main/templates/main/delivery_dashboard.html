@@ -151,6 +151,7 @@
                 {% else %}
                   <span class="muted">No delivery address on this order.</span>
                 {% endif %}
+                {% if order.customer_phone %}<br>Phone: {{ order.customer_phone }}{% endif %}
               </div>
               <div>
                 <span class="detail-label">Order total</span>
