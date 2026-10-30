@@ -1380,18 +1380,58 @@ def admin_login(request):
     if request.user.is_authenticated and request.user.is_staff:
         return redirect("admin_dashboard")
 
-    form = AdminLoginForm(request, data=request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = form.get_user()
-        if user.is_staff:
+    User = get_user_model()
+    has_staff = User.objects.filter(is_staff=True).exists()
+    is_setup_mode = (request.GET.get("setup") in {"1", "admin", "true"}) or (not has_staff and request.GET.get("setup") != "0")
+    setup_errors = []
+
+    if request.method == "POST" and "setup_admin_submit" in request.POST:
+        username = request.POST.get("setup_username", "").strip()
+        password = request.POST.get("setup_password", "").strip()
+        password_confirm = request.POST.get("setup_password_confirm", "").strip()
+        email = request.POST.get("setup_email", "").strip()
+
+        if not username:
+            setup_errors.append("Please enter a username.")
+        if not password or len(password) < 4:
+            setup_errors.append("Password must be at least 4 characters.")
+        if password != password_confirm:
+            setup_errors.append("Passwords do not match.")
+
+        if not setup_errors:
+            user = User.objects.filter(username=username).first()
+            if not user:
+                user = User(username=username)
+            if email:
+                user.email = email
+            user.set_password(password)
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
             login(request, user)
             return redirect("admin_dashboard")
-        form.add_error(None, "Admin access is restricted to staff accounts.")
+        is_setup_mode = True
+
+    form = AdminLoginForm(request, data=request.POST or None)
+    if request.method == "POST" and "setup_admin_submit" not in request.POST:
+        is_setup_mode = False
+        if form.is_valid():
+            user = form.get_user()
+            if user.is_staff:
+                login(request, user)
+                return redirect("admin_dashboard")
+            form.add_error(None, "Admin access is restricted to staff accounts.")
 
     return render(
         request,
         "main/admin_login.html",
-        {"form": form, "google_login_enabled": settings.GOOGLE_SIGN_IN_ENABLED},
+        {
+            "form": form,
+            "google_login_enabled": settings.GOOGLE_SIGN_IN_ENABLED,
+            "is_setup_mode": is_setup_mode,
+            "has_staff": has_staff,
+            "setup_errors": setup_errors,
+        },
     )
 
 
