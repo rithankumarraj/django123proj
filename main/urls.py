@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("about/", views.about, name="about"),
+    path("contact/", views.contact, name="contact"),
+    path("captcha/image/", views.captcha_image, name="captcha_image"),
     path("privacy-policy/", views.privacy_policy, name="privacy_policy"),
     path("admin-login/", views.admin_login, name="admin_login"),
     path("delivery-login/", views.delivery_login, name="delivery_login"),
@@ -14,6 +16,11 @@ urlpatterns = [
         name="update_delivery_status",
     ),
     path(
+        "delivery-profile/orders/<int:order_id>/pick/",
+        views.pick_delivery_order,
+        name="pick_delivery_order",
+    ),
+    path(
         "admin-profile/delivery-account/",
         views.create_delivery_account,
         name="create_delivery_account",
@@ -22,6 +29,8 @@ urlpatterns = [
     path("customer-register/", views.customer_register, name="customer_register"),
     path("customer-profile/", views.customer_profile, name="customer_profile"),
     path("my-orders/", views.customer_orders, name="customer_orders"),
+    path("orders/<int:order_id>/receipt/", views.order_receipt, name="order_receipt"),
+    path("receipt/<uuid:payment_reference>/", views.order_receipt, name="order_receipt_by_reference"),
     path("customer-logout/", views.customer_logout, name="customer_logout"),
     path("product/<int:product_id>/", views.product_detail, name="product_detail"),
     path("wishlist/", views.wishlist_page, name="wishlist"),
@@ -38,4 +47,60 @@ urlpatterns = [
     path("payment/<uuid:payment_reference>/", views.payment_page, name="payment_page"),
     path("webhooks/payment/", views.payment_webhook, name="payment_webhook"),
     path("admin-profile/", views.admin_dashboard, name="admin_dashboard"),
+    path("admin-profile/products/", views.admin_products, name="admin_products"),
+    path(
+        "admin-profile/products/<int:product_id>/toggle-availability/",
+        views.admin_toggle_product_availability,
+        name="admin_toggle_product_availability",
+    ),
+    path(
+        "admin-profile/delivery-users/",
+        views.admin_delivery_users,
+        name="admin_delivery_users",
+    ),
+    path(
+        "admin-profile/delivery-status/",
+        views.admin_delivery_status,
+        name="admin_delivery_status",
+    ),
+    path(
+        "admin-profile/orders/<int:order_id>/",
+        views.admin_order_detail,
+        name="admin_order_detail",
+    ),
+    path(
+        "admin-profile/orders/<int:order_id>/status/",
+        views.admin_update_order_status,
+        name="admin_update_order_status",
+    ),
+    path(
+        "admin-profile/details/",
+        views.admin_details,
+        name="admin_details",
+    ),
+    path(
+        "admin-profile/rates/shipping/",
+        views.admin_shipping_charges,
+        name="admin_shipping_charges",
+    ),
+    path(
+        "admin-profile/rates/packing/",
+        views.admin_packing_charges,
+        name="admin_packing_charges",
+    ),
+    path(
+        "admin-profile/shipping/",
+        views.admin_shipping_rates,
+        name="admin_shipping_rates",
+    ),
+    path(
+        "admin-profile/messages/<int:message_id>/toggle-read/",
+        views.admin_toggle_message_read,
+        name="admin_toggle_message_read",
+    ),
+    path(
+        "admin-profile/messages/<int:message_id>/delete/",
+        views.admin_delete_message,
+        name="admin_delete_message",
+    ),
 ]

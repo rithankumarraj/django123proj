@@ -1,100 +1,475 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout | J CSD</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+    <style>
+        .address-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 18px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .address-section-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .address-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+
+        .address-mode-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        .address-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-add-address {
+            appearance: none;
+            -webkit-appearance: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-add-address:hover {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(255, 255, 255, 0.18);
+        }
+
+        .btn-add-address:active {
+            transform: translateY(0);
+        }
+
+        .btn-use-saved {
+            appearance: none;
+            -webkit-appearance: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-use-saved:hover {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .saved-address-options-wrap {
+            margin-top: 4px;
+            margin-bottom: 6px;
+        }
+
+        .saved-address-options-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 8px;
+        }
+
+        .saved-address-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 10px;
+        }
+
+        .address-select-card {
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .address-select-card:hover {
+            border-color: rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .address-select-card.active {
+            border-color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 1px #ffffff, 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .address-radio-circle {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255, 255, 255, 0.45);
+            display: inline-block;
+            position: relative;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .address-select-card.active .address-radio-circle {
+            border-color: #ffffff;
+            background: #ffffff;
+            box-shadow: inset 0 0 0 3px #0d1012;
+        }
+
+        .saved-address-card {
+            padding: 14px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.035);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: all 0.25s ease;
+            margin-top: 4px;
+        }
+
+        .saved-address-card.saved-address-dimmed {
+            opacity: 0.45;
+            border-style: dashed;
+        }
+
+        .saved-address-badge-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .saved-address-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .saved-address-phone {
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.8rem;
+        }
+
+        .saved-address-line {
+            font-size: 0.92rem;
+            color: #f5f5f3;
+            line-height: 1.45;
+            font-weight: 500;
+        }
+
+        .save-profile-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0 2px;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .save-profile-checkbox-row label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-transform: none;
+            letter-spacing: normal;
+            font-size: 0.82rem;
+            margin-bottom: 0;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .save-profile-checkbox-row input[type="checkbox"] {
+            width: 16px;
+            min-height: 16px;
+            accent-color: #ffffff;
+            cursor: pointer;
+        }
+
+        .address-input-pulse {
+            animation: addressPulse 0.5s ease-out;
+        }
+
+        @keyframes addressPulse {
+            0% {
+                border-color: #ffffff;
+                box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+            }
+
+            100% {
+                border-color: rgba(255, 255, 255, 0.12);
+                box-shadow: none;
+            }
+        }
+    </style>
 </head>
+
 <body class="checkout-page-body">
     <div class="checkout-shell">
         <header class="checkout-header">
             <div class="container d-flex justify-content-between align-items-center py-3">
                 <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
-                <a href="{% url 'product_detail' product.id %}" class="back-link">← Back</a>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{% url 'product_detail' product.id %}" class="back-link d-none d-md-inline">← Back</a>
+                    {% include "main/includes/navbar_actions.html" %}
+                </div>
             </div>
         </header>
 
         <main class="container checkout-wrap py-4 py-lg-5">
             <form method="post" action="{% url 'checkout' product.id %}?qty={{ quantity }}">
                 {% csrf_token %}
-            <div class="row g-4 g-lg-5 align-items-start">
-                <div class="col-12 col-lg-7">
-                    <div class="checkout-card">
-                        <h1>Checkout</h1>
-                        <p>No account needed. Enter your delivery and contact details below.</p>
+                <div class="row g-4 g-lg-5 align-items-start">
+                    <div class="col-12 col-lg-7">
+                        <div class="checkout-card">
+                            <h1>Checkout</h1>
+                            <p>No account needed. Enter your delivery and contact details below.</p>
 
-                        <div class="checkout-form">
-                            <div class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label for="firstName">First name</label>
-                                    <input id="firstName" name="first_name" type="text" value="{{ customer_first_name }}" autocomplete="given-name" required>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label for="lastName">Last name</label>
-                                    <input id="lastName" name="last_name" type="text" value="{{ customer_last_name }}" autocomplete="family-name" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="phone">Phone number</label>
-                                    <input id="phone" name="phone" type="tel" value="{{ customer_address_form.phone }}" autocomplete="tel" minlength="7" maxlength="20" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="address">Address</label>
-                                    <input id="address" name="address" type="text" value="{{ customer_address_form.address }}" autocomplete="street-address" required>
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label for="city">City</label>
-                                    <input id="city" name="city" type="text" value="{{ customer_address_form.city }}" autocomplete="address-level2" required>
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label for="state">State</label>
-                                    <input id="state" name="state" type="text" value="{{ customer_address_form.state }}" autocomplete="address-level1" required>
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label for="zip">ZIP</label>
-                                    <input id="zip" name="postal_code" type="text" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
+                            <div class="checkout-form">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label for="firstName">First name</label>
+                                        <input id="firstName" name="first_name" type="text"
+                                            value="{{ customer_first_name }}" autocomplete="given-name" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label for="lastName">Last name</label>
+                                        <input id="lastName" name="last_name" type="text"
+                                            value="{{ customer_last_name }}" autocomplete="family-name" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label for="email">Email</label>
+                                        <input id="email" name="email" type="email" value="{{ customer_email }}"
+                                            autocomplete="email" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label for="phone">Phone number</label>
+                                        <div class="phone-input-group">
+                                            <span class="phone-prefix">+91</span>
+                                            <input id="phone" name="phone" type="tel" inputmode="numeric"
+                                                pattern="[0-9]{10}" maxlength="10"
+                                                value="{{ customer_phone_10_digits }}" placeholder="10-digit number"
+                                                autocomplete="tel-national" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 address-section-header">
+                                        <div class="address-section-title-wrap">
+                                            <span class="address-section-title">Delivery Address</span>
+                                            <span id="address-mode-badge" class="address-mode-badge"
+                                                style="display: none;">New address</span>
+                                        </div>
+                                        <div class="address-btn-group">
+                                            {% if saved_addresses or customer_profile and customer_profile.address %}
+                                            <button type="button" class="btn-use-saved" id="btn-use-saved-address"
+                                                style="display: none;">
+                                                ✓ Use saved address
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn-add-address" id="btn-add-address">
+                                                + Add address
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {% if saved_addresses %}
+                                    <div class="col-12 saved-address-options-wrap">
+                                        <div class="saved-address-options-title">
+                                            Choose delivery address ({{ saved_addresses|length }}/5 saved):
+                                        </div>
+                                        <div class="saved-address-grid">
+                                            {% for addr in saved_addresses %}
+                                            <div class="saved-address-card address-select-card{% if forloop.first %} active{% endif %}"
+                                                data-address-id="{{ addr.id }}" data-phone="{{ addr.phone }}"
+                                                data-address="{{ addr.address }}" data-city="{{ addr.city }}"
+                                                data-state="{{ addr.state }}" data-postal-code="{{ addr.postal_code }}"
+                                                data-is-default="{% if addr.is_default %}1{% else %}0{% endif %}"
+                                                role="button" tabindex="0">
+                                                <div class="saved-address-badge-row">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="address-radio-circle"></span>
+                                                        <span class="saved-address-tag">{% if addr.is_default %}Default saved address{% else %}{{ addr.full_name|default:"Saved address" }}{% endif %}</span>
+                                                    </div>
+                                                    {% if addr.phone %}<span class="saved-address-phone">{{ addr.phone }}</span>{% endif %}
+                                                </div>
+                                                <div class="saved-address-line">
+                                                    {{ addr.address }}, {{ addr.city }}, {{ addr.state }} - {{ addr.postal_code }}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% with default_addr=saved_addresses.0 %}
+                                        <div id="saved-address-preview" style="display: none;"></div>
+                                        <div id="saved-address-data" data-phone="{{ default_addr.phone }}"
+                                            data-address="{{ default_addr.address }}"
+                                            data-city="{{ default_addr.city }}" data-state="{{ default_addr.state }}"
+                                            data-postal-code="{{ default_addr.postal_code }}" hidden></div>
+                                        {% endwith %}
+                                    </div>
+                                    {% elif customer_profile and customer_profile.address %}
+                                    <div class="col-12">
+                                        <div class="saved-address-card" id="saved-address-preview">
+                                            <div class="saved-address-badge-row">
+                                                <span class="saved-address-tag">Default saved address</span>
+                                                <span class="saved-address-phone">{{ customer_profile.phone }}</span>
+                                            </div>
+                                            <div class="saved-address-line">
+                                                {{ customer_profile.address }}, {{ customer_profile.city }}, {{ customer_profile.state }} - {{ customer_profile.postal_code }}
+                                            </div>
+                                        </div>
+                                        <div id="saved-address-data" data-phone="{{ customer_profile.phone }}"
+                                            data-address="{{ customer_profile.address }}"
+                                            data-city="{{ customer_profile.city }}"
+                                            data-state="{{ customer_profile.state }}"
+                                            data-postal-code="{{ customer_profile.postal_code }}" hidden></div>
+                                    </div>
+                                    {% endif %}
+                                    <div class="col-12">
+                                        <label for="address">Address</label>
+                                        <input id="address" name="address" type="text" value="{{ customer_address_form.address }}" autocomplete="street-address" required>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <label for="city">City</label>
+                                        <input id="city" name="city" type="text" value="{{ customer_address_form.city }}" autocomplete="address-level2" required>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <label for="state">State</label>
+                                        <select id="state" name="state" class="state-select" required>
+                                            <option value="">Choose state...</option>
+                                            {% for st in indian_states %}
+                                                <option value="{{ st }}" {% if customer_address_form.state == st %}selected{% endif %}>{{ st }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <label for="zip">ZIP</label>
+                                        <input id="zip" name="postal_code" type="text" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
+                                    </div>
+
+                                    {% if user.is_authenticated %}
+                                    <div class="col-12 save-profile-checkbox-row">
+                                        <label for="save-address-to-profile">
+                                            <input type="checkbox" id="save-address-to-profile"
+                                                name="save_address_to_profile" value="1" checked>
+                                            Save this address to my profile
+                                        </label>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-12 col-lg-5">
-                    <aside class="order-card">
-                        <div class="order-product">
-                            <img src="{{ product.image }}" alt="{{ product.name }}">
-                            <div>
-                                <p class="order-product-name">{{ product.name }}</p>
-                                <span>{{ product.volume }}</span>
+                    <div class="col-12 col-lg-5">
+                        <aside class="order-card">
+                            <div class="order-product">
+                                <img src="{{ product.image }}" alt="{{ product.name }}">
+                                <div>
+                                    <p class="order-product-name">{{ product.name }}</p>
+                                    <span>{{ product.volume }}</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="order-summary">
-                            <div class="summary-row">
-                                <span>Quantity</span>
-                                <strong>{{ quantity }}</strong>
+                            <div class="order-summary">
+                                <div class="summary-row">
+                                    <span>Quantity</span>
+                                    <strong>{{ quantity }}</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Unit price</span>
+                                    <strong>₹{{ unit_price }}</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Items subtotal</span>
+                                    <strong>₹{{ total_price|floatformat:2 }}</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>GST (18%)</span>
+                                    <strong id="gstFeeDisplay">₹{{ gst_amount|floatformat:2 }}</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Packing cost (<span id="packingNotice">{% if packing_fee > 0 %}₹{{ packing_fee|floatformat:0 }}{% else %}Free (First {{ packing_free_cans|default:6 }} cans){% endif %}</span>)</span>
+                                    <strong id="packingFeeDisplay">{% if packing_fee > 0 %}₹{{ packing_fee|floatformat:2 }}{% else %}₹0.00{% endif %}</strong>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Shipping fee<span id="shippingStateNotice">{% if customer_address_form.state %} ({{ customer_address_form.state }}){% endif %}</span></span>
+                                    <strong id="shippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
+                                </div>
+                                <div class="summary-row total-row">
+                                    <span>Total</span>
+                                    <strong id="grandTotalDisplay">₹{{ total_with_shipping|floatformat:2 }}</strong>
+                                </div>
                             </div>
-                            <div class="summary-row">
-                                <span>Unit price</span>
-                                <strong>₹{{ unit_price }}</strong>
-                            </div>
-                            <div class="summary-row total-row">
-                                <span>Total ({{ quantity }} items)</span>
-                                <strong>₹{{ total_price|floatformat:2 }}</strong>
-                            </div>
-                        </div>
 
-                        {% if order %}
+                            {% if order %}
                             <p class="payment-result">
                                 {% if payment_simulation_enabled %}
-                                    Demo webhook result:
+                                Demo webhook result:
                                 {% else %}
-                                    Order received. Payment is awaiting provider confirmation:
+                                Order received. Payment is awaiting provider confirmation:
                                 {% endif %}
                                 <strong>{{ order.get_payment_status_display }}</strong>
                                 (order #{{ order.id }})
@@ -102,14 +477,92 @@
                             <button type="submit" class="btn btn-pay" disabled>
                                 {% if payment_simulation_enabled %}Payment simulated{% else %}Order submitted{% endif %}
                             </button>
-                        {% else %}
+                            {% else %}
                             <button type="submit" class="btn btn-pay">Continue to payment</button>
-                        {% endif %}
-                    </aside>
+                            {% endif %}
+                        </aside>
+                    </div>
                 </div>
-            </div>
             </form>
         </main>
+        {% include "main/includes/footer.html" %}
     </div>
+    <script src="{% static 'main/address.js' %}" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const stateSelect = document.getElementById('state');
+            const shippingFeeDisplay = document.getElementById('shippingFeeDisplay');
+            const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+            const shippingNotice = document.getElementById('shippingStateNotice');
+            const phoneInput = document.getElementById('phone');
+
+            const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";
+            const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;
+            const otherFee = parseFloat("{{ shipping_fee_other|default:'100.00' }}") || 100.0;
+            const subtotal = parseFloat("{{ total_price|default:'0.00' }}") || 0.0;
+            const gstFeeDisplay = document.getElementById('gstFeeDisplay');
+            const gstRate = parseFloat("{{ gst_rate|default:'18.00' }}") || 18.0;
+            const gstAmount = Math.round(subtotal * gstRate) / 100;
+
+            const quantity = parseInt("{{ quantity|default:'1' }}", 10) || 1;
+            const packingFreeCans = parseInt("{{ packing_free_cans|default:'6' }}", 10) || 6;
+            const packingCostPerBatch = parseFloat("{{ packing_cost_per_batch|default:'20.00' }}") || 20.0;
+            const packingBatchSize = parseInt("{{ packing_batch_size|default:'6' }}", 10) || 6;
+
+            function calculatePackingFee(qty) {
+                if (qty <= packingFreeCans) return 0.0;
+                const extra = qty - packingFreeCans;
+                const batches = Math.ceil(extra / packingBatchSize);
+                return batches * packingCostPerBatch;
+            }
+
+            const packingFee = calculatePackingFee(quantity);
+
+            const localStateList = localStatesRaw
+                .split(',')
+                .map(function (s) { return s.trim().toLowerCase(); })
+                .filter(function (s) { return s.length > 0; });
+
+            function updateShippingFee() {
+                if (!stateSelect || !shippingFeeDisplay || !grandTotalDisplay) return;
+                const selectedState = (stateSelect.value || '').trim();
+                let fee = otherFee;
+                if (selectedState) {
+                    const isLocal = localStateList.indexOf(selectedState.toLowerCase()) !== -1;
+                    fee = isLocal ? localFee : otherFee;
+                    if (shippingNotice) {
+                        shippingNotice.textContent = ' (' + selectedState + ')';
+                    }
+                } else {
+                    fee = otherFee;
+                    if (shippingNotice) {
+                        shippingNotice.textContent = '';
+                    }
+                }
+                shippingFeeDisplay.textContent = '₹' + fee.toFixed(2);
+                if (gstFeeDisplay) {
+                    gstFeeDisplay.textContent = '₹' + gstAmount.toFixed(2);
+                }
+                const grandTotal = subtotal + gstAmount + packingFee + fee;
+                grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
+            }
+
+            if (stateSelect) {
+                stateSelect.addEventListener('change', updateShippingFee);
+                updateShippingFee();
+            }
+
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function () {
+                    let digits = this.value.replace(/\D/g, '');
+                    if (digits.length > 10) {
+                        digits = digits.slice(-10);
+                    }
+                    this.value = digits;
+                });
+            }
+        });
+    </script>
 </body>
+
 </html>

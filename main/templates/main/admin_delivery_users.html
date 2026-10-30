@@ -1,0 +1,187 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Delivery Users{% endblock %}
+{% block page_heading %}Delivery Users{% endblock %}
+{% block page_description %}View registered delivery personnel, manage driver accounts, and onboard new delivery staff.{% endblock %}
+
+{% block admin_content %}
+  <!-- Stats Section -->
+  <section class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Total Delivery Users</span>
+        <span class="stat-tag stat-tag-purple">Staff</span>
+      </div>
+      <div class="stat-value">{{ total_delivery_users_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Active Staff</span>
+        <span class="stat-tag stat-tag-green">Authorized</span>
+      </div>
+      <div class="stat-value">{{ active_delivery_users_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Orders Awaiting Delivery</span>
+        <span class="stat-tag stat-tag-orange">Dispatch Queue</span>
+      </div>
+      <div class="stat-value">{{ pending_orders_count }}</div>
+    </div>
+  </section>
+
+  <!-- Split Grid: Form & List -->
+  <div class="admin-split-grid">
+    <!-- Form: Add Delivery User -->
+    <section class="admin-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <line x1="19" y1="8" x2="19" y2="14"></line>
+              <line x1="22" y1="11" x2="16" y2="11"></line>
+            </svg>
+            Add Delivery User
+          </h2>
+          <p class="panel-subtitle">Create login credentials for a new delivery team member.</p>
+        </div>
+      </div>
+
+      <form method="post" class="admin-form" action="{% url 'admin_delivery_users' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="id_username">Username</label>
+          {{ delivery_form.username }}
+          {% if delivery_form.username.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.username.errors|first }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_email">Email Address</label>
+          {{ delivery_form.email }}
+          {% if delivery_form.email.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.email.errors|first }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="id_first_name">First Name</label>
+            {{ delivery_form.first_name }}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="id_last_name">Last Name</label>
+            {{ delivery_form.last_name }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_password1">Password</label>
+          {{ delivery_form.password1 }}
+          {% if delivery_form.password1.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.password1.errors|first }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_password2">Confirm Password</label>
+          {{ delivery_form.password2 }}
+          {% if delivery_form.password2.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.password2.errors|first }}</span>
+          {% endif %}
+        </div>
+
+        <p class="form-help">
+          Delivery personnel can log in at <a href="{% url 'delivery_login' %}" target="_blank" style="color: var(--admin-blue); text-decoration: underline;">/delivery-login/</a> to view assigned orders, customer delivery addresses, and mark items delivered.
+        </p>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            Create Delivery Account
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- List: Delivery Users Table -->
+    <section class="admin-panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Delivery Staff List
+          </h2>
+          <p class="panel-subtitle">All accounts authorized for order fulfillment and delivery dispatch.</p>
+        </div>
+      </div>
+
+      <div class="table-responsive-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Delivery User</th>
+              <th>Email</th>
+              <th>Joined Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for profile in delivery_profiles %}
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="admin-avatar-circle" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                      {{ profile.user.username|make_list|first|upper }}
+                    </div>
+                    <div>
+                      <div class="cell-main-title">{{ profile.user.username }}</div>
+                      <div class="cell-sub-info">
+                        {% if profile.user.get_full_name %}
+                          {{ profile.user.get_full_name }}
+                        {% else %}
+                          Delivery Driver
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="cell-sub-info" style="color: var(--admin-text-white);">
+                    {{ profile.user.email|default:"No email set" }}
+                  </span>
+                </td>
+                <td>
+                  <span class="cell-sub-info">
+                    {{ profile.created_at|date:"M d, Y" }}
+                  </span>
+                </td>
+                <td>
+                  {% if profile.user.is_active %}
+                    <span class="status-pill status-active">Active Staff</span>
+                  {% else %}
+                    <span class="status-pill status-failed">Inactive</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 32px; color: var(--admin-text-muted);">
+                  No delivery staff accounts found yet. Use the form on the left to add your first delivery user.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+{% endblock %}

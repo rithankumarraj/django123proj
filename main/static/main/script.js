@@ -5,6 +5,7 @@ if (switcher && productData.length) {
     const display = switcher.querySelector('[data-product-display]');
     const image = switcher.querySelector('[data-product-image]');
     const imageLink = switcher.querySelector('[data-product-image-link]');
+    const categoryBadge = switcher.querySelector('[data-product-category-badge]');
     const count = switcher.querySelector('[data-product-count]');
     const name = switcher.querySelector('[data-product-name]');
     const description = switcher.querySelector('[data-product-description]');
@@ -29,6 +30,9 @@ if (switcher && productData.length) {
             if (imageLink) {
                 imageLink.href = tiles[index].dataset.productUrl;
                 imageLink.setAttribute('aria-label', `View ${product.name} details`);
+            }
+            if (categoryBadge) {
+                categoryBadge.textContent = product.category_display || '';
             }
             count.textContent = `${index + 1} / ${productData.length}`;
             name.textContent = product.name;
@@ -89,6 +93,63 @@ if (switcher && productData.length) {
         });
     });
 
+    const categoryFilters = document.querySelector('[data-category-filters]');
+    const totalCountEl = document.querySelector('.product-total');
+    let activeCategory = 'all';
+
+    if (categoryFilters) {
+        const pills = categoryFilters.querySelectorAll('[data-filter-category]');
+        pills.forEach((pill) => {
+            pill.addEventListener('click', () => {
+                const targetCategory = pill.dataset.filterCategory;
+                if (targetCategory === activeCategory) return;
+                activeCategory = targetCategory;
+
+                pills.forEach((p) => {
+                    const isActive = p === pill;
+                    p.classList.toggle('is-active', isActive);
+                    p.setAttribute('aria-selected', String(isActive));
+                });
+
+                let visibleCount = 0;
+                let firstVisibleIndex = -1;
+                let currentIsVisible = false;
+
+                tiles.forEach((tile) => {
+                    const idx = Number(tile.dataset.productIndex);
+                    const prodCategory = tile.dataset.productCategory;
+                    const matches = activeCategory === 'all' || prodCategory === activeCategory;
+
+                    if (matches) {
+                        tile.classList.remove('is-hidden');
+                        tile.removeAttribute('hidden');
+                        tile.style.display = '';
+                        visibleCount++;
+                        if (firstVisibleIndex === -1) {
+                            firstVisibleIndex = idx;
+                        }
+                        if (idx === currentProduct) {
+                            currentIsVisible = true;
+                        }
+                    } else {
+                        tile.classList.add('is-hidden');
+                        tile.setAttribute('hidden', '');
+                        tile.style.display = 'none';
+                    }
+                });
+
+                if (totalCountEl) {
+                    totalCountEl.textContent = `${visibleCount} product${visibleCount === 1 ? '' : 's'}`;
+                }
+
+                if (!currentIsVisible && firstVisibleIndex !== -1) {
+                    currentProduct = firstVisibleIndex;
+                    renderProduct(currentProduct, true);
+                }
+            });
+        });
+    }
+
     async function addProductToCart(tile) {
         const productIndex = Number(tile.dataset.productIndex);
         const product = productData[productIndex];
@@ -121,7 +182,7 @@ if (switcher && productData.length) {
             }
 
             const result = await response.json();
-            const cartCount = document.querySelector('.cart-count');
+            const cartCount = cartLink?.querySelector('.cart-count');
             if (cartCount && cartLink) {
                 cartCount.textContent = String(result.cart_count);
                 cartLink.setAttribute(

@@ -1,0 +1,610 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt - Order #{{ order.id }} | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #090b0d;
+      color: #111827;
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+
+    /* Floating Action Bar (screen only) */
+    .receipt-actions-bar {
+      max-width: 840px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .btn-action-back:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .receipt-action-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      color: #0b0e10;
+      border: 1px solid #ffffff;
+      padding: 9px 20px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.18);
+      transition: all 0.2s ease;
+    }
+
+    .btn-print:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.25);
+    }
+
+    /* Receipt Paper Document */
+    .receipt-paper {
+      max-width: 840px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: clamp(28px, 5vw, 48px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Header */
+    .receipt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .receipt-brand-logo {
+      display: inline-block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.06em;
+      color: #0b0e10;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .receipt-brand-sub {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .receipt-title-wrap {
+      text-align: right;
+    }
+
+    .receipt-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .receipt-number {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #374151;
+      font-family: monospace;
+    }
+
+    .receipt-badge-paid {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .receipt-badge-pending {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Details 2-Column Grid */
+    .receipt-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      padding: 24px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .receipt-section-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+
+    .receipt-info-text {
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #374151;
+    }
+
+    .receipt-info-text strong {
+      color: #111827;
+      font-size: 0.95rem;
+    }
+
+    .receipt-meta-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      font-size: 0.88rem;
+      color: #4b5563;
+    }
+
+    .receipt-meta-row strong {
+      color: #111827;
+      font-weight: 600;
+    }
+
+    /* Items Table */
+    .receipt-table-wrap {
+      padding: 24px 0 16px;
+    }
+
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .receipt-table th {
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      background: #f3f4f6;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .receipt-table td {
+      padding: 14px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+      color: #374151;
+      vertical-align: middle;
+    }
+
+    .receipt-table tbody tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    .receipt-product-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .receipt-item-thumb {
+      width: 44px;
+      height: 54px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+    }
+
+    .receipt-product-name {
+      font-weight: 700;
+      color: #111827;
+      font-size: 0.92rem;
+    }
+
+    .receipt-product-meta {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    /* Summary / Totals */
+    .receipt-summary-wrap {
+      display: flex;
+      justify-content: flex-end;
+      padding: 16px 0 24px;
+    }
+
+    .receipt-summary-box {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .receipt-summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.9rem;
+      color: #4b5563;
+    }
+
+    .receipt-summary-row strong {
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .receipt-summary-total {
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 2px solid #111827;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .receipt-summary-total strong {
+      font-size: 1.35rem;
+      color: #059669;
+      letter-spacing: -0.02em;
+    }
+
+    /* Footer / Notes */
+    .receipt-footer {
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.82rem;
+      color: #6b7280;
+    }
+
+    .receipt-footer-left {
+      max-width: 60%;
+    }
+
+    .receipt-footer-right {
+      text-align: right;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        color: #000000 !important;
+      }
+
+      .receipt-actions-bar {
+        display: none !important;
+      }
+
+      .receipt-paper {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 15mm 18mm;
+      }
+
+      .receipt-badge-paid {
+        border: 1px solid #059669 !important;
+        background: transparent !important;
+        color: #059669 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .receipt-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .receipt-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .receipt-title-wrap {
+        text-align: left;
+      }
+      .receipt-summary-box {
+        max-width: 100%;
+      }
+      .receipt-footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .receipt-footer-left {
+        max-width: 100%;
+      }
+      .receipt-footer-right {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Screen Action Bar -->
+  <div class="receipt-actions-bar">
+    {% if is_staff_view %}
+      <a href="{% url 'admin_order_detail' order.id %}" class="btn-action-back">
+        ← Back to Order #{{ order.id }}
+      </a>
+    {% else %}
+      <a href="{% url 'customer_orders' %}" class="btn-action-back">
+        ← Back to My orders
+      </a>
+    {% endif %}
+
+    <div class="receipt-action-group">
+      <button type="button" class="btn-print" onclick="window.print()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect width="12" height="8" x="6" y="14"></rect>
+        </svg>
+        Print Slip / Save PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Printable Receipt Document -->
+  <article class="receipt-paper" id="receipt-document">
+    <!-- Header -->
+    <header class="receipt-header">
+      <div>
+        <span class="receipt-brand-logo">J CSD</span>
+        <div class="receipt-brand-sub">Cold Soda & Drinks Co.</div>
+        <div style="margin-top: 6px; font-size: 0.8rem; color: #6b7280; line-height: 1.4;">
+          Online Order Fulfillment<br>
+          Direct Dispatch & Doorstep Delivery
+        </div>
+      </div>
+      <div class="receipt-title-wrap">
+        <h1 class="receipt-title">Order Receipt & Tax Invoice</h1>
+        <div class="receipt-number">REC-{{ order.id|stringformat:"05d" }}</div>
+        <div>
+          {% if order.payment_status == 'paid' %}
+            <span class="receipt-badge-paid">✓ Paid in full</span>
+          {% elif order.payment_status == 'pending' %}
+            <span class="receipt-badge-pending">Payment pending</span>
+          {% else %}
+            <span class="receipt-badge-pending" style="color: #dc2626; background: #fee2e2; border-color: #fca5a5;">{{ order.get_payment_status_display }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Details Grid -->
+    <section class="receipt-grid">
+      <!-- Billed / Delivered To -->
+      <div>
+        <h2 class="receipt-section-title">Delivery & Customer Info</h2>
+        <div class="receipt-info-text">
+          <strong>{{ order.customer_name }}</strong><br>
+          {% if order.customer_phone %}
+            Phone: {{ order.customer_phone }}<br>
+          {% endif %}
+          {% if order.delivery_address %}
+            {{ order.delivery_address }}<br>
+            {{ order.delivery_city }}{% if order.delivery_state %}, {{ order.delivery_state }}{% endif %}{% if order.delivery_postal_code %} - {{ order.delivery_postal_code }}{% endif %}
+          {% else %}
+            Address not specified
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Order & Payment Info -->
+      <div>
+        <h2 class="receipt-section-title">Order Summary</h2>
+        <div class="receipt-meta-row">
+          <span>Order Number:</span>
+          <strong>#{{ order.id }}</strong>
+        </div>
+        <div class="receipt-meta-row">
+          <span>Order Date:</span>
+          <strong>{{ order.created_at|date:"M d, Y · g:i A" }}</strong>
+        </div>
+        <div class="receipt-meta-row">
+          <span>Delivery Status:</span>
+          <strong>{{ order.get_status_display }}</strong>
+        </div>
+        <div class="receipt-meta-row">
+          <span>Payment Status:</span>
+          <strong style="color: {% if order.payment_status == 'paid' %}#059669{% else %}#b45309{% endif %};">
+            {{ order.get_payment_status_display }}
+          </strong>
+        </div>
+        <div class="receipt-meta-row" style="font-size: 0.78rem;">
+          <span>Reference UUID:</span>
+          <code style="font-family: monospace; color: #4b5563;">{{ order.payment_reference }}</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table of Items -->
+    <section class="receipt-table-wrap">
+      <table class="receipt-table">
+        <thead>
+          <tr>
+            <th style="width: 44px;">#</th>
+            <th>Item description</th>
+            <th>Volume</th>
+            <th style="text-align: right;">Unit price</th>
+            <th style="text-align: center;">Qty</th>
+            <th style="text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in order_items %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>
+                <div class="receipt-product-cell">
+                  {% if item.product.image_url %}
+                    <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" class="receipt-item-thumb">
+                  {% endif %}
+                  <div>
+                    <div class="receipt-product-name">{{ item.product.name }}</div>
+                    <div class="receipt-product-meta">{{ item.product.category_display|default:"Beverage" }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>{{ item.product.volume|default:"330 ml" }}</td>
+              <td style="text-align: right;">₹{{ item.unit_price|floatformat:2 }}</td>
+              <td style="text-align: center; font-weight: 700;">{{ item.quantity }}</td>
+              <td style="text-align: right; font-weight: 700;">₹{{ item.line_total|floatformat:2 }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="text-align: center; color: #9ca3af; padding: 24px;">No line items found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Totals & Breakdown -->
+    <section class="receipt-summary-wrap">
+      <div class="receipt-summary-box">
+        <div class="receipt-summary-row">
+          <span>Items subtotal</span>
+          <strong>₹{{ order.items_subtotal|floatformat:2 }}</strong>
+        </div>
+        <div class="receipt-summary-row">
+          <span>GST (18%)</span>
+          <strong>₹{{ order.gst_amount|floatformat:2 }}</strong>
+        </div>
+        <div class="receipt-summary-row">
+          <span>Packing cost</span>
+          <strong>
+            {% if order.packing_fee > 0 %}
+              ₹{{ order.packing_fee|floatformat:2 }}
+            {% else %}
+              ₹0.00 <span style="font-size: 0.76rem; color: #059669; font-weight: 600;">(FREE)</span>
+            {% endif %}
+          </strong>
+        </div>
+        <div class="receipt-summary-row">
+          <span>Shipping fee {% if order.delivery_state %}({{ order.delivery_state }}){% endif %}</span>
+          <strong>
+            {% if order.shipping_fee > 0 %}
+              ₹{{ order.shipping_fee|floatformat:2 }}
+            {% else %}
+              ₹0.00
+            {% endif %}
+          </strong>
+        </div>
+        <div class="receipt-summary-row receipt-summary-total">
+          <span>Total paid</span>
+          <strong>₹{{ order.total_amount|floatformat:2 }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer / Support -->
+    <footer class="receipt-footer">
+      <div class="receipt-footer-left">
+        <strong>Thank you for your order with J CSD!</strong>
+        <div style="margin-top: 4px; line-height: 1.45;">
+          For questions or tracking assistance, contact our beverage support team at
+          <strong>{{ site_details.support_email|default:"support@jcsd.com" }}</strong>
+          {% if site_details.support_phone %}
+            or call <strong>{{ site_details.support_phone }}</strong>
+          {% endif %}.
+        </div>
+      </div>
+      <div class="receipt-footer-right">
+        <div>Computer-generated tax receipt.</div>
+        <div>No signature required.</div>
+      </div>
+    </footer>
+  </article>
+
+  {% if auto_print %}
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          window.print();
+        }, 300);
+      });
+    </script>
+  {% endif %}
+</body>
+</html>

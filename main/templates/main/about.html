@@ -84,76 +84,37 @@
       background: #f5f5f3;
       color: #111;
     }
-
-    .about-footer {
-      border-top: 1px solid rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.56);
-      font-size: 0.82rem;
-    }
-
-    .about-footer-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      min-height: 64px;
-    }
-
-    .about-footer p {
-      margin: 0;
-    }
-
-    .about-footer a {
-      color: #f5f5f3;
-      text-decoration: none;
-    }
-
-    .about-footer a:hover {
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    @media (max-width: 575.98px) {
-      .about-footer-inner {
-        align-items: flex-start;
-        flex-direction: column;
-        justify-content: center;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-      }
-    }
   </style>
 </head>
 <body class="about-page">
   <header class="about-header">
     <div class="container d-flex justify-content-between align-items-center py-3">
       <a href="{% url 'home' %}" class="brand-mark checkout-brand text-decoration-none">J CSD</a>
-      <a href="{% url 'home' %}" class="back-link">← Back to store</a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="{% url 'home' %}" class="back-link d-none d-md-inline">← Back to store</a>
+        {% include "main/includes/navbar_actions.html" %}
+      </div>
     </div>
   </header>
 
   <main class="container about-main">
     <section class="about-copy">
-      <p class="section-kicker" style="color: rgba(255,255,255,0.58);">About J CSD</p>
-      <h1>Better drinks.<br>Less noise.</h1>
+      <p class="section-kicker" style="color: rgba(255,255,255,0.58);">{{ details.about_kicker|default:"About J CSD" }}</p>
+      <h1>{{ details.about_title|default:"Better drinks.<br>Less noise."|safe }}</h1>
       <p class="about-lead">
-        We make refreshing canned drinks for everyday moments. Bold flavours,
-        clean design, and nothing unnecessary.
+        {{ details.about_lead|default:"We make refreshing canned drinks for everyday moments. Bold flavours, clean design, and nothing unnecessary."|linebreaksbr }}
       </p>
       <p class="about-note">
-        Pick a flavour, make it yours, and enjoy the moment.
+        {{ details.about_note|default:"Pick a flavour, make it yours, and enjoy the moment."|linebreaksbr }}
       </p>
       <div class="about-actions">
-        <a class="about-action" href="{% url 'home' %}#shop">Explore the lineup</a>
+        <a class="about-action" href="{{ details.about_action_url|default:'/#shop' }}">{{ details.about_action_text|default:"Explore the lineup" }}</a>
       </div>
     </section>
   </main>
 
-  <footer class="about-footer">
-    <div class="container about-footer-inner">
-      <p>© {% now "Y" %} J CSD. Better drinks. Less noise.</p>
-      <a href="{% url 'home' %}">Back to store</a>
-    </div>
-  </footer>
+  <div style="margin-top: auto;">
+    {% include "main/includes/footer.html" %}
+  </div>
 </body>
 </html>

@@ -49,10 +49,15 @@ if (cartForm && saveStatus) {
 
         const count = document.querySelector('[data-cart-count]');
         const total = document.querySelector('[data-cart-total]');
-        const checkoutTotal = document.querySelector('[data-cart-checkout-total]');
         if (count) count.textContent = `${totalQuantity} item${totalQuantity === 1 ? '' : 's'}`;
         if (total) total.textContent = formatMoney(cartTotal);
-        if (checkoutTotal) checkoutTotal.textContent = `Continue to payment · ${formatMoney(cartTotal)}`;
+
+        if (typeof window.updateCartCalculations === 'function') {
+            window.updateCartCalculations();
+        } else {
+            const checkoutTotal = document.querySelector('[data-cart-checkout-total]');
+            if (checkoutTotal) checkoutTotal.textContent = `Continue to payment · ${formatMoney(cartTotal)}`;
+        }
     }
 
     async function saveCart() {
@@ -92,13 +97,18 @@ if (cartForm && saveStatus) {
 
             const count = document.querySelector('[data-cart-count]');
             const total = document.querySelector('[data-cart-total]');
-            const checkoutTotal = document.querySelector('[data-cart-checkout-total]');
             if (count) {
                 count.textContent = `${result.cart_count} item${result.cart_count === 1 ? '' : 's'}`;
             }
             if (total) total.textContent = formatMoney(result.cart_total);
-            if (checkoutTotal) {
-                checkoutTotal.textContent = `Continue to payment · ${formatMoney(result.cart_total)}`;
+
+            if (typeof window.updateCartCalculations === 'function') {
+                window.updateCartCalculations();
+            } else {
+                const checkoutTotal = document.querySelector('[data-cart-checkout-total]');
+                if (checkoutTotal) {
+                    checkoutTotal.textContent = `Continue to payment · ${formatMoney(result.cart_total)}`;
+                }
             }
             saveStatus.textContent = 'Cart updated.';
         } catch (error) {

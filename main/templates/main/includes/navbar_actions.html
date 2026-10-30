@@ -1,0 +1,19 @@
+<div class="admin-nav">
+  <a class="admin-access-button wishlist-access-button" href="{% url 'wishlist' %}" aria-label="Wishlist, {{ wishlist_count|default:0 }} saved item{{ wishlist_count|default:0|pluralize }}">
+    <span aria-hidden="true">♡</span>
+    <span class="cart-count" aria-hidden="true">{{ wishlist_count|default:0 }}</span>
+  </a>
+  <a class="admin-access-button cart-access-button"{% if enable_scroll_cart %} data-scroll-cart{% endif %} href="{% url 'cart' %}" aria-label="Shopping cart, {{ cart_count|default:0 }} item{{ cart_count|default:0|pluralize }}">
+    <svg class="cart-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.5L21 8H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="10" cy="20" r="1.25" fill="currentColor"/>
+      <circle cx="18" cy="20" r="1.25" fill="currentColor"/>
+    </svg>
+    <span class="cart-count" aria-hidden="true">{{ cart_count|default:0 }}</span>
+  </a>
+  {% if user.is_authenticated %}
+    {% include "main/includes/profile_menu.html" %}
+  {% else %}
+    <a class="admin-access-button" href="{% url 'customer_login' %}">Sign in</a>
+  {% endif %}
+</div>

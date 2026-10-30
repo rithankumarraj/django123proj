@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,63 +12,250 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
   <style>
+    body.payment-page-body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 70%), #09090a;
+      color: #f5f5f3;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .payment-header {
+      background: rgba(9, 9, 10, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-mark.payment-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.9rem;
+      letter-spacing: 0.06em;
+      color: #ffffff;
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .brand-mark.payment-brand:hover {
+      opacity: 0.85;
+    }
+
+    .payment-nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
+      color: #ffffff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .payment-nav-link:hover {
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #000000;
+      transform: translateX(-2px);
+    }
+
     .payment-shell {
       display: grid;
-      min-height: calc(100vh - 1px);
+      min-height: calc(100vh - 75px);
       place-items: center;
-      padding: 32px 16px;
+      padding: 40px 16px 64px;
+      position: relative;
     }
 
     .payment-card {
+      position: relative;
       width: min(100%, 600px);
-      padding: clamp(24px, 5vw, 40px);
-      border: 1px solid rgba(255,255,255,0.1);
+      padding: clamp(26px, 5vw, 40px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 24px;
-      background: rgba(255,255,255,0.035);
-      box-shadow: 0 24px 70px rgba(0,0,0,0.24);
-      transition: border-color 220ms ease, box-shadow 220ms ease;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow:
+        0 25px 70px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: all 0.25s ease;
     }
 
-    .payment-card--paid {
-      border-color: rgba(70, 220, 145, 0.45);
-      background: linear-gradient(145deg, rgba(26, 112, 70, 0.2), rgba(255,255,255,0.035) 55%);
-      box-shadow: 0 24px 80px rgba(12, 148, 80, 0.17);
-    }
-
-    .payment-card--pending,
-    .payment-card--failed {
-      border-color: rgba(255, 173, 77, 0.38);
-      background: linear-gradient(145deg, rgba(129, 77, 20, 0.17), rgba(255,255,255,0.035) 55%);
+    .payment-card:hover {
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
     }
 
     .payment-card h1 {
       margin: 0;
-      font-size: clamp(2rem, 6vw, 3rem);
+      font-size: clamp(2rem, 5.5vw, 2.9rem);
       font-weight: 800;
-      letter-spacing: -0.07em;
+      letter-spacing: -0.05em;
+      color: #ffffff;
     }
 
     .payment-caption {
-      margin: 8px 0 26px;
-      color: rgba(255,255,255,0.65);
+      margin: 8px 0 24px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.95rem;
     }
 
     .payment-status-hero {
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-bottom: 22px;
-      padding: 14px 16px;
-      border: 1px solid rgba(255, 173, 77, 0.3);
+      margin-bottom: 24px;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 16px;
-      background: rgba(255, 173, 77, 0.08);
-      color: #ffbd70;
+      background: rgba(255, 255, 255, 0.04);
+      color: #ffffff;
     }
 
     .payment-status-hero--paid {
-      border-color: rgba(70, 220, 145, 0.36);
-      background: rgba(48, 190, 116, 0.1);
-      color: #6ce6a4;
+      border-color: rgba(34, 197, 94, 0.45);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.14) 0%, rgba(16, 185, 129, 0.05) 100%), #111b15;
+      box-shadow: 0 0 24px rgba(34, 197, 94, 0.18), inset 0 1px 0 rgba(74, 222, 128, 0.25);
+      animation: paidHeroGlow 3s ease-in-out infinite alternate, paidSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .payment-status-hero--paid::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -150%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(60deg,
+          transparent 40%,
+          rgba(74, 222, 128, 0.15) 50%,
+          transparent 60%);
+      transform: rotate(25deg);
+      animation: paidShimmer 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .payment-status-hero--paid .payment-status-icon {
+      border: 2px solid #22c55e;
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.35) 0%, rgba(16, 185, 129, 0.15) 100%);
+      color: #4ade80;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.45);
+      animation: paidIconPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both, paidIconPulse 2.5s ease-in-out infinite 0.6s;
+    }
+
+    .payment-status-hero--paid .payment-status-eyebrow {
+      color: #86efac;
+      font-size: 0.74rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .payment-status-hero--paid .payment-status-title {
+      color: #4ade80;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      text-shadow: 0 0 16px rgba(74, 222, 128, 0.35);
+    }
+
+    .paid-check-svg {
+      width: 22px;
+      height: 22px;
+      stroke: #4ade80;
+      stroke-width: 3.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.6));
+    }
+
+    .paid-check-svg polyline {
+      stroke-dasharray: 26;
+      stroke-dashoffset: 26;
+      animation: checkDraw 0.65s cubic-bezier(0.65, 0, 0.45, 1) 0.15s forwards;
+    }
+
+    @keyframes paidHeroGlow {
+      0% {
+        border-color: rgba(34, 197, 94, 0.35);
+        box-shadow: 0 0 16px rgba(34, 197, 94, 0.14), inset 0 1px 0 rgba(74, 222, 128, 0.18);
+      }
+
+      100% {
+        border-color: rgba(74, 222, 128, 0.75);
+        box-shadow: 0 0 32px rgba(34, 197, 94, 0.35), inset 0 1px 0 rgba(74, 222, 128, 0.4);
+      }
+    }
+
+    @keyframes paidSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes paidIconPop {
+      0% {
+        transform: scale(0.4);
+        opacity: 0;
+      }
+
+      70% {
+        transform: scale(1.18);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes paidIconPulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+      }
+
+      50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 24px rgba(74, 222, 128, 0.75);
+      }
+    }
+
+    @keyframes checkDraw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes paidShimmer {
+      0% {
+        left: -150%;
+      }
+
+      35%,
+      100% {
+        left: 150%;
+      }
     }
 
     .payment-status-icon {
@@ -76,14 +264,12 @@
       width: 44px;
       height: 44px;
       place-items: center;
-      border: 1px solid currentColor;
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
       border-radius: 50%;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .payment-status-hero--paid .payment-status-icon {
-      animation: payment-success-pulse 1.8s ease-out infinite;
+      font-size: 1.45rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffffff;
     }
 
     .payment-status-copy {
@@ -92,58 +278,53 @@
     }
 
     .payment-status-eyebrow {
-      color: rgba(255,255,255,0.65);
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.74rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
+      font-weight: 600;
     }
 
     .payment-status-title {
-      color: inherit;
+      color: #ffffff;
       font-size: 1.15rem;
-    }
-
-    @keyframes payment-success-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(70, 220, 145, 0.32); }
-      55% { box-shadow: 0 0 0 10px rgba(70, 220, 145, 0); }
+      font-weight: 700;
     }
 
     .payment-product {
       padding: 16px 0;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .payment-card--paid .payment-product {
-      border-color: rgba(70, 220, 145, 0.22);
-    }
-
-    .payment-card--pending .payment-product,
-    .payment-card--failed .payment-product {
-      border-color: rgba(255, 173, 77, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 6px;
     }
 
     .payment-line {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 8px 0;
+      gap: 18px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .payment-product img {
-      width: 64px;
-      height: 82px;
+      width: 68px;
+      height: 88px;
       object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
     }
 
     .payment-product-name {
       margin: 0 0 4px;
       font-weight: 700;
+      font-size: 1.12rem;
+      color: #ffffff;
     }
 
     .payment-muted {
-      color: rgba(255,255,255,0.62);
-      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.86rem;
     }
 
     .payment-amount {
@@ -151,140 +332,226 @@
       justify-content: space-between;
       align-items: center;
       margin: 22px 0;
-      font-size: 1rem;
+      padding: 14px 18px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .payment-amount span {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
 
     .payment-amount strong {
-      font-size: 1.35rem;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #ffffff;
     }
 
-    .payment-card--paid .payment-amount strong,
-    .status-paid {
-      color: #55dd96;
+    .payment-result--delivery {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 0 22px;
+      padding: 16px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.025);
     }
 
-    .payment-card--pending .payment-amount strong,
-    .payment-card--failed .payment-amount strong,
-    .status-pending,
-    .status-failed {
-      color: #ffb45f;
+    .payment-delivery-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.82rem;
+      width: fit-content;
     }
 
     .payment-notice {
       margin-bottom: 20px;
-      padding: 12px 14px;
-      border: 1px solid rgba(246,190,93,0.25);
-      border-radius: 12px;
-      background: rgba(246,190,93,0.07);
-      color: #f3d79f;
-      font-size: 0.85rem;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 0.88rem;
       line-height: 1.5;
     }
 
-    .payment-error {
-      border-color: rgba(255,112,112,0.45);
-      background: rgba(255,112,112,0.08);
-      color: #ffc0c0;
+    .payment-notice strong {
+      color: #ffffff;
+      font-weight: 700;
     }
 
     .payment-notice a {
-      color: inherit;
+      color: #ffffff;
       font-weight: 700;
+      text-decoration: underline;
       text-underline-offset: 3px;
+      transition: opacity 0.15s ease;
+    }
+
+    .payment-notice a:hover {
+      opacity: 0.8;
+    }
+
+    .payment-error {
+      border-color: rgba(255, 100, 100, 0.4);
+      background: rgba(255, 80, 80, 0.08);
+      color: #ffb8b8;
     }
 
     .payment-actions {
       display: grid;
-      gap: 10px;
-    }
-
-    .payment-confirm,
-    .payment-cancel {
-      width: 100%;
-      padding: 13px 18px;
-      border-radius: 999px;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
+      gap: 12px;
     }
 
     .payment-confirm {
-      border: 0;
-      background: #f5f5f3;
-      color: #111;
+      width: 100%;
+      padding: 14px 22px;
+      border-radius: 999px;
+      border: 1px solid #ffffff;
+      background: #ffffff;
+      color: #000000;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(255, 255, 255, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .payment-confirm:hover {
+      transform: translateY(-1px);
+      background: #e6e6e6;
+      border-color: #e6e6e6;
+      box-shadow: 0 8px 24px rgba(255, 255, 255, 0.25);
+    }
+
+    .payment-confirm:active {
+      transform: translateY(0);
     }
 
     .payment-cancel {
-      border: 1px solid rgba(255,255,255,0.2);
+      width: 100%;
+      padding: 13px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
       background: transparent;
-      color: #fff;
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .payment-cancel:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .payment-cancel:active {
+      transform: translateY(0);
     }
 
     .payment-result {
       margin: 0 0 20px;
-      padding: 14px;
-      border: 1px solid rgba(255,255,255,0.1);
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 14px;
-      background: rgba(255,255,255,0.035);
-    }
-
-    .payment-card--paid .payment-result--status {
-      border-color: rgba(70, 220, 145, 0.32);
-      background: rgba(48, 190, 116, 0.09);
-    }
-
-    .payment-card--pending .payment-result--status,
-    .payment-card--failed .payment-result--status {
-      border-color: rgba(255, 173, 77, 0.3);
-      background: rgba(255, 173, 77, 0.07);
+      background: rgba(255, 255, 255, 0.03);
     }
 
     .payment-result strong {
       display: block;
       margin-top: 5px;
-      font-size: 1.2rem;
+      font-size: 1.25rem;
+      color: #ffffff;
     }
 
-    .payment-card--paid .payment-back {
-      color: #70e8a8;
+    .status-paid {
+      color: #ffffff;
     }
 
-    .payment-card--pending .payment-back,
-    .payment-card--failed .payment-back {
-      color: #ffc47f;
+    .status-pending,
+    .status-failed {
+      color: rgba(255, 255, 255, 0.85);
     }
 
     .payment-back {
-      display: block;
-      margin-top: 20px;
-      color: rgba(255,255,255,0.7);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 22px;
+      color: rgba(255, 255, 255, 0.6);
       text-align: center;
       text-decoration: none;
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: all 0.2s ease;
+      width: 100%;
     }
 
-    .payment-back:hover { color: #fff; }
+    .payment-back:hover {
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
 
     @media (prefers-reduced-motion: reduce) {
+
       .payment-card,
-      .payment-status-hero--paid .payment-status-icon {
-        animation: none;
-        transition: none;
+      .payment-confirm,
+      .payment-cancel,
+      .payment-status-hero--paid,
+      .payment-status-hero--paid::after,
+      .payment-status-hero--paid .payment-status-icon,
+      .paid-check-svg polyline {
+        animation: none !important;
+        transition: none !important;
       }
     }
   </style>
 </head>
-<body class="checkout-page-body">
-  <header class="checkout-header">
+
+<body class="payment-page-body">
+  <header class="payment-header">
     <div class="container d-flex justify-content-between align-items-center py-3">
-      <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
-      <a href="{% url 'home' %}" class="back-link">Store</a>
+      <a href="{% url 'home' %}" class="brand-mark payment-brand">J CSD</a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="{% url 'home' %}" class="payment-nav-link d-none d-md-inline">← Store</a>
+        {% include "main/includes/navbar_actions.html" %}
+      </div>
     </div>
   </header>
 
   <main class="container payment-shell">
-    <section class="payment-card payment-card--{% if order.payment_status == 'paid' %}paid{% elif order.payment_status == 'pending' %}pending{% else %}failed{% endif %}">
-      <div class="payment-status-hero payment-status-hero--{% if order.payment_status == 'paid' %}paid{% else %}unpaid{% endif %}" role="status">
-        <span class="payment-status-icon" aria-hidden="true">{% if order.payment_status == "paid" %}✓{% elif order.payment_status == "failed" %}×{% else %}!{% endif %}</span>
+    <section
+      class="payment-card payment-card--{% if order.payment_status == 'paid' %}paid{% elif order.payment_status == 'pending' %}pending{% else %}failed{% endif %}">
+      <div
+        class="payment-status-hero payment-status-hero--{% if order.payment_status == 'paid' %}paid{% else %}unpaid{% endif %}"
+        role="status">
+        <span class="payment-status-icon" aria-hidden="true">
+          {% if order.payment_status == "paid" %}
+          <svg class="paid-check-svg" viewBox="0 0 24 24" fill="none">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          {% elif order.payment_status == "failed" %}×{% else %}!{% endif %}
+        </span>
         <span class="payment-status-copy">
           <span class="payment-status-eyebrow">Payment status</span>
           <strong class="payment-status-title">{{ order.get_payment_status_display }}</strong>
@@ -292,33 +559,56 @@
       </div>
 
       {% if order.payment_status == "pending" %}
-        <h1>Review payment</h1>
-        <p class="payment-caption">Confirm the order details before completing this demo payment.</p>
+      <h1>Review payment</h1>
+      <p class="payment-caption">Confirm the order details before completing this demo payment.</p>
       {% else %}
-        <h1>Payment result</h1>
-        <p class="payment-caption">Your order payment status is shown below.</p>
+      <h1>Payment result</h1>
+      <p class="payment-caption">Your order payment status is shown below.</p>
       {% endif %}
 
       {% if error %}
-        <div class="payment-notice payment-error" role="alert">{{ error }}</div>
+      <div class="payment-notice payment-error" role="alert">{{ error }}</div>
       {% endif %}
 
       {% if password_setup_required %}
-        <div class="payment-notice" role="status">
-          Your account username is <strong>{{ request.user.get_username }}</strong>. You are signed in; <a href="{% url 'customer_profile' %}">set a password in your profile</a> before signing out. Your mobile number is not used as your password.
-        </div>
+      <div class="payment-notice" role="status">
+        Your account username is <strong>{{ request.user.get_username }}</strong>. You are signed in; your phone number is your temporary password if you log out. You can also <a href="{% url 'customer_profile' %}">set a custom password in your profile</a>.
+      </div>
       {% endif %}
 
       <div class="payment-product">
         {% for item in order_items %}
-          <div class="payment-line">
-            <img src="{% static item.product.image %}" alt="{{ item.product.name }}">
-            <div>
-              <p class="payment-product-name">{{ item.product.name }}</p>
-              <span class="payment-muted">{{ item.product.volume }} · Quantity {{ item.quantity }}</span>
-            </div>
+        <div class="payment-line">
+          <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}">
+          <div>
+            <p class="payment-product-name">{{ item.product.name }}</p>
+            <span class="payment-muted">{{ item.product.volume }} · Quantity {{ item.quantity }}</span>
           </div>
+        </div>
         {% endfor %}
+      </div>
+
+      <div
+        style="margin: 16px 0 8px; padding: 12px 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.9rem;">
+        <div
+          style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.75);">
+          <span>Items Subtotal</span>
+          <span>₹{{ order.items_subtotal|floatformat:2 }}</span>
+        </div>
+        <div
+          style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.75);">
+          <span>GST (18%)</span>
+          <span>₹{{ order.gst_amount|floatformat:2 }}</span>
+        </div>
+        <div
+          style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.75);">
+          <span>Packing Cost</span>
+          <span>{% if order.packing_fee > 0 %}₹{{ order.packing_fee|floatformat:2 }}{% else %}FREE{% endif %}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: rgba(255, 255, 255, 0.75);">
+          <span>Shipping Fee ({% if order.delivery_state %}{{ order.delivery_state }}{% else %}Standard{% endif %})</span>
+          <span>{% if order.shipping_fee > 0 %}₹{{ order.shipping_fee|floatformat:2 }}{% else %}FREE{% endif %}</span>
+        </div>
       </div>
 
       <div class="payment-amount">
@@ -326,38 +616,56 @@
         <strong>₹{{ order.total_amount|floatformat:2 }}</strong>
       </div>
 
+      {% if order.payment_status == "paid" %}
+        <div style="margin: 0 0 16px;">
+          <a href="{% url 'order_receipt' order.id %}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; padding: 10px 18px; border-radius: 12px; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); color: #4ade80; font-weight: 700; text-decoration: none; font-size: 0.92rem; transition: all 0.2s ease;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect width="12" height="8" x="6" y="14"></rect>
+            </svg>
+            Print Slip / Download Receipt
+          </a>
+        </div>
+      {% endif %}
+
       <div class="payment-result payment-result--delivery">
-        <span>Delivery status <strong>{{ order.get_status_display }}</strong></span>
+        <div class="d-flex justify-content-between align-items-center">
+          <span style="font-weight: 600; font-size: 0.95rem; color: rgba(255, 255, 255, 0.85);">Delivery status</span>
+          <span class="payment-delivery-badge">{{ order.get_status_display }}</span>
+        </div>
         {% if order.customer_phone %}
-          <span class="payment-muted">Contact: {{ order.customer_name }} · {{ order.customer_phone }}</span>
+        <span class="payment-muted">Contact: {{ order.customer_name }} · {{ order.customer_phone }}</span>
         {% endif %}
       </div>
 
       {% if order.payment_status == "pending" %}
-        {% if simulation_enabled %}
-          <div class="payment-notice">
-            Demo only: confirming records a simulated successful payment. No card, bank, or UPI payment is made.
-          </div>
-          <form method="post" class="payment-actions">
-            {% csrf_token %}
-            <button class="payment-confirm" type="submit" name="action" value="confirm">Confirm demo payment</button>
-            <button class="payment-cancel" type="submit" name="action" value="cancel">Cancel payment</button>
-          </form>
-        {% else %}
-          <div class="payment-notice">
-            No payment provider is connected. This order is pending; no payment has been collected.
-          </div>
-        {% endif %}
+      {% if simulation_enabled %}
+      <div class="payment-notice">
+        Demo only: confirming records a simulated successful payment. No card, bank, or UPI payment is made.
+      </div>
+      <form method="post" class="payment-actions">
+        {% csrf_token %}
+        <button class="payment-confirm" type="submit" name="action" value="confirm">Confirm demo payment</button>
+        <button class="payment-cancel" type="submit" name="action" value="cancel">Cancel payment</button>
+      </form>
       {% else %}
-        <div class="payment-result payment-result--status">
-          Payment status
-          <strong class="status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</strong>
-          <span class="payment-muted">Order #{{ order.id }}</span>
-        </div>
+      <div class="payment-notice">
+        No payment provider is connected. This order is pending; no payment has been collected.
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="payment-result payment-result--status">
+        Payment status
+        <strong class="status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</strong>
+        <span class="payment-muted">Order #{{ order.id }}</span>
+      </div>
       {% endif %}
 
-      <a class="payment-back" href="{% url 'home' %}">Back to store</a>
+      <a class="payment-back" href="{% url 'home' %}">← Back to store</a>
     </section>
   </main>
+  {% include "main/includes/footer.html" %}
 </body>
+
 </html>

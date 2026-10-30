@@ -34,9 +34,10 @@
     a { color: inherit; text-decoration: none; }
 
     .admin-shell {
-      max-width: 1200px;
+      width: min(1200px, 100%);
       margin: 0 auto;
       padding: 32px 20px 60px;
+      box-sizing: border-box;
     }
 
     .topbar {
@@ -80,6 +81,9 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 18px;
       margin-bottom: 24px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .stat-card {
@@ -87,6 +91,8 @@
       border: 1px solid var(--line);
       border-radius: 20px;
       padding: 20px 18px;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .stat-label {
@@ -108,6 +114,9 @@
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
       gap: 22px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .panel {
@@ -116,6 +125,11 @@
       border-radius: 22px;
       padding: 22px;
       margin-bottom: 22px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     .panel h2 {
@@ -211,20 +225,54 @@
       margin-top: 0;
     }
 
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.01);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+
+    .table-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 999px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+    }
+
     .product-list,
     .status-list {
       width: 100%;
       border-collapse: collapse;
     }
 
+    .status-list {
+      min-width: 840px;
+    }
+
+    .product-list {
+      min-width: 480px;
+    }
+
     .product-list th,
     .product-list td,
     .status-list th,
     .status-list td {
-      padding: 12px 10px;
+      padding: 13px 12px;
       border-bottom: 1px solid var(--line);
       text-align: left;
-      vertical-align: top;
+      vertical-align: middle;
     }
 
     .product-list th,
@@ -233,6 +281,49 @@
       font-size: 0.7rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.02);
+      white-space: nowrap;
+    }
+
+    .status-list th:nth-child(1),
+    .status-list td:nth-child(1) {
+      width: 85px;
+      min-width: 85px;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .status-list th:nth-child(2),
+    .status-list td:nth-child(2) {
+      width: 180px;
+      min-width: 180px;
+    }
+
+    .status-list th:nth-child(3),
+    .status-list td:nth-child(3) {
+      width: 160px;
+      min-width: 160px;
+    }
+
+    .status-list th:nth-child(4),
+    .status-list td:nth-child(4) {
+      width: 240px;
+      min-width: 240px;
+      line-height: 1.45;
+    }
+
+    .status-list th:nth-child(5),
+    .status-list td:nth-child(5) {
+      width: 140px;
+      min-width: 140px;
+      white-space: nowrap;
+    }
+
+    .status-list th:nth-child(6),
+    .status-list td:nth-child(6) {
+      width: 140px;
+      min-width: 140px;
+      white-space: nowrap;
     }
 
     .product-name {
@@ -248,12 +339,14 @@
     .status-badge {
       display: inline-flex;
       align-items: center;
-      padding: 6px 10px;
+      justify-content: center;
+      padding: 6px 12px;
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
+      white-space: nowrap;
     }
 
     .status-delivered { background: rgba(47, 207, 122, 0.12); color: var(--green); }
@@ -279,16 +372,114 @@
       font-weight: 700;
     }
 
+    .panel-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .panel-header-row h2 {
+      margin: 0;
+    }
+
+    .table-scroll-hint {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .table-scroll-hint:hover,
+    .table-scroll-hint:active {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--white);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
     @media (max-width: 860px) {
-      .stats-grid,
-      .content-grid,
+      body {
+        overflow-x: hidden;
+      }
+
+      .admin-shell {
+        padding: 20px 14px 60px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+        margin-bottom: 18px;
+      }
+
+      .stat-card {
+        padding: 14px 10px;
+        border-radius: 14px;
+      }
+
+      .stat-label {
+        font-size: 0.64rem;
+        letter-spacing: 0.08em;
+      }
+
+      .stat-value {
+        font-size: 1.75rem;
+      }
+
+      .content-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        width: 100%;
+        min-width: 0;
+      }
+
       .form-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+        min-width: 0;
+      }
+
+      .panel {
+        padding: 18px 14px;
+        border-radius: 18px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      .table-container {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
       }
 
       .topbar {
         flex-direction: column;
         align-items: flex-start;
+        width: 100%;
+        gap: 14px;
+      }
+
+      .table-scroll-hint {
+        display: inline-flex;
       }
     }
   </style>
@@ -344,6 +535,11 @@
             </div>
 
             <div class="field">
+              <label for="id_category">Category</label>
+              {{ product_form.category }}
+            </div>
+
+            <div class="field">
               <label for="id_price">Price</label>
               {{ product_form.price }}
             </div>
@@ -376,42 +572,50 @@
       </section>
 
       <section class="panel list-panel">
-        <h2>Product list</h2>
-        <table class="product-list">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Price</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for product in products %}
-            <tr>
-              <td>
-                <div class="product-name">{{ product.name }}</div>
-                <div class="muted">{{ product.volume }}</div>
-              </td>
-              <td>₹{{ product.price }}</td>
-              <td>
-                {% if product.available %}
-                  <span class="status-badge status-delivered">Active</span>
-                {% else %}
-                  <span class="status-badge status-pending">Hidden</span>
-                {% endif %}
-              </td>
-              <td class="table-actions">
-                <a class="mini-btn" href="?edit={{ product.id }}">Edit</a>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="4" class="muted">No products found.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <div class="panel-header-row">
+          <h2>Product list</h2>
+          <button type="button" class="table-scroll-hint" onclick="scrollTable(this)" aria-label="Scroll table horizontally">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            Scroll table
+          </button>
+        </div>
+        <div class="table-container">
+          <table class="product-list">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for product in products %}
+              <tr>
+                <td>
+                  <div class="product-name">{{ product.name }}</div>
+                  <div class="muted">{{ product.volume }}</div>
+                </td>
+                <td>₹{{ product.price }}</td>
+                <td>
+                  {% if product.available %}
+                    <span class="status-badge status-delivered">Active</span>
+                  {% else %}
+                    <span class="status-badge status-pending">Hidden</span>
+                  {% endif %}
+                </td>
+                <td class="table-actions">
+                  <a class="mini-btn" href="?edit={{ product.id }}">Edit</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="muted">No products found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
 
@@ -436,52 +640,83 @@
     </section>
 
     <section class="panel">
-      <h2>Delivery status</h2>
-      <table class="status-list">
-        <thead>
-          <tr>
-            <th>Order</th>
-            <th>Product</th>
-            <th>Customer</th>
-            <th>Delivery address</th>
-            <th>Payment</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for order in orders %}
-          <tr>
-            <td>#{{ order.id }}</td>
-            <td>
-              {% for item in order.items.all %}
-                <div>{{ item.product.name }} × {{ item.quantity }}</div>
-              {% empty %}
-                {% if order.product %}{{ order.product.name }} × {{ order.quantity }}{% else %}Order items unavailable{% endif %}
-              {% endfor %}
-            </td>
-            <td>{{ order.customer_name }}{% if order.customer_phone %}<br><span class="muted">{{ order.customer_phone }}</span>{% endif %}</td>
-            <td>
-              {% if order.delivery_address %}
-                {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }} {{ order.delivery_postal_code }}
-              {% else %}
-                <span class="muted">Address not provided</span>
-              {% endif %}
-            </td>
-            <td>
-              <span class="status-badge status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
-            </td>
-            <td>
-              <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="muted">No delivery orders found.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="panel-header-row">
+        <h2>Delivery status</h2>
+        <button type="button" class="table-scroll-hint" onclick="scrollTable(this)" aria-label="Scroll table horizontally">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          Scroll table
+        </button>
+      </div>
+      <div class="table-container">
+        <table class="status-list">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Product</th>
+              <th>Customer</th>
+              <th>Delivery address</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in orders %}
+            <tr>
+              <td>#{{ order.id }}</td>
+              <td>
+                {% for item in order.items.all %}
+                  <div>{{ item.product.name }} × {{ item.quantity }}</div>
+                {% empty %}
+                  {% if order.product %}{{ order.product.name }} × {{ order.quantity }}{% else %}Order items unavailable{% endif %}
+                {% endfor %}
+              </td>
+              <td>{{ order.customer_name }}{% if order.customer_phone %}<br><span class="muted">{{ order.customer_phone }}</span>{% endif %}</td>
+              <td>
+                {% if order.delivery_address %}
+                  {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }} {{ order.delivery_postal_code }}
+                {% else %}
+                  <span class="muted">Address not provided</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="status-badge status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+              </td>
+              <td>
+                <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <a href="{% url 'admin_order_detail' order.id %}" class="btn-mini" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.75rem;">
+                  View
+                </a>
+                <a href="{% url 'order_receipt' order.id %}" target="_blank" class="btn-mini" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.75rem; margin-left: 6px;" title="Print or download order slip">
+                  Slip
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="muted">No delivery orders found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
+  <script>
+    function scrollTable(btn) {
+      const panel = btn.closest('.panel');
+      if (!panel) return;
+      const container = panel.querySelector('.table-container');
+      if (!container) return;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll - 20) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: 260, behavior: 'smooth' });
+      }
+    }
+  </script>
 </body>
 </html>

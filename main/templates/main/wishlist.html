@@ -155,12 +155,8 @@
     <div class="container d-flex justify-content-between align-items-center py-3">
       <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
       <div class="d-flex align-items-center gap-3">
-        <a href="{% url 'cart' %}" class="back-link">Shopping cart</a>
-        {% if user.is_authenticated %}
-          {% include "main/includes/profile_menu.html" %}
-        {% else %}
-          <a class="admin-access-button" href="{% url 'customer_login' %}">Sign in</a>
-        {% endif %}
+        <a href="{% url 'home' %}#shop" class="back-link d-none d-md-inline">← Continue shopping</a>
+        {% include "main/includes/navbar_actions.html" %}
       </div>
     </div>
   </header>
@@ -186,7 +182,7 @@
         {% for product in products %}
           <article class="wishlist-card">
             <a class="wishlist-image" href="{% url 'product_detail' product.id %}" aria-label="View {{ product.name }}">
-              <img src="{% static product.image %}" alt="{{ product.name }}">
+              <img src="{{ product.image_url }}" alt="{{ product.name }}">
             </a>
             <div class="wishlist-card-body">
               <h2>{{ product.name }}</h2>
@@ -219,5 +215,6 @@
       </section>
     {% endif %}
   </main>
+  {% include "main/includes/footer.html" %}
 </body>
 </html>

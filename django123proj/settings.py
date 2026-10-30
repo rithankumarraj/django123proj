@@ -29,13 +29,14 @@ DEBUG = os.environ.get("DEBUG", "False").lower() in {"1", "true", "yes"}
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     if DEBUG:
-        SECRET_KEY = get_random_secret_key()
+        SECRET_KEY = "django-insecure-jcsd-local-development-session-key-2026"
     else:
         raise ImproperlyConfigured("Set SECRET_KEY in the environment for non-debug deployments.")
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
+    "testserver",
     "jcs-pearl.vercel.app",
     ".vercel.app",
 ]
@@ -118,6 +119,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'main.context_processors.navbar_context',
             ],
         },
     },
@@ -181,6 +183,9 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 STORAGES = {
     "default": {

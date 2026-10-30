@@ -9,9 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'main/css/style.css' %}?v=product-description-2">
+    <link rel="stylesheet" href="{% static 'main/css/style.css' %}?v=frosted-nav-1">
     <script src="{% static 'main/cart-scroll.js' %}?v=cart-scroll-navbar-threshold-7" defer></script>
-    <script src="{% static 'main/script.js' %}?v=product-description-2" defer></script>
+    <script src="{% static 'main/script.js' %}?v=category-filters-2" defer></script>
 </head>
 <body>
     <div class="page-shell">
@@ -19,31 +19,7 @@
             <nav class="navbar navbar-expand-lg navbar-dark px-3 px-md-5 py-3">
                 <div class="container-fluid px-0">
                     <a class="navbar-brand brand-mark" href="#">J CSD</a>
-                    <div class="admin-nav">
-                        <a class="admin-access-button wishlist-access-button" href="{% url 'wishlist' %}" aria-label="Wishlist, {{ wishlist_count }} saved item{{ wishlist_count|pluralize }}">
-                            <span aria-hidden="true">♡</span>
-                            <span class="cart-count" aria-hidden="true">{{ wishlist_count }}</span>
-                        </a>
-                        <a class="admin-access-button cart-access-button" data-scroll-cart href="{% url 'cart' %}" aria-label="Shopping cart, {{ cart_count }} item{{ cart_count|pluralize }}">
-                            <svg class="cart-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                                <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.5L21 8H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                <circle cx="10" cy="20" r="1.25" fill="currentColor"/>
-                                <circle cx="18" cy="20" r="1.25" fill="currentColor"/>
-                            </svg>
-                            <span class="cart-count" aria-hidden="true">{{ cart_count }}</span>
-                        </a>
-                        {% if is_delivery_user %}
-                            <a class="admin-access-button" href="{% url 'delivery_dashboard' %}">Delivery dashboard</a>
-                        {% endif %}
-                        {% if user.is_authenticated and user.is_staff %}
-                            <a class="admin-access-button" href="{% url 'admin_dashboard' %}">Admin</a>
-                        {% endif %}
-                        {% if user.is_authenticated %}
-                            {% include "main/includes/profile_menu.html" %}
-                        {% else %}
-                            <a class="admin-access-button" href="{% url 'customer_login' %}">Sign in</a>
-                        {% endif %}
-                    </div>
+                    {% include "main/includes/navbar_actions.html" with enable_scroll_cart=True %}
                 </div>
             </nav>
 
@@ -71,6 +47,9 @@
                             <a class="btn btn-outline-light btn-cta btn-cta--ghost" href="{% url 'about' %}">
                                 About us
                             </a>
+                            <a class="btn btn-outline-light btn-cta btn-cta--ghost" href="{% url 'contact' %}">
+                                Contact us
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -89,6 +68,34 @@
                         <span class="product-total">{{ products|length }} products</span>
                     </div>
 
+                    <!-- Category Filters -->
+                    <div class="category-filters-wrap mb-4" data-category-filters>
+                        <div class="category-filters" role="tablist" aria-label="Filter drinks by category">
+                            <button
+                                type="button"
+                                class="category-pill is-active"
+                                data-filter-category="all"
+                                role="tab"
+                                aria-selected="true"
+                            >
+                                <span class="category-pill-label">All</span>
+                                <span class="category-pill-count">{{ products|length }}</span>
+                            </button>
+                            {% for cat in categories %}
+                                <button
+                                    type="button"
+                                    class="category-pill"
+                                    data-filter-category="{{ cat.slug }}"
+                                    role="tab"
+                                    aria-selected="false"
+                                >
+                                    <span class="category-pill-label">{{ cat.name }}</span>
+                                    <span class="category-pill-count">{{ cat.count|default:0 }}</span>
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
                     <div class="product-switcher" data-product-switcher>
                         <div class="product-rail" role="tablist" aria-label="Choose a product">
                             {% for product in products %}
@@ -97,6 +104,7 @@
                                     type="button"
                                     role="tab"
                                     data-product-index="{{ forloop.counter0 }}"
+                                    data-product-category="{{ product.category }}"
                                     data-product-url="{% url 'product_detail' product.id %}"
                                     data-add-to-cart-url="{% url 'add_to_cart' product.id %}"
                                     data-wishlist-url="{{ product.wishlist_url }}"
@@ -114,7 +122,10 @@
 
                         <div class="switch-product" data-product-display>
                             <div class="switch-details">
-                                <p class="switch-count" data-product-count></p>
+                                <div class="switch-top-meta d-flex align-items-center justify-content-between mb-2">
+                                    <span class="switch-category-badge" data-product-category-badge></span>
+                                    <p class="switch-count mb-0" data-product-count></p>
+                                </div>
                                 <div class="product-name-row">
                                     <h3 data-product-name></h3>
                                     {% if products %}
@@ -169,41 +180,7 @@
             </section>
         </main>
 
-        <footer class="store-footer">
-            <div class="store-footer-panel">
-                <div class="store-footer-inner">
-                    <div class="store-footer-brand">
-                        <span class="store-footer-label">J CSD</span>
-                        <p>Better drinks for everyday moments.<br>Bold flavours. Less noise.</p>
-                    </div>
-                    <nav class="store-footer-links" aria-label="Footer navigation">
-                        <span class="store-footer-label">Explore</span>
-                        <a href="{% url 'home' %}#shop">Shop drinks</a>
-                        <a href="{% url 'about' %}">About us</a>
-                        <a href="{% url 'privacy_policy' %}">Privacy policy</a>
-                    </nav>
-                    <div class="store-footer-contact">
-                        <span class="store-footer-label">Contact</span>
-                        <a href="mailto:support@jcsd.com">support@jcsd.com</a>
-                        <a href="tel:+918056838888">+91 80568 38888</a>
-                        <a href="https://wa.me/918056838888" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-                    </div>
-                </div>
-                <div class="store-footer-bottom">
-                    <a class="store-footer-logo-link" href="{% url 'home' %}" aria-label="J CSD home">
-                        <img
-                            class="store-footer-mark"
-                            src="{% static 'main/images/jcsd-footer-logo.png' %}"
-                            alt="J CSD"
-                        >
-                    </a>
-                    <div class="store-footer-bottom-inner">
-                        <span>© {% now "Y" %} J CSD</span>
-                        <span>Made for everyday moments.</span>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        {% include "main/includes/footer.html" %}
     </div>
 
     {{ products|json_script:"products-data" }}

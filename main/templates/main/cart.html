@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,8 +19,9 @@
     }
 
     .cart-main {
-      padding-top: 44px;
-      padding-bottom: 64px;
+      padding-top: 40px;
+      padding-bottom: 70px;
+      max-width: 1320px;
     }
 
     .cart-heading {
@@ -27,73 +29,82 @@
       justify-content: space-between;
       align-items: flex-end;
       gap: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
 
     .cart-heading h1 {
       margin: 0;
-      font-size: clamp(2.2rem, 6vw, 3.4rem);
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
       font-weight: 800;
-      letter-spacing: -0.07em;
+      letter-spacing: -0.06em;
     }
 
     .cart-panel {
-      padding: clamp(16px, 3vw, 28px);
-      border: 1px solid rgba(255,255,255,0.09);
+      padding: clamp(18px, 3vw, 28px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
       border-radius: 22px;
-      background: rgba(255,255,255,0.025);
+      background: rgba(255, 255, 255, 0.025);
     }
 
     .cart-item {
       display: grid;
-      grid-template-columns: 92px minmax(0, 1fr) auto;
+      grid-template-columns: 88px minmax(0, 1fr) auto;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
       padding: 18px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.09);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .cart-item:first-child { padding-top: 0; }
-    .cart-item:last-child { border-bottom: 0; }
+    .cart-item:first-child {
+      padding-top: 0;
+    }
+
+    .cart-item:last-child {
+      border-bottom: 0;
+    }
 
     .cart-item img {
-      width: 92px;
-      height: 112px;
+      width: 88px;
+      height: 108px;
       object-fit: contain;
       border-radius: 12px;
-      background: rgba(255,255,255,0.035);
+      background: rgba(255, 255, 255, 0.035);
     }
 
     .cart-item h2 {
       margin: 0 0 5px;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 700;
+      color: #fff;
     }
 
     .cart-muted {
-      color: rgba(255,255,255,0.62);
+      color: rgba(255, 255, 255, 0.65);
       font-size: 0.86rem;
     }
 
     .cart-item-price {
-      margin-top: 8px;
-      font-weight: 700;
+      margin-top: 6px;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: #fff;
     }
 
     .cart-item-actions {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
     .cart-quantity {
-      width: 46px;
-      padding: 9px 0;
+      width: 44px;
+      padding: 8px 0;
       border: 0;
       outline: none;
       background: #171b1e;
       color: #fff;
       font: inherit;
+      font-weight: 700;
       text-align: center;
       appearance: textfield;
       -moz-appearance: textfield;
@@ -109,76 +120,54 @@
       display: inline-flex;
       align-items: center;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.17);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 10px;
       background: #171b1e;
     }
 
     .cart-quantity-step {
-      width: 34px;
-      min-height: 44px;
+      width: 32px;
+      min-height: 40px;
       border: 0;
       background: transparent;
       color: #fff;
       font: inherit;
       font-size: 1.25rem;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .cart-quantity-step:hover {
-      background: rgba(255,255,255,0.08);
-    }
-
-    .cart-quantity-step:focus-visible {
-      outline: 2px solid #fff;
-      outline-offset: -3px;
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .cart-remove {
       border: 0;
       background: transparent;
-      color: #ff9999;
+      color: #ff8888;
       font: inherit;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
+      font-weight: 600;
       cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
     }
 
-    .cart-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .cart-total-label {
-      color: rgba(255,255,255,0.68);
-      font-size: 0.85rem;
-    }
-
-    .cart-total {
-      display: block;
-      margin-top: 3px;
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: -0.05em;
-    }
-
-    .cart-footer-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 10px;
+    .cart-remove:hover {
+      color: #ffa4a4;
+      background: rgba(255, 100, 100, 0.1);
     }
 
     .cart-action-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 46px;
-      padding: 11px 18px;
-      border: 1px solid rgba(255,255,255,0.2);
+      min-height: 48px;
+      padding: 12px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 999px;
       background: transparent;
       color: #fff;
@@ -186,54 +175,422 @@
       font-weight: 700;
       text-decoration: none;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     .cart-action-primary {
       border-color: #f5f5f3;
       background: #f5f5f3;
-      color: #111;
+      color: #0b0e10;
+    }
+
+    .cart-action-primary:hover {
+      background: #ffffff;
+      color: #000;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
     }
 
     .cart-checkout {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 28px;
-      padding-top: 24px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 14px;
     }
 
     .cart-checkout label {
       display: block;
       margin-bottom: 6px;
-      color: rgba(255,255,255,0.68);
-      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 0.74rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
+      font-weight: 600;
     }
 
-    .cart-checkout input {
+    .cart-checkout input,
+    .cart-checkout select {
       width: 100%;
       min-height: 44px;
-      padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,0.14);
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 10px;
-      background: rgba(255,255,255,0.035);
+      background-color: #161a1d;
       color: #fff;
       font: inherit;
     }
 
-    .cart-checkout .full-width { grid-column: 1 / -1; }
+    .cart-checkout select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 36px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      cursor: pointer;
+    }
+
+    .cart-checkout select option {
+      background-color: #161a1d;
+      color: #fff;
+      padding: 8px 12px;
+    }
+
+    .cart-checkout .phone-input-group {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      background: #161a1d;
+      overflow: hidden;
+    }
+
+    .cart-checkout .phone-prefix {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.92rem;
+      user-select: none;
+      height: 44px;
+    }
+
+    .cart-checkout .phone-input-group input {
+      flex: 1;
+      border: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      padding: 10px 12px !important;
+      box-shadow: none !important;
+      outline: none !important;
+      min-height: 44px;
+    }
+
+    .cart-checkout .col-half {
+      grid-column: span 3;
+    }
+
+    .cart-checkout .col-third {
+      grid-column: span 2;
+    }
+
+    .cart-checkout .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .address-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 14px;
+      margin-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.14);
+    }
+
+    .address-section-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .address-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
+    }
+
+    .address-mode-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .address-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-add-address {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-add-address:hover {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.18);
+    }
+
+    .btn-add-address:active {
+      transform: translateY(0);
+    }
+
+    .btn-use-saved {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-use-saved:hover {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .saved-address-options-wrap {
+      margin-top: 4px;
+      margin-bottom: 6px;
+    }
+
+    .saved-address-options-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.55);
+      margin-bottom: 8px;
+    }
+
+    .saved-address-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .address-select-card {
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .address-select-card:hover {
+      border-color: rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .address-select-card.active {
+      border-color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 1px #ffffff, 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .address-radio-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.45);
+      display: inline-block;
+      position: relative;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .address-select-card.active .address-radio-circle {
+      border-color: #ffffff;
+      background: #ffffff;
+      box-shadow: inset 0 0 0 3px #0d1012;
+    }
+
+    .saved-address-card {
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.25s ease;
+      margin-top: 4px;
+    }
+
+    .saved-address-card.saved-address-dimmed {
+      opacity: 0.45;
+      border-style: dashed;
+    }
+
+    .saved-address-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .saved-address-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .saved-address-phone {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 0.8rem;
+    }
+
+    .saved-address-line {
+      font-size: 0.92rem;
+      color: #f5f5f3;
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    .save-profile-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0 2px;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .save-profile-checkbox-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: normal;
+      font-size: 0.82rem;
+      margin-bottom: 0;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .save-profile-checkbox-row input[type="checkbox"] {
+      width: 16px;
+      min-height: 16px;
+      accent-color: #ffffff;
+      cursor: pointer;
+    }
+
+    .address-input-pulse {
+      animation: addressPulse 0.5s ease-out;
+    }
+
+    @keyframes addressPulse {
+      0% {
+        border-color: #ffffff;
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+      }
+
+      100% {
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: none;
+      }
+    }
+
+    /* Right-side Sticky Summary Card Styles */
+    .checkout-summary-sticky {
+      position: sticky;
+      top: 88px;
+      z-index: 10;
+      background: #121619;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 0.92rem;
+    }
+
+    .summary-row strong {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .total-row {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .total-row strong {
+      font-size: 1.45rem;
+      letter-spacing: -0.04em;
+    }
 
     .cart-empty {
-      padding: 44px 16px;
-      color: rgba(255,255,255,0.7);
+      padding: 60px 16px;
+      color: rgba(255, 255, 255, 0.7);
       text-align: center;
     }
 
     .cart-message {
       margin-bottom: 14px;
       color: #8ee2b3;
+    }
+
+    @media (max-width: 991.98px) {
+      .checkout-summary-sticky {
+        position: static;
+        margin-top: 16px;
+      }
     }
 
     @media (max-width: 575.98px) {
@@ -257,26 +614,27 @@
         justify-content: space-between;
       }
 
-      .cart-footer {
-        align-items: stretch;
-        flex-direction: column;
+      .cart-checkout {
+        grid-template-columns: 1fr;
       }
 
-      .cart-footer-actions {
-        justify-content: stretch;
+      .cart-checkout .col-half,
+      .cart-checkout .col-third,
+      .cart-checkout .full-width {
+        grid-column: auto;
       }
-
-      .cart-footer-actions > * { flex: 1; }
-      .cart-checkout { grid-template-columns: 1fr; }
-      .cart-checkout .full-width { grid-column: auto; }
     }
   </style>
 </head>
+
 <body class="cart-page">
   <header class="checkout-header">
     <div class="container d-flex justify-content-between align-items-center py-3">
       <a href="{% url 'home' %}" class="brand-mark checkout-brand">J CSD</a>
-      <a href="{% url 'home' %}" class="back-link">← Continue shopping</a>
+      <div class="d-flex align-items-center gap-3">
+        <a href="{% url 'home' %}" class="back-link d-none d-md-inline">← Continue shopping</a>
+        {% include "main/includes/navbar_actions.html" %}
+      </div>
     </div>
   </header>
 
@@ -290,17 +648,28 @@
     </div>
 
     {% if messages %}
-      {% for message in messages %}<p class="cart-message">{{ message }}</p>{% endfor %}
+    {% for message in messages %}<p class="cart-message">{{ message }}</p>{% endfor %}
     {% endif %}
 
-    <section class="cart-panel">
-      {% if items %}
-        <form method="post" action="{% url 'update_cart' %}" data-cart-update-form>
-          {% csrf_token %}
-          <input type="hidden" name="action" value="update">
-          {% for item in items %}
+    {% if items %}
+    <!-- 2-Column Responsive Layout: Left (Cart Items), Right (Delivery Details + Order Summary) -->
+    <div class="row g-4 g-xl-5 align-items-start">
+      <!-- LEFT COLUMN: Cart Items -->
+      <div class="col-12 col-lg-5 col-xl-5">
+        <!-- 1. Cart Items Panel -->
+        <section class="cart-panel">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-2"
+            style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <h2 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #fff;">Cart Items</h2>
+            <span class="cart-muted" data-cart-count>{{ cart_count }} item{{ cart_count|pluralize }}</span>
+          </div>
+
+          <form method="post" action="{% url 'update_cart' %}" data-cart-update-form>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update">
+            {% for item in items %}
             <article class="cart-item">
-              <img src="{% static item.product.image %}" alt="{{ item.product.name }}">
+              <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}">
               <div>
                 <h2>{{ item.product.name }}</h2>
                 <div class="cart-muted">{{ item.product.volume }} · ₹{{ item.product.price }} each</div>
@@ -309,78 +678,306 @@
               <div class="cart-item-actions">
                 <label class="visually-hidden" for="quantity-{{ item.product.id }}">Quantity for {{ item.product.name }}</label>
                 <span class="cart-quantity-control">
-                  <button class="cart-quantity-step" type="button" data-quantity-step="-1" aria-label="Decrease quantity for {{ item.product.name }}">−</button>
+                  <button class="cart-quantity-step" type="button" data-quantity-step="-1"
+                    aria-label="Decrease quantity for {{ item.product.name }}">−</button>
                   <input class="cart-quantity" id="quantity-{{ item.product.id }}" name="quantity_{{ item.product.id }}" type="number" min="1" max="1000000" step="1" value="{{ item.quantity }}" data-unit-price="{{ item.product.price }}" required>
-                  <button class="cart-quantity-step" type="button" data-quantity-step="1" aria-label="Increase quantity for {{ item.product.name }}">+</button>
+                  <button class="cart-quantity-step" type="button" data-quantity-step="1"
+                    aria-label="Increase quantity for {{ item.product.name }}">+</button>
                 </span>
                 <button class="cart-remove" type="submit" form="remove-{{ item.product.id }}">Remove</button>
               </div>
             </article>
-          {% endfor %}
-          <div class="cart-footer">
-            <div>
-              <span class="cart-total-label">Cart total</span>
-              <strong class="cart-total" data-cart-total>₹{{ cart_total|floatformat:2 }}</strong>
-            </div>
-            <div class="cart-footer-actions">
-              <a class="cart-action-button cart-action-primary" href="#cart-checkout">Checkout</a>
-            </div>
-            <p class="cart-message" data-cart-save-status aria-live="polite" role="status"></p>
-          </div>
-        </form>
+            {% endfor %}
+            <p class="cart-message" data-cart-save-status aria-live="polite" role="status"
+              style="margin-top: 12px; margin-bottom: 0; font-size: 0.82rem;"></p>
+          </form>
 
-        {% for item in items %}
+          {% for item in items %}
           <form id="remove-{{ item.product.id }}" method="post" action="{% url 'update_cart' %}" hidden>
             {% csrf_token %}
             <input type="hidden" name="action" value="remove">
             <input type="hidden" name="product_id" value="{{ item.product.id }}">
           </form>
-        {% endfor %}
+          {% endfor %}
+        </section>
+      </div>
 
-        <p class="cart-muted">No account needed. Enter your delivery details to continue.</p>
-        <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}">
+      <!-- RIGHT COLUMN: Delivery Details & Order Summary -->
+      <div class="col-12 col-lg-7 col-xl-7">
+        <!-- 1. Delivery Details Panel -->
+        <section class="cart-panel mb-4" id="delivery-panel">
+          <div class="mb-3">
+            <h2 style="font-size: 1.15rem; font-weight: 800; margin: 0 0 4px; color: #fff;">Delivery Details</h2>
+            <p class="cart-muted" style="margin: 0; font-size: 0.84rem;">No account needed. Enter your delivery and
+              contact details below.</p>
+          </div>
+
+          <form id="cart-checkout" class="cart-checkout" method="post" action="{% url 'cart_checkout' %}"
+            style="margin-top: 0; padding-top: 0; border-top: none;">
             {% csrf_token %}
-            <div>
+            <div class="col-half">
               <label for="first-name">First name</label>
-              <input id="first-name" name="first_name" value="{% if user.is_authenticated %}{{ user.first_name }}{% endif %}" autocomplete="given-name" required>
+              <input id="first-name" name="first_name"
+                value="{% if user.is_authenticated %}{{ user.first_name }}{% endif %}" autocomplete="given-name"
+                required>
             </div>
-            <div>
+            <div class="col-half">
               <label for="last-name">Last name</label>
-              <input id="last-name" name="last_name" value="{% if user.is_authenticated %}{{ user.last_name }}{% endif %}" autocomplete="family-name" required>
+              <input id="last-name" name="last_name"
+                value="{% if user.is_authenticated %}{{ user.last_name }}{% endif %}" autocomplete="family-name"
+                required>
             </div>
-            <div>
+            <div class="col-half">
+              <label for="delivery-email">Email</label>
+              <input id="delivery-email" name="email" type="email"
+                value="{% if user.is_authenticated %}{{ user.email }}{% endif %}" autocomplete="email" required>
+            </div>
+            <div class="col-half">
               <label for="delivery-phone">Phone number</label>
-              <input id="delivery-phone" name="phone" type="tel" value="{% if customer_profile %}{{ customer_profile.phone }}{% endif %}" autocomplete="tel" minlength="7" maxlength="20" required>
+              <div class="phone-input-group">
+                <span class="phone-prefix">+91</span>
+                <input id="delivery-phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{10}"
+                  maxlength="10" value="{{ customer_phone_10_digits }}" placeholder="10-digit number"
+                  autocomplete="tel-national" required>
+              </div>
             </div>
+
+            <div class="full-width address-section-header">
+              <div class="address-section-title-wrap">
+                <span class="address-section-title">Delivery Address</span>
+                <span id="address-mode-badge" class="address-mode-badge" style="display: none;">New address</span>
+              </div>
+              <div class="address-btn-group">
+                {% if saved_addresses or customer_profile and customer_profile.address %}
+                <button type="button" class="btn-use-saved" id="btn-use-saved-address" style="display: none;">
+                  ✓ Use saved address
+                </button>
+                {% endif %}
+                <button type="button" class="btn-add-address" id="btn-add-address">
+                  + Add address
+                </button>
+              </div>
+            </div>
+
+            {% if saved_addresses %}
+            <div class="full-width saved-address-options-wrap">
+              <div class="saved-address-options-title">
+                Choose delivery address ({{ saved_addresses|length }}/5 saved):
+              </div>
+              <div class="saved-address-grid">
+                {% for addr in saved_addresses %}
+                <div class="saved-address-card address-select-card{% if forloop.first %} active{% endif %}"
+                  data-address-id="{{ addr.id }}" data-phone="{{ addr.phone }}" data-address="{{ addr.address }}"
+                  data-city="{{ addr.city }}" data-state="{{ addr.state }}" data-postal-code="{{ addr.postal_code }}"
+                  data-is-default="{% if addr.is_default %}1{% else %}0{% endif %}" role="button" tabindex="0">
+                  <div class="saved-address-badge-row">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="address-radio-circle"></span>
+                      <span class="saved-address-tag">{% if addr.is_default %}Default saved address{% else %}{{ addr.full_name|default:"Saved address" }}{% endif %}</span>
+                    </div>
+                    {% if addr.phone %}<span class="saved-address-phone">{{ addr.phone }}</span>{% endif %}
+                  </div>
+                  <div class="saved-address-line">
+                    {{ addr.address }}, {{ addr.city }}, {{ addr.state }} - {{ addr.postal_code }}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% with default_addr=saved_addresses.0 %}
+              <div id="saved-address-preview" style="display: none;"></div>
+              <div id="saved-address-data" data-phone="{{ default_addr.phone }}"
+                data-address="{{ default_addr.address }}" data-city="{{ default_addr.city }}"
+                data-state="{{ default_addr.state }}" data-postal-code="{{ default_addr.postal_code }}" hidden></div>
+              {% endwith %}
+            </div>
+            {% elif customer_profile and customer_profile.address %}
+            <div class="full-width saved-address-card" id="saved-address-preview">
+              <div class="saved-address-badge-row">
+                <span class="saved-address-tag">Default saved address</span>
+                <span class="saved-address-phone">{{ customer_profile.phone }}</span>
+              </div>
+              <div class="saved-address-line">
+                {{ customer_profile.address }}, {{ customer_profile.city }}, {{ customer_profile.state }} - {{ customer_profile.postal_code }}
+              </div>
+            </div>
+            <div id="saved-address-data" data-phone="{{ customer_profile.phone }}"
+              data-address="{{ customer_profile.address }}" data-city="{{ customer_profile.city }}"
+              data-state="{{ customer_profile.state }}" data-postal-code="{{ customer_profile.postal_code }}" hidden>
+            </div>
+            {% endif %}
+
             <div class="full-width">
               <label for="delivery-address">Delivery address</label>
-              <input id="delivery-address" name="address" value="{% if customer_profile %}{{ customer_profile.address }}{% endif %}" autocomplete="street-address" required>
+              <input id="delivery-address" name="address"
+                value="{% if customer_profile %}{{ customer_profile.address }}{% endif %}" autocomplete="street-address"
+                required>
             </div>
-            <div>
+            <div class="col-third">
               <label for="delivery-city">City</label>
-              <input id="delivery-city" name="city" value="{% if customer_profile %}{{ customer_profile.city }}{% endif %}" autocomplete="address-level2" required>
+              <input id="delivery-city" name="city"
+                value="{% if customer_profile %}{{ customer_profile.city }}{% endif %}" autocomplete="address-level2"
+                required>
             </div>
-            <div>
+            <div class="col-third">
               <label for="delivery-state">State</label>
-              <input id="delivery-state" name="state" value="{% if customer_profile %}{{ customer_profile.state }}{% endif %}" autocomplete="address-level1" required>
+              <select id="delivery-state" name="state" class="state-select" required>
+                <option value="">Choose state...</option>
+                {% for st in indian_states %}
+                <option value="{{ st }}" {% if customer_address_form.state == st %}selected{% endif %}>{{ st }}</option>
+                {% endfor %}
+              </select>
             </div>
-            <div class="full-width">
+            <div class="col-third">
               <label for="delivery-postal-code">ZIP / postal code</label>
-              <input id="delivery-postal-code" name="postal_code" value="{% if customer_profile %}{{ customer_profile.postal_code }}{% endif %}" autocomplete="postal-code" required>
+              <input id="delivery-postal-code" name="postal_code"
+                value="{% if customer_profile %}{{ customer_profile.postal_code }}{% endif %}"
+                autocomplete="postal-code" required>
             </div>
-            <div class="full-width">
-              <button class="cart-action-button cart-action-primary" type="submit" data-cart-checkout-total>Continue to payment · ₹{{ cart_total|floatformat:2 }}</button>
+
+            {% if user.is_authenticated %}
+            <div class="full-width save-profile-checkbox-row">
+              <label for="save-address-to-profile">
+                <input type="checkbox" id="save-address-to-profile" name="save_address_to_profile" value="1" checked>
+                Save this address to my profile
+              </label>
             </div>
-        </form>
-      {% else %}
-        <div class="cart-empty">
-          <h2>Your cart is empty</h2>
-          <p>Add a few flavours and they’ll be collected here.</p>
-          <a class="cart-action-button cart-action-primary" href="{% url 'home' %}#shop">Browse drinks</a>
-        </div>
-      {% endif %}
-    </section>
+            {% endif %}
+          </form>
+        </section>
+
+        <!-- 2. Order Summary Card -->
+        <aside class="checkout-summary-sticky">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-2"
+            style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: #fff; letter-spacing: -0.02em;">Order
+              Summary</h3>
+            <span class="badge"
+              style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.78rem; font-weight: 600;"
+              data-cart-summary-count>{{ cart_count }} can{{ cart_count|pluralize }}</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+            <div class="summary-row">
+              <span>Items subtotal</span>
+              <strong id="cartSubtotalDisplay">₹{{ cart_total|floatformat:2 }}</strong>
+            </div>
+
+            <div class="summary-row">
+              <span>GST (18%)</span>
+              <strong id="cartGstDisplay">₹{{ gst_amount|floatformat:2 }}</strong>
+            </div>
+
+            <div class="summary-row">
+              <div>
+                <span>Packing cost</span>
+                <small id="cartPackingNotice" style="display: block; font-size: 0.74rem; color: #a78bfa;">{% if packing_fee > 0 %}₹{{ packing_fee|floatformat:0 }}{% else %}Free (First {{ packing_free_cans|default:6 }} cans){% endif %}</small>
+              </div>
+              <strong id="cartPackingFeeDisplay">{% if packing_fee > 0 %}₹{{ packing_fee|floatformat:2 }}{% else %}₹0.00{% endif %}</strong>
+            </div>
+
+            <div class="summary-row">
+              <div>
+                <span>Shipping fee</span>
+                <small id="cartShippingNotice" style="display: block; font-size: 0.74rem; color: #60a5fa;">{% if customer_address_form.state %}({{ customer_address_form.state }}){% endif %}</small>
+              </div>
+              <strong id="cartShippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
+            </div>
+
+            <div class="summary-row total-row">
+              <span>Total</span>
+              <strong id="cartGrandTotalDisplay">₹{{ total_with_shipping|floatformat:2 }}</strong>
+            </div>
+          </div>
+
+          <button type="submit" form="cart-checkout" class="cart-action-button cart-action-primary w-100"
+            data-cart-checkout-total
+            style="min-height: 52px; font-size: 1rem; font-weight: 800; border-radius: 14px; box-shadow: 0 4px 20px rgba(255,255,255,0.12);">
+            Continue to payment · ₹{{ total_with_shipping|floatformat:2 }}
+          </button>
+
+          <div
+            style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;">
+            <div
+              style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; color: rgba(255,255,255,0.6);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Guaranteed Safe & Secure Checkout</span>
+            </div>
+            <div
+              style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; color: rgba(255,255,255,0.6);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7.5 4.27 9 5.15"></path>
+                <path
+                  d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z">
+                </path>
+                <path d="m3.3 7 8.7 5 8.7-5"></path>
+                <path d="M12 22V12"></path>
+              </svg>
+              <span>First {{ packing_free_cans|default:6 }} Cans Free Packaging</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    {% else %}
+    <div class="cart-panel cart-empty">
+      <h2 style="font-size: 1.6rem; font-weight: 800; color: #fff; margin-bottom: 8px;">Your cart is empty</h2>
+      <p class="cart-muted" style="margin-bottom: 24px;">Add a few flavours and they’ll be collected here.</p>
+      <a class="cart-action-button cart-action-primary" href="{% url 'home' %}#shop">Browse drinks</a>
+    </div>
+    {% endif %}
   </main>
-  <script src="{% static 'main/cart.js' %}?v=instant-cart-2" defer></script>
+
+  {% include "main/includes/footer.html" %}
+
+  <script src="{% static 'main/cart.js' %}?v=instant-cart-3" defer></script>
+  <script src="{% static 'main/address.js' %}" defer></script>
+  <script>     document.addEventListener('DOMContentLoaded', function () {       const stateSelect = document.getElementById('delivery-state');       const shippingFeeDisplay = document.getElementById('cartShippingFeeDisplay');       const grandTotalDisplay = document.getElementById('cartGrandTotalDisplay');       const shippingNotice = document.getElementById('cartShippingNotice');       const checkoutTotalBtn = document.querySelector('[data-cart-checkout-total]');       const phoneInput = document.getElementById('delivery-phone');       const subtotalDisplay = document.getElementById('cartSubtotalDisplay');       const packingFeeDisplay = document.getElementById('cartPackingFeeDisplay');       const packingNotice = document.getElementById('cartPackingNotice');       const summaryCount = document.querySelector('[data-cart-summary-count]');       const checkoutForm = document.getElementById('cart-checkout');
+       const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";       const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;       const otherFee = parseFloat("{{ shipping_fee_other|default:'100.00' }}") || 100.0;       const packingFreeCans = parseInt("{{ packing_free_cans|default:'6' }}", 10) || 6;       const packingCostPerBatch = parseFloat("{{ packing_cost_per_batch|default:'20.00' }}") || 20.0;       const packingBatchSize = parseInt("{{ packing_batch_size|default:'6' }}", 10) || 6;
+       const localStateList = localStatesRaw         .split(',')         .map(function (s) { return s.trim().toLowerCase(); })         .filter(function (s) { return s.length > 0; });
+       function getCartItemCount() {         let count = 0;         document.querySelectorAll('.cart-quantity').forEach(function (el) {           const val = parseInt(el.value, 10);           if (!isNaN(val) && val > 0) count += val;         });         return count;       }
+       function calculatePackingFee(qty) {         if (qty <= packingFreeCans) return 0.0;         const extra = qty - packingFreeCans;         const batches = Math.ceil(extra / packingBatchSize);         return batches * packingCostPerBatch;       }
+       function getCartSubtotal() {         let total = 0.0;         document.querySelectorAll('.cart-item').forEach(function (item) {           const input = item.querySelector('.cart-quantity');           if (!input) return;           const qty = parseInt(input.value, 10) || 0;           const price = parseFloat(input.dataset.unitPrice) || 0.0;           total += qty * price;         });         return total;       }
+       window.updateCartCalculations = function () {
+         const itemCount = getCartItemCount();
+         const subtotal = getCartSubtotal();
+         const gstAmount = Math.round(subtotal * 18.0) / 100;
+         const packingFee = calculatePackingFee(itemCount);
+         const selectedState = stateSelect ? (stateSelect.value || '').trim() : '';
+         let shippingFee = otherFee;
+         if (selectedState) {
+           const isLocal = localStateList.indexOf(selectedState.toLowerCase()) !== -1;
+           shippingFee = isLocal ? localFee : otherFee;
+           if (shippingNotice) {
+             shippingNotice.textContent = '(' + selectedState + ')';
+           }
+         } else {
+           shippingFee = otherFee;
+           if (shippingNotice) {
+             shippingNotice.textContent = '';
+           }
+         }
+         const grandTotal = subtotal + gstAmount + packingFee + shippingFee;
+         if (subtotalDisplay) subtotalDisplay.textContent = '₹' + subtotal.toFixed(2);
+         const gstDisplay = document.getElementById('cartGstDisplay');
+         if (gstDisplay) gstDisplay.textContent = '₹' + gstAmount.toFixed(2);
+         const cartTotalEl = document.querySelector('[data-cart-total]');
+         if (cartTotalEl) cartTotalEl.textContent = '₹' + subtotal.toFixed(2);
+         if (packingFeeDisplay) {           packingFeeDisplay.textContent = packingFee > 0 ? '₹' + packingFee.toFixed(2) : '₹0.00';         }         if (packingNotice) {           if (packingFee > 0) {             packingNotice.textContent = '₹' + packingFee.toFixed(0);           } else {             packingNotice.textContent = 'Free (First ' + packingFreeCans + ' cans)';           }         }
+         if (shippingFeeDisplay) shippingFeeDisplay.textContent = '₹' + shippingFee.toFixed(2);         if (grandTotalDisplay) grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
+         if (checkoutTotalBtn) {           checkoutTotalBtn.textContent = 'Continue to payment · ₹' + grandTotal.toFixed(2);         }
+         document.querySelectorAll('[data-cart-count]').forEach(function (el) {           el.textContent = itemCount + ' item' + (itemCount === 1 ? '' : 's');         });
+         if (summaryCount) {           summaryCount.textContent = itemCount + ' can' + (itemCount === 1 ? '' : 's');         }       };
+       if (stateSelect) {         stateSelect.addEventListener('change', window.updateCartCalculations);       }
+       document.addEventListener('input', function (e) {         if (e.target.matches('.cart-quantity')) {           window.updateCartCalculations();         }       });
+       if (checkoutTotalBtn && checkoutForm) {         checkoutTotalBtn.addEventListener('click', function (e) {           if (checkoutForm.reportValidity && !checkoutForm.reportValidity()) {             return;           }           if (checkoutForm.requestSubmit) {             checkoutForm.requestSubmit();           } else {             checkoutForm.submit();           }         });       }
+       if (phoneInput) {         phoneInput.addEventListener('input', function () {           let digits = this.value.replace(/\D/g, '');           if (digits.length > 10) {             digits = digits.slice(-10);           }           this.value = digits;         });       }
+       window.updateCartCalculations();     });
+  </script>
 </body>
+
 </html>

@@ -10,7 +10,17 @@ from decimal import Decimal
 from allauth.core.exceptions import ImmediateHttpResponse
 
 from .adapters import AdminGoogleAccountAdapter
-from .models import CustomerProfile, DeliveryProfile, Order, OrderItem, Product
+from .models import (
+    ContactMessage,
+    CustomerAddress,
+    CustomerProfile,
+    DeliveryProfile,
+    Order,
+    OrderItem,
+    Product,
+    ProductCategory,
+    SiteDetails,
+)
 from .payments import sign_webhook_payload
 
 
@@ -499,7 +509,11 @@ class CheckoutQuantityTests(TestCase):
 
         self.assertContains(
             response,
-            'id="phone" name="phone" type="tel" value="+91 98765 43210"',
+            'id="phone" name="phone" type="tel"',
+        )
+        self.assertContains(
+            response,
+            'value="9876543210"',
         )
         self.assertContains(
             response,
@@ -512,6 +526,7 @@ class CheckoutQuantityTests(TestCase):
             {
                 "first_name": "Guest",
                 "last_name": "Shopper",
+                "email": "guest@example.com",
                 "phone": "+91 98765 43210",
                 "address": "2 Guest Street",
                 "city": "Mumbai",
@@ -525,9 +540,10 @@ class CheckoutQuantityTests(TestCase):
         self.assertEqual(order.customer_name, "Guest Shopper")
         self.assertEqual(order.customer_phone, "+91 98765 43210")
         self.assertEqual(order.customer.username, "guest")
+        self.assertEqual(order.customer.email, "guest@example.com")
         self.assertEqual(order.customer.first_name, "Guest")
         self.assertTrue(order.customer.has_usable_password())
-        self.assertFalse(order.customer.check_password("+91 98765 43210"))
+        self.assertTrue(order.customer.check_password("+91 98765 43210"))
         self.assertTrue(
             CustomerProfile.objects.filter(
                 user=order.customer,
@@ -545,7 +561,7 @@ class CheckoutQuantityTests(TestCase):
         self.assertContains(payment_page, "Delivery status")
         self.assertContains(payment_page, "+91 98765 43210")
         self.assertContains(payment_page, "Your account username is")
-        self.assertContains(payment_page, "set a password in your profile")
+        self.assertContains(payment_page, "set a custom password in your profile")
         profile_page = self.client.get(reverse("customer_profile"))
         self.assertContains(profile_page, "Set a password")
         set_password_response = self.client.post(
@@ -565,6 +581,33 @@ class CheckoutQuantityTests(TestCase):
             )
         )
 
+    def test_guest_logout_without_setting_password_can_login_with_phone(self):
+        response = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "Rohan",
+                "last_name": "Kumar",
+                "email": "rohan@example.com",
+                "phone": "+91 91234 56789",
+                "address": "42 High Road",
+                "city": "Bengaluru",
+                "state": "Karnataka",
+                "postal_code": "560001",
+            },
+        )
+        order = Order.objects.get()
+        # Guest is logged in now; post to customer_logout without setting password
+        logout_response = self.client.post(reverse("customer_logout"))
+        self.assertRedirects(logout_response, reverse("home"))
+
+        # User should be able to log in using email and phone number as password
+        login_response = self.client.post(
+            reverse("customer_login"),
+            {"username": "rohan@example.com", "password": "+91 91234 56789"},
+        )
+        self.assertRedirects(login_response, reverse("customer_orders"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), order.customer.pk)
+
     def test_guest_checkout_adds_suffix_when_first_name_username_exists(self):
         get_user_model().objects.create_user(username="guest", password="ExistingPass!123")
 
@@ -573,6 +616,7 @@ class CheckoutQuantityTests(TestCase):
             {
                 "first_name": "Guest",
                 "last_name": "Shopper",
+                "email": "guest2@example.com",
                 "phone": "+91 98765 43210",
                 "address": "2 Guest Street",
                 "city": "Mumbai",
@@ -587,6 +631,61 @@ class CheckoutQuantityTests(TestCase):
             response,
             reverse("payment_page", kwargs={"payment_reference": order.payment_reference}),
         )
+
+    def test_guest_ordering_twice_with_same_email_and_phone_uses_same_user(self):
+        user_model = get_user_model()
+        initial_user_count = user_model.objects.count()
+
+        # First order as guest
+        res1 = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "Sanjeev",
+                "last_name": "Kanth",
+                "email": "sanjeev_test@example.com",
+                "phone": "+91 98798 79879",
+                "address": "No. 326 Main Road",
+                "city": "Madurai",
+                "state": "Tamil Nadu",
+                "postal_code": "625018",
+            },
+        )
+        self.assertEqual(res1.status_code, 302)
+        self.assertEqual(user_model.objects.count(), initial_user_count + 1)
+        created_user = user_model.objects.get(email="sanjeev_test@example.com")
+        order1 = Order.objects.filter(customer=created_user).first()
+        self.assertIsNotNone(order1)
+
+        # Log out simulating a returning guest or new session
+        self.client.logout()
+
+        # Second order as guest with same email and phone
+        res2 = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "Sanjeev",
+                "last_name": "Kanth",
+                "email": "sanjeev_test@example.com",
+                "phone": "+91 98798 79879",
+                "address": "No. 326 Main Road",
+                "city": "Madurai",
+                "state": "Tamil Nadu",
+                "postal_code": "625018",
+            },
+        )
+        self.assertEqual(res2.status_code, 302)
+        # Verify no second user was created
+        self.assertEqual(user_model.objects.count(), initial_user_count + 1)
+
+        # Both orders belong to the same user
+        orders = list(Order.objects.filter(customer=created_user).order_by("id"))
+        self.assertEqual(len(orders), 2)
+
+        # In "My Orders", customer sees both orders
+        orders_page = self.client.get(reverse("customer_orders"))
+        self.assertEqual(orders_page.status_code, 200)
+        self.assertContains(orders_page, f"Order #{orders[0].id}")
+        self.assertContains(orders_page, f"Order #{orders[1].id}")
 
     def test_product_page_includes_live_quantity_subtotal(self):
         response = self.client.get(f"/product/{self.product.id}/")
@@ -620,13 +719,17 @@ class CheckoutQuantityTests(TestCase):
         self.assertEqual(payment_page.status_code, 200)
         self.assertContains(payment_page, "Confirm demo payment")
         self.assertContains(payment_page, "₹270.00")
+        self.assertContains(payment_page, "₹48.60")
+        self.assertContains(payment_page, "₹418.60")
         self.assertContains(payment_page, "No card, bank, or UPI payment is made.")
         self.assertContains(payment_page, "payment-card--pending")
         self.assertContains(payment_page, "payment-status-hero--unpaid")
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "pending")
         self.assertEqual(order.quantity, 3)
-        self.assertEqual(str(order.total_amount), "270.00")
+        self.assertEqual(str(order.total_amount), "418.60")
+        self.assertEqual(str(order.gst_amount), "48.60")
+        self.assertEqual(str(order.shipping_fee), "100.00")
         self.assertEqual(order.delivery_address, "1 Test Street")
         self.assertEqual(order.customer_phone, "+91 98765 43210")
         self.assertEqual(order.delivery_city, "Mumbai")
@@ -801,8 +904,8 @@ class HomeAddToCartTests(TestCase):
         self.assertContains(response, 'class="cart-count" aria-hidden="true">2</span>')
         self.assertContains(product_response, 'class="back-link">← Back</a>')
         self.assertNotContains(product_response, 'data-scroll-cart')
-        self.assertNotContains(product_response, "wishlist-access-button")
-        self.assertNotContains(product_response, "Sign in")
+        self.assertContains(product_response, "wishlist-access-button")
+        self.assertContains(product_response, "Sign in")
 
     def test_ajax_add_to_cart_returns_updated_count_without_redirecting(self):
         product = Product.objects.create(
@@ -833,7 +936,39 @@ class AboutPageTests(TestCase):
         self.assertContains(response, "Better drinks.")
         self.assertContains(response, 'href="/#shop">Explore the lineup</a>')
         self.assertContains(response, "J CSD. Better drinks. Less noise.")
-        self.assertContains(response, '<footer class="about-footer">')
+        self.assertContains(response, '<footer class="store-footer">')
+
+
+class ProductCategoryTests(TestCase):
+    def test_product_category_assignment_and_display(self):
+        cola = Product.objects.create(name="J Test Cola", price=90, image="main/images/cola.png")
+        energy = Product.objects.create(name="J Energy Burst", price=95, image="main/images/energy.png")
+        other = Product.objects.create(name="J Berry Punch", price=85, image="main/images/berry.png")
+
+        self.assertEqual(cola.category_slug, "cola")
+        self.assertEqual(cola.category_display, "Cola")
+        self.assertEqual(energy.category_slug, "energy_drink")
+        self.assertEqual(energy.category_display, "Energy Drink")
+        self.assertEqual(other.category_slug, "others")
+        self.assertEqual(other.category_display, "Others")
+
+    def test_home_page_renders_category_filters(self):
+        Product.objects.create(name="Super Cola", price=90, image="main/images/cola.png")
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-filter-category="all"')
+        self.assertContains(response, 'data-filter-category="cola"')
+        self.assertContains(response, 'data-filter-category="energy_drink"')
+        self.assertContains(response, 'data-filter-category="others"')
+        self.assertContains(response, "Cola")
+        self.assertContains(response, "Energy Drink")
+        self.assertContains(response, "Others")
+
+    def test_product_detail_renders_category(self):
+        product = Product.objects.create(name="Zap Energy Drink", price=100, image="main/images/cola.png")
+        response = self.client.get(reverse("product_detail", kwargs={"product_id": product.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Energy Drink")
 
 
 class PrivacyPolicyTests(TestCase):
@@ -845,6 +980,110 @@ class PrivacyPolicyTests(TestCase):
         self.assertContains(response, "delivery address")
         self.assertContains(response, "authorized store staff")
         self.assertContains(response, 'href="mailto:support@jcsd.com"')
+
+
+class ContactPageTests(TestCase):
+    def test_contact_page_renders_with_channels_form_and_nav(self):
+        response = self.client.get(reverse("contact"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Contact us | J CSD")
+        self.assertContains(response, "Let's connect.")
+        self.assertContains(response, "support@jcsd.com")
+        self.assertContains(response, "+91 80568 38888")
+        self.assertContains(response, "Send a message")
+        self.assertContains(response, 'action="/contact/"')
+
+    def test_contact_form_submission_success(self):
+        session = self.client.session
+        session["contact_captcha"] = "TEST5"
+        session.save()
+        response = self.client.post(
+            reverse("contact"),
+            {
+                "name": "Martin Benati",
+                "email": "martin@example.com",
+                "subject": "General inquiry",
+                "message": "Love your drinks!",
+                "captcha": "TEST5",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your message has been sent.")
+
+    def test_contact_form_submission_fails_without_captcha(self):
+        response = self.client.post(
+            reverse("contact"),
+            {
+                "name": "Martin Benati",
+                "email": "martin@example.com",
+                "subject": "General inquiry",
+                "message": "Love your drinks!",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Incorrect security verification (CAPTCHA) code")
+
+    def test_contact_form_submission_fails_with_wrong_captcha(self):
+        session = self.client.session
+        session["contact_captcha"] = "VALID"
+        session.save()
+        response = self.client.post(
+            reverse("contact"),
+            {
+                "name": "Martin Benati",
+                "email": "martin@example.com",
+                "subject": "General inquiry",
+                "message": "Love your drinks!",
+                "captcha": "WRONG",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Incorrect security verification (CAPTCHA) code")
+
+    def test_captcha_image_generates_valid_png_and_stores_session(self):
+        response = self.client.get(reverse("captcha_image"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertIn("contact_captcha", self.client.session)
+        self.assertEqual(len(self.client.session["contact_captcha"]), 5)
+
+    def test_captcha_is_consumed_each_time_preventing_replay(self):
+        session = self.client.session
+        session["contact_captcha"] = "CODE1"
+        session.save()
+
+        # First submit: valid
+        res1 = self.client.post(
+            reverse("contact"),
+            {
+                "name": "Martin Benati",
+                "email": "martin@example.com",
+                "subject": "General inquiry",
+                "message": "First message",
+                "captcha": "CODE1",
+            },
+        )
+        self.assertEqual(res1.status_code, 200)
+        self.assertContains(res1, "Your message has been sent.")
+
+        # Second submit with the same captcha must fail
+        res2 = self.client.post(
+            reverse("contact"),
+            {
+                "name": "Martin Benati",
+                "email": "martin@example.com",
+                "subject": "General inquiry",
+                "message": "Second message replay",
+                "captcha": "CODE1",
+            },
+        )
+        self.assertEqual(res2.status_code, 200)
+        self.assertContains(res2, "Incorrect security verification (CAPTCHA) code")
+
+    def test_home_page_has_contact_us_button(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Contact us")
+        self.assertContains(response, reverse("contact"))
 
 
 class SeededProductTests(TestCase):
@@ -936,6 +1175,7 @@ class DeliveryProfileTests(TestCase):
             delivery_postal_code="400001",
             quantity=2,
             total_amount="180.00",
+            status="packed",
         )
 
     def test_delivery_login_is_restricted_to_delivery_profiles(self):
@@ -957,29 +1197,30 @@ class DeliveryProfileTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_delivery_dashboard_shows_stock_and_delivery_address(self):
-        unavailable = Product.objects.create(
-            name="Unavailable Cola",
-            description="Not in stock",
-            price="90.00",
-            volume="330 ml",
-            image="main/images/cola.png",
-            available=False,
-        )
         self.client.force_login(self.delivery_user)
 
-        response = self.client.get(reverse("delivery_dashboard"))
+        # Default landing page: Picked orders (first page)
+        response_default = self.client.get(reverse("delivery_dashboard"))
+        self.assertEqual(response_default.status_code, 200)
+        self.assertEqual(response_default.context["active_tab"], "picked")
+        self.assertContains(response_default, "Picked Orders")
+        self.assertNotContains(response_default, "Stock Availability")
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Delivery Cola")
-        self.assertContains(response, "Unavailable Cola")
-        self.assertContains(response, "12 Example Road")
-        self.assertContains(response, "400001")
-        self.assertEqual(
-            response.context["available_stock_count"],
-            Product.objects.filter(available=True).count(),
-        )
-        self.assertEqual(response.context["unavailable_stock_count"], 1)
-        self.assertEqual(unavailable.available, False)
+        # Tab: Orders which can be picked (shows pending and packed)
+        response_available = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertEqual(response_available.status_code, 200)
+        self.assertEqual(response_available.context["active_tab"], "available")
+        self.assertContains(response_available, "Delivery Cola")
+        self.assertContains(response_available, "12 Example Road")
+        self.assertContains(response_available, "400001")
+        self.assertContains(response_available, "Orders to Pick")
+        self.assertNotContains(response_available, "Stock Availability")
+
+        # Stock availability is removed for delivery partners; tab=stock defaults to picked
+        response_stock = self.client.get(f"{reverse('delivery_dashboard')}?tab=stock")
+        self.assertEqual(response_stock.status_code, 200)
+        self.assertEqual(response_stock.context["active_tab"], "picked")
+        self.assertNotContains(response_stock, "Stock Availability")
 
     def test_delivery_user_can_return_to_dashboard_from_store_pages(self):
         self.client.force_login(self.delivery_user)
@@ -992,7 +1233,7 @@ class DeliveryProfileTests(TestCase):
         self.assertContains(home, reverse("delivery_dashboard"))
         self.assertContains(home, "Delivery dashboard")
         self.assertContains(product, 'class="back-link">← Back</a>')
-        self.assertNotContains(product, reverse("delivery_dashboard"))
+        self.assertContains(product, reverse("delivery_dashboard"))
 
     def test_customer_cannot_access_delivery_dashboard_or_change_status(self):
         self.client.force_login(self.customer)
@@ -1006,32 +1247,98 @@ class DeliveryProfileTests(TestCase):
         self.assertEqual(dashboard.status_code, 403)
         self.assertEqual(status.status_code, 403)
         self.order.refresh_from_db()
-        self.assertEqual(self.order.status, "pending")
+        self.assertEqual(self.order.status, "packed")
 
-    def test_delivery_user_can_update_order_status(self):
+    def test_picking_order_automatically_marks_out_for_delivery_and_hides_from_others(self):
+        other_driver_user = get_user_model().objects.create_user(
+            username="other-driver",
+            email="other@example.com",
+            password="driver-password",
+        )
+        DeliveryProfile.objects.create(user=other_driver_user)
+
+        # 1. First driver views available orders and sees self.order
+        self.client.force_login(self.delivery_user)
+        resp1 = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertContains(resp1, f"Order #{self.order.pk}")
+
+        # 2. First driver picks the order
+        pick_resp = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": self.order.pk})
+        )
+        self.assertRedirects(pick_resp, f"{reverse('delivery_dashboard')}?tab=picked")
+
+        # Verify order state: assigned to delivery_user and status is out_for_delivery
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.delivery_user, self.delivery_user)
+        self.assertEqual(self.order.status, "out_for_delivery")
+
+        # 3. Second driver logs in: order must NOT be visible in Orders to Pick
+        self.client.force_login(other_driver_user)
+        resp2 = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertNotContains(resp2, f"Order #{self.order.pk} ·")
+
+        # 4. Second driver tries to pick the already-picked order: rejected
+        double_pick = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": self.order.pk})
+        )
+        self.assertRedirects(double_pick, f"{reverse('delivery_dashboard')}?tab=available")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.delivery_user, self.delivery_user)
+
+    def test_delivery_user_can_update_order_to_delivered_or_returned(self):
+        self.order.delivery_user = self.delivery_user
+        self.order.status = "out_for_delivery"
+        self.order.save(update_fields=["delivery_user", "status"])
+
         self.client.force_login(self.delivery_user)
 
+        # Mark Delivered
         response = self.client.post(
             reverse("update_delivery_status", kwargs={"order_id": self.order.pk}),
             {"status": "delivered"},
         )
-
-        self.assertRedirects(response, reverse("delivery_dashboard"))
+        self.assertRedirects(response, f"{reverse('delivery_dashboard')}?tab=picked")
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "delivered")
         self.assertIsNotNone(self.order.delivered_at)
 
-    def test_delivery_user_cannot_set_an_invalid_order_status(self):
+        # Mark Returned
+        response_return = self.client.post(
+            reverse("update_delivery_status", kwargs={"order_id": self.order.pk}),
+            {"status": "returned"},
+        )
+        self.assertRedirects(response_return, f"{reverse('delivery_dashboard')}?tab=picked")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "returned")
+        self.assertIsNone(self.order.delivered_at)
+
+    def test_delivery_user_cannot_set_status_to_packed(self):
+        self.order.delivery_user = self.delivery_user
+        self.order.status = "out_for_delivery"
+        self.order.save(update_fields=["delivery_user", "status"])
+
         self.client.force_login(self.delivery_user)
 
+        # Attempt to set status to packed (only admin can pack)
         response = self.client.post(
             reverse("update_delivery_status", kwargs={"order_id": self.order.pk}),
-            {"status": "cancelled"},
+            {"status": "packed"},
         )
-
         self.assertEqual(response.status_code, 400)
         self.order.refresh_from_db()
-        self.assertEqual(self.order.status, "pending")
+        self.assertEqual(self.order.status, "out_for_delivery")
+
+    def test_admin_can_update_status_to_packed(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": self.order.pk}),
+            {"status": "packed"},
+        )
+        self.assertRedirects(response, reverse("admin_delivery_status"))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "packed")
 
     def test_admin_can_create_a_delivery_profile(self):
         self.client.force_login(self.admin)
@@ -1173,12 +1480,39 @@ class CartTests(TestCase):
             {
                 "cart_count": 5,
                 "cart_total": "470.00",
+                "gst_amount": "84.60",
+                "packing_fee": "0.00",
                 "items": [
                     {"product_id": self.cola.id, "quantity": 4, "line_total": "360.00"},
                     {"product_id": self.lime.id, "quantity": 1, "line_total": "110.00"},
                 ],
             },
         )
+
+    def test_ajax_cart_quantity_update_calculates_packing_fee_dynamically(self):
+        self.add_item(self.cola, "1")
+        response = self.client.post(
+            reverse("update_cart"),
+            {
+                "action": "update",
+                f"quantity_{self.cola.id}": "13",
+            },
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["cart_count"], 13)
+        self.assertEqual(data["packing_fee"], "40.00")
+
+    def test_cart_page_renders_right_side_checkout_summary(self):
+        self.add_item(self.cola, "1")
+        response = self.client.get(reverse("cart"))
+        self.assertContains(response, "checkout-summary-sticky")
+        self.assertContains(response, "cartSubtotalDisplay")
+        self.assertContains(response, "cartPackingFeeDisplay")
+        self.assertContains(response, "cartShippingFeeDisplay")
+        self.assertContains(response, "cartGrandTotalDisplay")
+        self.assertContains(response, "data-cart-checkout-total")
 
     def test_cart_page_uses_automatic_quantity_updates(self):
         self.add_item(self.cola, "1")
@@ -1214,7 +1548,10 @@ class CartTests(TestCase):
             response,
             reverse("payment_page", kwargs={"payment_reference": order.payment_reference}),
         )
-        self.assertEqual(order.total_amount, Decimal("290.00"))
+        self.assertEqual(order.total_amount, Decimal("442.20"))
+        self.assertEqual(order.gst_amount, Decimal("52.20"))
+        self.assertEqual(order.shipping_fee, Decimal("100.00"))
+        self.assertEqual(order.items_subtotal, Decimal("290.00"))
         self.assertEqual(order.quantity, 3)
         self.assertEqual(order.customer_phone, "+91 98765 43210")
         self.assertEqual(order.delivery_address, "1 Cart Street")
@@ -1226,6 +1563,7 @@ class CartTests(TestCase):
         self.assertContains(payment_page, "Cart Cola")
         self.assertContains(payment_page, "Cart Lime")
         self.assertContains(payment_page, "₹290.00")
+        self.assertContains(payment_page, "₹442.20")
         self.assertEqual(self.client.get(reverse("cart")).context["items"], [])
 
     def test_cart_checkout_rejects_missing_delivery_details_and_keeps_cart(self):
@@ -1248,6 +1586,7 @@ class CartTests(TestCase):
             {
                 "first_name": "Guest",
                 "last_name": "Customer",
+                "email": "guest.cart@example.com",
                 "phone": "+91 98765 43210",
                 "address": "1 Guest Street",
                 "city": "Pune",
@@ -1353,7 +1692,7 @@ class WishlistTests(TestCase):
         self.assertContains(home, "♡ Wishlist")
         self.assertContains(home, reverse("wishlist_toggle", kwargs={"product_id": self.product.pk}))
         self.assertContains(product_page, "♡ Add to wishlist")
-        self.assertNotContains(product_page, 'aria-label="Wishlist, 0 saved items"')
+        self.assertContains(product_page, 'aria-label="Wishlist, 0 saved items"')
         self.assertContains(product_page, 'class="back-link">← Back</a>')
 
     def test_wishlist_discards_unavailable_products(self):
@@ -1536,3 +1875,1013 @@ class PaymentWebhookTests(TestCase):
         self.order.refresh_from_db()
 
         self.assertEqual(self.order.payment_status, "paid")
+
+
+class AddressButtonTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="testuser",
+            email="testuser@example.com",
+            password="password123",
+            first_name="Test",
+            last_name="Customer",
+        )
+        self.product = Product.objects.create(
+            name="Classic Lemonade",
+            description="Freshly squeezed lemonade.",
+            price=Decimal("90.00"),
+            volume="330 ml",
+            image="main/images/cola.png",
+            available=True,
+        )
+
+    def test_cart_page_renders_add_address_button(self):
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+
+        response = self.client.get(reverse("cart"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "+ Add address")
+        self.assertContains(response, 'id="btn-add-address"')
+
+    def test_checkout_page_renders_add_address_button(self):
+        response = self.client.get(reverse("checkout", kwargs={"product_id": self.product.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "+ Add address")
+        self.assertContains(response, 'id="btn-add-address"')
+
+    def test_saved_address_shown_for_profile_user(self):
+        CustomerProfile.objects.create(
+            user=self.user,
+            phone="9876543210",
+            address="123 Palm Street",
+            city="Chennai",
+            state="TN",
+            postal_code="600001",
+        )
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+
+        response = self.client.get(reverse("cart"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Default saved address")
+        self.assertContains(response, "123 Palm Street")
+        self.assertContains(response, "Use saved address")
+
+    def test_checkout_saves_address_to_profile_when_requested(self):
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+
+        response = self.client.post(
+            reverse("cart_checkout"),
+            data={
+                "first_name": "Test",
+                "last_name": "Customer",
+                "email": "testuser@example.com",
+                "phone": "9998887776",
+                "address": "456 New Lane",
+                "city": "Bengaluru",
+                "state": "KA",
+                "postal_code": "560001",
+                "save_address_to_profile": "1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        profile = CustomerProfile.objects.get(user=self.user)
+        self.assertEqual(profile.address, "456 New Lane")
+        self.assertEqual(profile.city, "Bengaluru")
+        self.assertEqual(profile.state, "KA")
+        self.assertEqual(profile.postal_code, "560001")
+
+
+class SavedAddressTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="addressuser",
+            email="addressuser@example.com",
+            password="testpassword123",
+            first_name="Address",
+            last_name="Tester",
+        )
+        self.product = Product.objects.create(
+            name="Glow Serum",
+            description="Hydrating skincare",
+            price=Decimal("49.99"),
+            volume="50ml",
+            image="main/images/cola.png",
+            available=True,
+        )
+
+    def test_view_saved_addresses_in_profile(self):
+        self.client.force_login(self.user)
+        CustomerAddress.objects.create(
+            user=self.user,
+            full_name="Home",
+            phone="9876543210",
+            address="101 Ocean Drive",
+            city="Mumbai",
+            state="MH",
+            postal_code="400001",
+            is_default=True,
+        )
+        CustomerAddress.objects.create(
+            user=self.user,
+            full_name="Office",
+            phone="9876543211",
+            address="202 Tech Park",
+            city="Pune",
+            state="MH",
+            postal_code="411001",
+            is_default=False,
+        )
+
+        response = self.client.get(reverse("customer_profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Saved Delivery Addresses (2/5)")
+        self.assertContains(response, "101 Ocean Drive")
+        self.assertContains(response, "202 Tech Park")
+        self.assertContains(response, "Default")
+
+    def test_add_address_via_profile_up_to_five(self):
+        self.client.force_login(self.user)
+        # Add 5 addresses
+        for i in range(1, 6):
+            res = self.client.post(
+                reverse("customer_profile"),
+                data={
+                    "action": "add_address",
+                    "full_name": f"Address {i}",
+                    "phone": f"900000000{i}",
+                    "address": f"{i} Street",
+                    "city": "City",
+                    "state": "State",
+                    "postal_code": f"11000{i}",
+                    "is_default": "on" if i == 1 else "",
+                },
+            )
+            self.assertEqual(res.status_code, 302)
+
+        self.assertEqual(CustomerAddress.objects.filter(user=self.user).count(), 5)
+
+        # Attempt to add 6th address
+        res6 = self.client.post(
+            reverse("customer_profile"),
+            data={
+                "action": "add_address",
+                "full_name": "Address 6",
+                "phone": "9000000006",
+                "address": "6 Street",
+                "city": "City",
+                "state": "State",
+                "postal_code": "110006",
+            },
+        )
+        self.assertEqual(res6.status_code, 302)
+        # Count should still be capped at 5
+        self.assertEqual(CustomerAddress.objects.filter(user=self.user).count(), 5)
+
+    def test_set_default_address(self):
+        self.client.force_login(self.user)
+        addr1 = CustomerAddress.objects.create(
+            user=self.user,
+            address="First Address",
+            city="City A",
+            state="State A",
+            postal_code="100001",
+            is_default=True,
+        )
+        addr2 = CustomerAddress.objects.create(
+            user=self.user,
+            address="Second Address",
+            city="City B",
+            state="State B",
+            postal_code="200002",
+            is_default=False,
+        )
+
+        res = self.client.post(
+            reverse("customer_profile"),
+            data={"action": "set_default_address", "address_id": addr2.id},
+        )
+        self.assertEqual(res.status_code, 302)
+        addr1.refresh_from_db()
+        addr2.refresh_from_db()
+        self.assertFalse(addr1.is_default)
+        self.assertTrue(addr2.is_default)
+
+        # Check CustomerProfile is synced
+        profile = CustomerProfile.objects.get(user=self.user)
+        self.assertEqual(profile.address, "Second Address")
+
+    def test_delete_address(self):
+        self.client.force_login(self.user)
+        addr = CustomerAddress.objects.create(
+            user=self.user,
+            address="Delete Me Street",
+            city="City",
+            state="State",
+            postal_code="123456",
+            is_default=True,
+        )
+
+        res = self.client.post(
+            reverse("customer_profile"),
+            data={"action": "delete_address", "address_id": addr.id},
+        )
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(CustomerAddress.objects.filter(id=addr.id).exists())
+
+    def test_checkout_and_cart_show_saved_address_options(self):
+        self.client.force_login(self.user)
+        CustomerAddress.objects.create(
+            user=self.user,
+            full_name="Home Address",
+            phone="9876543210",
+            address="77 Marina Way",
+            city="Kochi",
+            state="KL",
+            postal_code="682001",
+            is_default=True,
+        )
+        CustomerAddress.objects.create(
+            user=self.user,
+            full_name="Office Address",
+            phone="9876543211",
+            address="88 Infopark",
+            city="Kochi",
+            state="KL",
+            postal_code="682042",
+            is_default=False,
+        )
+
+        # In Checkout
+        checkout_res = self.client.get(
+            reverse("checkout", kwargs={"product_id": self.product.id})
+        )
+        self.assertEqual(checkout_res.status_code, 200)
+        self.assertContains(checkout_res, "Choose delivery address (2/5 saved)")
+        self.assertContains(checkout_res, "77 Marina Way")
+        self.assertContains(checkout_res, "88 Infopark")
+        self.assertContains(checkout_res, "+ Add address")
+
+        # In Cart
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+
+        cart_res = self.client.get(reverse("cart"))
+        self.assertEqual(cart_res.status_code, 200)
+        self.assertContains(cart_res, "Choose delivery address (2/5 saved)")
+        self.assertContains(cart_res, "77 Marina Way")
+        self.assertContains(cart_res, "88 Infopark")
+        self.assertContains(cart_res, "+ Add address")
+
+    def test_profile_shows_and_updates_email(self):
+        self.client.force_login(self.user)
+        res = self.client.get(reverse("customer_profile"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'name="email"')
+        self.assertContains(res, "addressuser@example.com")
+
+        update_res = self.client.post(
+            reverse("customer_profile"),
+            data={
+                "action": "save_profile",
+                "username": "addressuser",
+                "email": "updated_email@example.com",
+                "first_name": "Updated",
+                "last_name": "Name",
+                "phone": "9876543210",
+                "address": "123 Street",
+                "city": "City",
+                "state": "State",
+                "postal_code": "123456",
+            },
+        )
+        self.assertEqual(update_res.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "updated_email@example.com")
+
+    def test_profile_photo_upload_and_removal(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.force_login(self.user)
+        # Create a small valid 1x1 GIF image bytes
+        gif_bytes = (
+            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04"
+            b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        )
+        avatar_file = SimpleUploadedFile(
+            "test_avatar.gif", gif_bytes, content_type="image/gif"
+        )
+
+        res = self.client.post(
+            reverse("customer_profile"),
+            data={
+                "action": "save_profile",
+                "username": "addressuser",
+                "email": "addressuser@example.com",
+                "first_name": "Address",
+                "last_name": "Tester",
+                "avatar": avatar_file,
+            },
+        )
+        self.assertEqual(res.status_code, 302)
+        profile = CustomerProfile.objects.get(user=self.user)
+        self.assertTrue(bool(profile.avatar))
+
+        # Test remove profile photo
+        remove_res = self.client.post(
+            reverse("customer_profile"),
+            data={
+                "action": "save_profile",
+                "username": "addressuser",
+                "email": "addressuser@example.com",
+                "first_name": "Address",
+                "last_name": "Tester",
+                "remove_avatar": "1",
+            },
+        )
+        self.assertEqual(remove_res.status_code, 302)
+        profile.refresh_from_db()
+        self.assertFalse(bool(profile.avatar))
+
+
+class AdminMultipageTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.staff_user = get_user_model().objects.create_user(
+            username="adminstaff",
+            email="adminstaff@example.com",
+            password="staff-password",
+            is_staff=True,
+        )
+        cls.regular_user = get_user_model().objects.create_user(
+            username="regularuser",
+            email="regular@example.com",
+            password="user-password",
+            is_staff=False,
+        )
+        cls.product = Product.objects.create(
+            name="Sparkling Fizz",
+            category="others",
+            description="Crisp and refreshing",
+            price=Decimal("85.00"),
+            volume="330 ml",
+            image="sparkling.png",
+            available=True,
+        )
+
+    def test_non_staff_redirected_from_admin_pages(self):
+        self.client.login(username="regularuser", password="user-password")
+        for url_name in ("admin_products", "admin_delivery_users", "admin_delivery_status"):
+            with self.subTest(url_name=url_name):
+                res = self.client.get(reverse(url_name))
+                self.assertEqual(res.status_code, 302)
+
+    def test_staff_can_view_and_add_products(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        res = self.client.get(reverse("admin_products"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Sparkling Fizz")
+
+        # Add new product
+        post_res = self.client.post(
+            reverse("admin_products"),
+            data={
+                "name": "Berry Blast",
+                "category": "energy_drink",
+                "description": "Wild berry flavor",
+                "price": "95.00",
+                "volume": "330 ml",
+                "image": "berry.png",
+                "available": True,
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_products"))
+        self.assertTrue(Product.objects.filter(name="Berry Blast").exists())
+
+    def test_staff_can_toggle_product_availability(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        self.assertTrue(self.product.available)
+
+        toggle_res = self.client.post(
+            reverse("admin_toggle_product_availability", kwargs={"product_id": self.product.id})
+        )
+        self.assertRedirects(toggle_res, reverse("admin_products"))
+        self.product.refresh_from_db()
+        self.assertFalse(self.product.available)
+
+        # Toggle back to True
+        toggle_back = self.client.post(
+            reverse("admin_toggle_product_availability", kwargs={"product_id": self.product.id})
+        )
+        self.assertRedirects(toggle_back, reverse("admin_products"))
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.available)
+
+    def test_staff_can_add_custom_category_and_product(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        # 1. Quick add category
+        cat_res = self.client.post(
+            reverse("admin_products"),
+            data={"action": "add_category", "new_category_name": "Sparkling Water"},
+        )
+        self.assertRedirects(cat_res, reverse("admin_products"))
+        self.assertTrue(ProductCategory.objects.filter(slug="sparkling_water").exists())
+
+        # 2. Add product with inline new category
+        prod_res = self.client.post(
+            reverse("admin_products"),
+            data={
+                "name": "Tropical Punch",
+                "category": "__new__",
+                "new_category": "Fruit Juice",
+                "description": "Exotic fruits",
+                "price": "110.00",
+                "volume": "330 ml",
+                "available": True,
+            },
+        )
+        self.assertRedirects(prod_res, reverse("admin_products"))
+        punch = Product.objects.get(name="Tropical Punch")
+        self.assertEqual(punch.category, "fruit_juice")
+        self.assertEqual(punch.category_display, "Fruit Juice")
+
+        # 3. Storefront displays custom category filter
+        home_res = self.client.get(reverse("home"))
+        self.assertContains(home_res, 'data-filter-category="sparkling_water"')
+        self.assertContains(home_res, 'data-filter-category="fruit_juice"')
+        self.assertContains(home_res, "Fruit Juice")
+
+    def test_staff_can_upload_product_image(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.login(username="adminstaff", password="staff-password")
+        gif_bytes = (
+            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04"
+            b"\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        )
+        drink_img = SimpleUploadedFile("fresh_drink.gif", gif_bytes, content_type="image/gif")
+
+        post_res = self.client.post(
+            reverse("admin_products"),
+            data={
+                "name": "Lime Spritz",
+                "category": "others",
+                "description": "Zesty and fresh",
+                "price": "85.00",
+                "volume": "330 ml",
+                "image_file": drink_img,
+                "available": True,
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_products"))
+        spritz = Product.objects.get(name="Lime Spritz")
+        self.assertTrue(spritz.image.startswith("/media/products/fresh_drink"))
+        self.assertTrue(spritz.image_url.startswith("/media/products/fresh_drink"))
+
+    def test_staff_can_view_and_add_delivery_users(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        res = self.client.get(reverse("admin_delivery_users"))
+        self.assertEqual(res.status_code, 200)
+
+        post_res = self.client.post(
+            reverse("admin_delivery_users"),
+            data={
+                "username": "deliverydriver1",
+                "email": "driver1@example.com",
+                "first_name": "Dave",
+                "last_name": "Driver",
+                "password1": "DriverPass123!",
+                "password2": "DriverPass123!",
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_delivery_users"))
+        new_driver = get_user_model().objects.get(username="deliverydriver1")
+        self.assertTrue(DeliveryProfile.objects.filter(user=new_driver).exists())
+
+    def test_staff_can_view_and_update_delivery_status(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        order = Order.objects.create(
+            product=self.product,
+            customer_name="John Doe",
+            customer_phone="9876543210",
+            delivery_address="123 Street",
+            delivery_city="Bengaluru",
+            delivery_state="KA",
+            delivery_postal_code="560001",
+            quantity=2,
+            total_amount=Decimal("170.00"),
+            status="pending",
+        )
+
+        res = self.client.get(reverse("admin_delivery_status"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, f"#{order.id}")
+        self.assertContains(res, "John Doe")
+
+        # Update order status to out_for_delivery
+        update_res = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": order.id}),
+            data={"status": "out_for_delivery"},
+        )
+        self.assertRedirects(update_res, reverse("admin_delivery_status"))
+        order.refresh_from_db()
+        self.assertEqual(order.status, "out_for_delivery")
+        self.assertIsNone(order.delivered_at)
+
+        # Update to delivered
+        deliver_res = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": order.id}),
+            data={"status": "delivered"},
+        )
+        self.assertRedirects(deliver_res, reverse("admin_delivery_status"))
+        order.refresh_from_db()
+        self.assertEqual(order.status, "delivered")
+        self.assertIsNotNone(order.delivered_at)
+
+    def test_user_can_submit_contact_message_and_staff_can_view_it(self):
+        # 1. Anonymous / regular customer submits contact form
+        session = self.client.session
+        session["contact_captcha"] = "TEST5"
+        session.save()
+        contact_res = self.client.post(
+            reverse("contact"),
+            data={
+                "name": "Sarah Connor",
+                "email": "sarah@example.com",
+                "subject": "Wholesale inquiry",
+                "message": "We would like to stock J CSD at our cafe.",
+                "captcha": "TEST5",
+            },
+        )
+        self.assertEqual(contact_res.status_code, 200)
+        self.assertTrue(
+            ContactMessage.objects.filter(email="sarah@example.com", name="Sarah Connor").exists()
+        )
+        msg = ContactMessage.objects.get(email="sarah@example.com")
+        self.assertFalse(msg.is_read)
+
+        # 2. Staff views details & messages page
+        self.client.login(username="adminstaff", password="staff-password")
+        admin_res = self.client.get(reverse("admin_details") + "?tab=messages")
+        self.assertEqual(admin_res.status_code, 200)
+        self.assertContains(admin_res, "Sarah Connor")
+        self.assertContains(admin_res, "Wholesale inquiry")
+        self.assertContains(admin_res, "We would like to stock J CSD at our cafe.")
+
+        # 3. Staff marks message as read
+        toggle_res = self.client.post(
+            reverse("admin_toggle_message_read", kwargs={"message_id": msg.id})
+        )
+        self.assertRedirects(toggle_res, reverse("admin_details") + "?tab=messages")
+        msg.refresh_from_db()
+        self.assertTrue(msg.is_read)
+
+        # 4. Staff deletes message
+        delete_res = self.client.post(
+            reverse("admin_delete_message", kwargs={"message_id": msg.id})
+        )
+        self.assertRedirects(delete_res, reverse("admin_details") + "?tab=messages")
+        self.assertFalse(ContactMessage.objects.filter(pk=msg.id).exists())
+
+    def test_staff_can_edit_about_us_details(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        post_res = self.client.post(
+            reverse("admin_details") + "?tab=about",
+            data={
+                "action": "save_about",
+                "about_kicker": "Our Story",
+                "about_title": "Pure Energy.<br>Pure Vibes.",
+                "about_lead": "Crafted with botanical extracts for the modern creator.",
+                "about_note": "Every can is a burst of natural energy.",
+                "about_action_text": "Check line-up",
+                "about_action_url": "/#drinks",
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_details") + "?tab=about")
+
+        details = SiteDetails.get_solo()
+        self.assertEqual(details.about_kicker, "Our Story")
+        self.assertEqual(details.about_title, "Pure Energy.<br>Pure Vibes.")
+
+        # Check that about page renders the new values
+        about_res = self.client.get(reverse("about"))
+        self.assertEqual(about_res.status_code, 200)
+        self.assertContains(about_res, "Our Story")
+        self.assertContains(about_res, "Pure Energy.<br>Pure Vibes.")
+        self.assertContains(about_res, "Crafted with botanical extracts for the modern creator.")
+
+    def test_staff_can_edit_contact_us_details(self):
+        self.client.login(username="adminstaff", password="staff-password")
+        post_res = self.client.post(
+            reverse("admin_details") + "?tab=contact",
+            data={
+                "action": "save_contact",
+                "contact_kicker": "Reach Out",
+                "contact_title": "Always Here To Help.",
+                "contact_lead": "Get in touch with our beverage care team anytime.",
+                "support_email": "help@jcsd-drinks.com",
+                "support_phone": "+91 99999 88888",
+                "whatsapp_number": "+91 99999 88888",
+                "operating_hours": "Mon-Fri: 8am - 10pm",
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_details") + "?tab=contact")
+
+        details = SiteDetails.get_solo()
+        self.assertEqual(details.support_email, "help@jcsd-drinks.com")
+        self.assertEqual(details.support_phone, "+91 99999 88888")
+
+        # Check that contact page renders the new values
+        contact_res = self.client.get(reverse("contact"))
+        self.assertEqual(contact_res.status_code, 200)
+        self.assertContains(contact_res, "Always Here To Help.")
+        self.assertContains(contact_res, "help@jcsd-drinks.com")
+        self.assertContains(contact_res, "+91 99999 88888")
+
+
+class ShippingFeeAndRegionalRulesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.staff_user = get_user_model().objects.create_user(
+            username="adminstaff_ship",
+            email="admin_ship@example.com",
+            password="staff-password",
+            is_staff=True,
+        )
+        cls.product = Product.objects.create(
+            name="Shipping Test Drink",
+            price=Decimal("150.00"),
+            volume="330 ml",
+            image="main/images/cola.png",
+            available=True,
+        )
+
+    def test_default_shipping_fees_for_local_and_other_states(self):
+        details = SiteDetails.get_solo()
+        # Tamil Nadu & Kerala should be ₹50
+        self.assertEqual(details.calculate_shipping_fee("Tamil Nadu"), Decimal("50.00"))
+        self.assertEqual(details.calculate_shipping_fee("tamil nadu"), Decimal("50.00"))
+        self.assertEqual(details.calculate_shipping_fee("Kerala"), Decimal("50.00"))
+        self.assertEqual(details.calculate_shipping_fee("kerala"), Decimal("50.00"))
+
+        # Other states should be ₹100
+        self.assertEqual(details.calculate_shipping_fee("Karnataka"), Decimal("100.00"))
+        self.assertEqual(details.calculate_shipping_fee("Maharashtra"), Decimal("100.00"))
+        self.assertEqual(details.calculate_shipping_fee("Delhi"), Decimal("100.00"))
+
+    def test_checkout_applies_correct_shipping_fee_tamil_nadu(self):
+        response = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "Radhi",
+                "last_name": "Kumar",
+                "email": "radhi@example.com",
+                "phone": "9842176565",
+                "address": "123 Anna Salai",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "postal_code": "600002",
+            },
+        )
+        order = Order.objects.filter(customer_phone="+91 9842176565").first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.shipping_fee, Decimal("50.00"))
+        self.assertEqual(order.items_subtotal, Decimal("150.00"))
+        self.assertEqual(order.gst_amount, Decimal("27.00"))
+        self.assertEqual(order.total_amount, Decimal("227.00"))
+        self.assertEqual(order.customer_phone, "+91 9842176565")
+
+    def test_checkout_applies_correct_shipping_fee_other_state(self):
+        response = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "Rohan",
+                "last_name": "Sharma",
+                "email": "rohan@example.com",
+                "phone": "9876543210",
+                "address": "456 MG Road",
+                "city": "Bengaluru",
+                "state": "Karnataka",
+                "postal_code": "560001",
+            },
+        )
+        order = Order.objects.filter(customer_phone="+91 9876543210").first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.shipping_fee, Decimal("100.00"))
+        self.assertEqual(order.items_subtotal, Decimal("150.00"))
+        self.assertEqual(order.gst_amount, Decimal("27.00"))
+        self.assertEqual(order.total_amount, Decimal("277.00"))
+
+    def test_admin_can_customize_shipping_rates_and_local_states(self):
+        self.client.login(username="adminstaff_ship", password="staff-password")
+        post_res = self.client.post(
+            reverse("admin_shipping_charges"),
+            data={
+                "shipping_fee_local": "40.00",
+                "shipping_fee_other": "120.00",
+                "shipping_local_states": "Tamil Nadu, Kerala, Pondicherry",
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_shipping_charges"))
+
+        details = SiteDetails.get_solo()
+        self.assertEqual(details.shipping_fee_local, Decimal("40.00"))
+        self.assertEqual(details.shipping_fee_other, Decimal("120.00"))
+        self.assertIn("Pondicherry", details.shipping_local_states)
+
+        # Now Pondicherry gets ₹40, and Karnataka gets ₹120
+        self.assertEqual(details.calculate_shipping_fee("Pondicherry"), Decimal("40.00"))
+        self.assertEqual(details.calculate_shipping_fee("Karnataka"), Decimal("120.00"))
+
+    def test_packing_cost_calculation_tiers(self):
+        details = SiteDetails.get_solo()
+        # Default: first 6 cans free, +₹20 per 6 cans thereafter
+        self.assertEqual(details.calculate_packing_fee(0), Decimal("0.00"))
+        self.assertEqual(details.calculate_packing_fee(1), Decimal("0.00"))
+        self.assertEqual(details.calculate_packing_fee(5), Decimal("0.00"))
+        self.assertEqual(details.calculate_packing_fee(6), Decimal("0.00"))
+
+        # 7 to 12 cans = 1 additional pack = ₹20
+        self.assertEqual(details.calculate_packing_fee(7), Decimal("20.00"))
+        self.assertEqual(details.calculate_packing_fee(10), Decimal("20.00"))
+        self.assertEqual(details.calculate_packing_fee(12), Decimal("20.00"))
+
+        # 13 to 18 cans = 2 additional packs = ₹40
+        self.assertEqual(details.calculate_packing_fee(13), Decimal("40.00"))
+        self.assertEqual(details.calculate_packing_fee(18), Decimal("40.00"))
+
+        # 19 cans = 3 additional packs = ₹60
+        self.assertEqual(details.calculate_packing_fee(19), Decimal("60.00"))
+
+    def test_checkout_applies_packing_cost_and_no_local_labeling(self):
+        # 8 cans = 6 free + 2 extra (1 pack) = ₹20 packing cost
+        response = self.client.post(
+            f"/checkout/{self.product.id}/?qty=8",
+            {
+                "first_name": "Radhi",
+                "last_name": "Kumar",
+                "email": "radhi_packing@example.com",
+                "phone": "9842176565",
+                "address": "123 Anna Salai",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "postal_code": "600002",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.filter(customer_phone="+91 9842176565").first()
+        self.assertIsNotNone(order)
+        # 8 items * 150 = 1200
+        self.assertEqual(order.items_subtotal, Decimal("1200.00"))
+        # Packing fee: ₹20
+        self.assertEqual(order.packing_fee, Decimal("20.00"))
+        # GST (18% on 1200): ₹216.00
+        self.assertEqual(order.gst_amount, Decimal("216.00"))
+        # Shipping fee: ₹50
+        self.assertEqual(order.shipping_fee, Decimal("50.00"))
+        # Total: 1200 + 216 + 20 + 50 = 1486
+        self.assertEqual(order.total_amount, Decimal("1486.00"))
+
+        # Check checkout GET page has no '(Local:' label
+        checkout_get = self.client.get(f"/checkout/{self.product.id}/?qty=8")
+        self.assertEqual(checkout_get.status_code, 200)
+        self.assertNotContains(checkout_get, "(Local:")
+
+    def test_admin_can_customize_packing_fee_settings(self):
+        self.client.login(username="adminstaff_ship", password="staff-password")
+        post_res = self.client.post(
+            reverse("admin_packing_charges"),
+            data={
+                "packing_free_cans": "4",
+                "packing_cost_per_batch": "30.00",
+                "packing_batch_size": "4",
+            },
+        )
+        self.assertRedirects(post_res, reverse("admin_packing_charges"))
+
+        details = SiteDetails.get_solo()
+        self.assertEqual(details.packing_free_cans, 4)
+        self.assertEqual(details.packing_cost_per_batch, Decimal("30.00"))
+        self.assertEqual(details.packing_batch_size, 4)
+
+        # 4 cans are free
+        self.assertEqual(details.calculate_packing_fee(4), Decimal("0.00"))
+        # 5 cans = 1 extra = ₹30
+        self.assertEqual(details.calculate_packing_fee(5), Decimal("30.00"))
+
+    def test_admin_shipping_url_redirects_to_shipping_charges(self):
+        self.client.login(username="adminstaff_ship", password="staff-password")
+        res = self.client.get(reverse("admin_shipping_rates"))
+        self.assertRedirects(res, reverse("admin_shipping_charges"))
+
+    def test_admin_details_page_does_not_include_shipping_rates_or_rules(self):
+        self.client.login(username="adminstaff_ship", password="staff-password")
+        res = self.client.get(reverse("admin_details"))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, "Shipping Rates &amp; Rules")
+        self.assertNotContains(res, "Shipping Rates & Rules")
+        self.assertNotContains(res, "id_shipping_fee_local")
+        self.assertNotContains(res, "id_packing_free_cans")
+
+    def test_admin_separate_rates_handling_pages(self):
+        self.client.login(username="adminstaff_ship", password="staff-password")
+
+        # 1. Shipping Charges page
+        ship_res = self.client.get(reverse("admin_shipping_charges"))
+        self.assertEqual(ship_res.status_code, 200)
+        self.assertContains(ship_res, "Shipping Charges")
+        self.assertContains(ship_res, "Selected States Shipping Fee")
+        self.assertContains(ship_res, "stateRegionDropdown")
+        self.assertContains(ship_res, "Rates Handling")
+
+        # 2. Packing Charges page
+        pack_res = self.client.get(reverse("admin_packing_charges"))
+        self.assertEqual(pack_res.status_code, 200)
+        self.assertContains(pack_res, "Packing Charges")
+        self.assertContains(pack_res, "Free Packing Cans Threshold")
+        self.assertContains(pack_res, "Packing Cost Per Additional Batch")
+        self.assertContains(pack_res, "Rates Handling")
+
+    def test_footer_displays_dynamic_contact_info(self):
+        details = SiteDetails.get_solo()
+        details.support_email = "custom_care@jcsd-official.com"
+        details.support_phone = "+91 91234 56789"
+        details.whatsapp_number = "+91 91234 56789"
+        details.save()
+
+        # Check on home page footer
+        home_res = self.client.get(reverse("home"))
+        self.assertEqual(home_res.status_code, 200)
+        self.assertContains(home_res, "custom_care@jcsd-official.com")
+        self.assertContains(home_res, "+91 91234 56789")
+        self.assertContains(home_res, "https://wa.me/919123456789")
+
+        # Check on about page footer
+        about_res = self.client.get(reverse("about"))
+        self.assertEqual(about_res.status_code, 200)
+        self.assertContains(about_res, "custom_care@jcsd-official.com")
+        self.assertContains(about_res, "+91 91234 56789")
+        self.assertContains(about_res, "https://wa.me/919123456789")
+
+
+class OrderReceiptTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.customer = user_model.objects.create_user(
+            username="testcustomer",
+            email="customer@example.com",
+            password="testpassword123",
+            first_name="Customer",
+            last_name="One",
+        )
+        self.other_customer = user_model.objects.create_user(
+            username="othercustomer",
+            email="other@example.com",
+            password="testpassword123",
+            first_name="Other",
+            last_name="User",
+        )
+        self.staff_user = user_model.objects.create_user(
+            username="adminuser",
+            email="admin@example.com",
+            password="adminpassword123",
+            is_staff=True,
+        )
+        self.product = Product.objects.create(
+            name="Classic Cola",
+            description="Crisp and bold cola.",
+            price=Decimal("90.00"),
+            volume="330 ml",
+            image="main/images/cola.png",
+            available=True,
+        )
+        self.order = Order.objects.create(
+            product=self.product,
+            customer=self.customer,
+            customer_name="Customer One",
+            customer_phone="+91 9876543210",
+            delivery_address="123 Test Street",
+            delivery_city="Chennai",
+            delivery_state="Tamil Nadu",
+            delivery_postal_code="600001",
+            quantity=2,
+            total_amount=Decimal("230.00"),
+            shipping_fee=Decimal("50.00"),
+            packing_fee=Decimal("0.00"),
+            payment_status="paid",
+            status="pending",
+        )
+        OrderItem.objects.create(
+            order=self.order,
+            product=self.product,
+            quantity=2,
+            unit_price=Decimal("90.00"),
+        )
+
+    def test_customer_can_view_own_order_receipt(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("order_receipt", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"Order #{self.order.id}")
+        self.assertContains(response, "Order Receipt & Tax Invoice")
+        self.assertContains(response, "Customer One")
+        self.assertContains(response, "123 Test Street")
+        self.assertContains(response, "Classic Cola")
+        self.assertContains(response, "230.00")
+        self.assertContains(response, "Paid in full")
+        self.assertContains(response, "Print Slip / Save PDF")
+
+    def test_customer_cannot_view_other_customer_receipt(self):
+        self.client.force_login(self.other_customer)
+        response = self.client.get(reverse("order_receipt", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 403)
+
+    def test_unauthenticated_user_redirected_to_login(self):
+        response = self.client.get(reverse("order_receipt", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("customer-login", response.url)
+
+    def test_staff_can_view_any_order_receipt(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.get(reverse("order_receipt", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"Order #{self.order.id}")
+        self.assertContains(response, "Back to Order")
+
+    def test_guest_can_view_receipt_by_payment_reference(self):
+        response = self.client.get(
+            reverse("order_receipt_by_reference", kwargs={"payment_reference": self.order.payment_reference})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"Order #{self.order.id}")
+
+    def test_customer_orders_page_contains_print_slip_button(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("customer_orders"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Print Slip")
+        self.assertContains(response, reverse("order_receipt", kwargs={"order_id": self.order.id}))
+
+    def test_admin_order_detail_contains_print_slip_link(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.get(reverse("admin_order_detail", kwargs={"order_id": self.order.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Print Order Slip")
+        self.assertContains(response, reverse("order_receipt", kwargs={"order_id": self.order.id}))
+
+    def test_admin_delivery_status_modal_contains_print_slip_link(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.get(reverse("admin_delivery_status"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Print Slip")
+        self.assertContains(response, reverse("order_receipt", kwargs={"order_id": self.order.id}))
+
+    def test_checkout_and_receipt_include_gst_18_percent(self):
+        res = self.client.get(f"/checkout/{self.product.id}/?qty=1")
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "GST (18%)")
+        self.assertContains(res, "₹16.20")
+        self.assertContains(res, "₹156.20")
+
+        post_res = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            {
+                "first_name": "GST",
+                "last_name": "Tester",
+                "email": "gst@example.com",
+                "phone": "+91 9842100000",
+                "address": "77 GST Street",
+                "city": "Chennai",
+                "state": "Tamil Nadu",
+                "postal_code": "600001",
+            },
+        )
+        self.assertEqual(post_res.status_code, 302)
+        order = Order.objects.filter(customer_phone="+91 9842100000").first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.items_subtotal, Decimal("90.00"))
+        self.assertEqual(order.gst_amount, Decimal("16.20"))
+        self.assertEqual(order.shipping_fee, Decimal("50.00"))
+        self.assertEqual(order.packing_fee, Decimal("0.00"))
+        self.assertEqual(order.total_amount, Decimal("156.20"))
+
+        receipt_res = self.client.get(reverse("order_receipt", kwargs={"order_id": order.id}))
+        self.assertEqual(receipt_res.status_code, 200)
+        self.assertContains(receipt_res, "GST (18%)")
+        self.assertContains(receipt_res, "₹16.20")
+        self.assertContains(receipt_res, "₹156.20")
+
+
+
+
+
+
+

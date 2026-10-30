@@ -1,0 +1,354 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Shipping Charges | Rates Handling{% endblock %}
+{% block page_heading %}Shipping Charges{% endblock %}
+{% block page_description %}Manage regional delivery fees across India. Choose eligible states from the dropdown bar and configure separate flat rates.{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'cart' %}" class="quick-chip" target="_blank" rel="noopener">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="21" r="1"></circle>
+      <circle cx="20" cy="21" r="1"></circle>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+    </svg>
+    Test in Cart ↗
+  </a>
+{% endblock %}
+
+{% block admin_content %}
+  <!-- Rates Handling Navigative Tabs (Switch easily between Shipping & Packing) -->
+  <nav class="rates-nav-pills" aria-label="Rates Navigation">
+    <a href="{% url 'admin_shipping_charges' %}" class="rates-nav-pill active">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="3" width="15" height="13"></rect>
+        <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+        <circle cx="18.5" cy="18.5" r="2.5"></circle>
+      </svg>
+      <span>Shipping Charges</span>
+    </a>
+    <a href="{% url 'admin_packing_charges' %}" class="rates-nav-pill">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m7.5 4.27 9 5.15"></path>
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+        <path d="m3.3 7 8.7 5 8.7-5"></path>
+        <path d="M12 22V12"></path>
+      </svg>
+      <span>Packing Charges</span>
+    </a>
+  </nav>
+
+  <!-- Responsive Stats Section -->
+  <section class="rates-stats-grid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Selected States Rate</span>
+        <span class="stat-tag stat-tag-green">Custom</span>
+      </div>
+      <div class="stat-value">₹{{ details.shipping_fee_local }}</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        {{ selected_states_count }} region{{ selected_states_count|pluralize }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Other States Rate</span>
+        <span class="stat-tag stat-tag-blue">Pan-India</span>
+      </div>
+      <div class="stat-value">₹{{ details.shipping_fee_other }}</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        All remaining states
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Selected Regions</span>
+        <span class="stat-tag stat-tag-purple">Active</span>
+      </div>
+      <div class="stat-value">{{ selected_states_count }}</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        Configured in list
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Total Coverage</span>
+        <span class="stat-tag stat-tag-orange">India</span>
+      </div>
+      <div class="stat-value">36</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        States & UTs
+      </div>
+    </div>
+  </section>
+
+  <!-- Responsive Layout Grid (Stacks on Tablet & Mobile) -->
+  <div class="rates-layout-grid">
+    <!-- LEFT: Shipping Form -->
+    <section class="admin-panel" style="width: 100%; box-sizing: border-box;">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="3" width="15" height="13"></rect>
+              <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
+            </svg>
+            Shipping Charges & Regional Rules
+          </h2>
+          <p class="panel-subtitle">
+            Configure delivery fees based on customer delivery state. Select states from the dropdown bar for special pricing.
+          </p>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'admin_shipping_charges' %}" class="admin-form" style="width: 100%;">
+        {% csrf_token %}
+
+        <!-- Shipping Rates Inputs (Responsive 2-col on desktop, 1-col on mobile) -->
+        <div class="rates-form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="id_shipping_fee_local">
+              {{ shipping_form.shipping_fee_local.label }}
+            </label>
+            {{ shipping_form.shipping_fee_local }}
+            <small class="form-hint" style="color: var(--admin-text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              Applied to states selected in the dropdown below (default: ₹50).
+            </small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="id_shipping_fee_other">
+              {{ shipping_form.shipping_fee_other.label }}
+            </label>
+            {{ shipping_form.shipping_fee_other }}
+            <small class="form-hint" style="color: var(--admin-text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              Applied to all other states across India (default: ₹100).
+            </small>
+          </div>
+        </div>
+
+        <!-- Region Dropdown Bar Selector -->
+        <div class="form-group" style="margin-top: 14px; width: 100%;">
+          <label class="form-label" for="stateRegionDropdown">
+            Selected States / Regions Dropdown Bar
+          </label>
+
+          <!-- Responsive Dropdown Bar (Stacks on small mobile screens) -->
+          <div class="region-select-bar">
+            <select id="stateRegionDropdown" class="form-control region-select-input">
+              <option value="">-- Choose state/region from dropdown --</option>
+              {% for st in indian_states %}
+                <option value="{{ st }}">{{ st }}</option>
+              {% endfor %}
+            </select>
+            <button type="button" id="btnAddState" class="btn-secondary region-add-btn">
+              + Add Region
+            </button>
+          </div>
+
+          <!-- Active Selected States Tag Cloud -->
+          <div id="selectedStatesContainer" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); width: 100%; box-sizing: border-box;">
+            <!-- Rendered via JS -->
+          </div>
+
+          <!-- Hidden input that saves to database -->
+          <input type="hidden" name="shipping_local_states" id="id_shipping_local_states" value="{{ details.shipping_local_states }}">
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 8px;">
+            <small class="form-hint" style="color: var(--admin-text-muted); font-size: 0.78rem;">
+              Select states from dropdown bar. Tap <strong>×</strong> to remove.
+            </small>
+            <button type="button" id="btnClearStates" class="btn-mini" style="background: rgba(255,255,255,0.05); color: var(--admin-text-muted); border: 1px solid rgba(255,255,255,0.12); padding: 4px 10px; border-radius: 6px; cursor: pointer;">
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top: 24px;">
+          <button type="submit" class="btn-primary" style="min-height: 44px;">
+            Save Shipping Charges
+          </button>
+          <a href="{% url 'cart' %}" target="_blank" class="btn-secondary" style="min-height: 44px; display: inline-flex; align-items: center; justify-content: center;">
+            Test in Cart ↗
+          </a>
+        </div>
+      </form>
+    </section>
+
+    <!-- RIGHT: Live Shipping Rules Preview Card -->
+    <section class="admin-panel" style="background: #0d1012; border: 1px solid rgba(255,255,255,0.12); width: 100%; box-sizing: border-box;">
+      <div class="panel-header">
+        <h2 class="panel-title" style="font-size: 0.95rem; color: var(--admin-text-muted);">
+          Current Rules Preview
+        </h2>
+        <span class="brand-badge">Live Rules</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 6px 0; width: 100%; box-sizing: border-box;">
+        <!-- Selected States Rate Card -->
+        <div style="padding: 16px; border-radius: 12px; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); width: 100%; box-sizing: border-box;">
+          <div style="font-size: 0.68rem; text-transform: uppercase; color: #4ade80; font-weight: 700; letter-spacing: 0.05em;">
+            Selected States Shipping Rate
+          </div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-top: 4px;">
+            ₹{{ details.shipping_fee_local }}
+          </div>
+          <div style="font-size: 0.82rem; color: rgba(255,255,255,0.7); margin-top: 6px; word-break: break-word;">
+            Applies to: <strong id="previewSelectedStatesText" style="color: #fff;">{{ details.shipping_local_states|default:"Tamil Nadu, Kerala" }}</strong>
+          </div>
+        </div>
+
+        <!-- Other States Rate Card -->
+        <div style="padding: 16px; border-radius: 12px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); width: 100%; box-sizing: border-box;">
+          <div style="font-size: 0.68rem; text-transform: uppercase; color: #60a5fa; font-weight: 700; letter-spacing: 0.05em;">
+            All Other States Shipping Rate
+          </div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-top: 4px;">
+            ₹{{ details.shipping_fee_other }}
+          </div>
+          <div style="font-size: 0.82rem; color: rgba(255,255,255,0.7); margin-top: 6px;">
+            Applies to all other Indian States & Union Territories.
+          </div>
+        </div>
+
+        <!-- All Available States Directory (Interactive quick-toggle) -->
+        <div style="padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.12); width: 100%; box-sizing: border-box;">
+          <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--admin-text-muted); font-weight: 700; margin-bottom: 8px;">
+            Quick-Select All States & UTs ({{ indian_states|length }}) — Tap to toggle
+          </div>
+          <div style="max-height: 180px; overflow-y: auto; font-size: 0.76rem; color: rgba(255,255,255,0.75); line-height: 1.8; width: 100%; box-sizing: border-box; word-break: break-word;">
+            {% for st in indian_states %}
+              <span data-toggle-state="{{ st }}" style="display: inline-block; padding: 3px 8px; margin: 2px; background: rgba(255,255,255,0.06); border-radius: 6px; cursor: pointer; transition: all 0.15s ease;">{{ st }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- JavaScript to power Region Dropdown Bar and Badges -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const hiddenInput = document.getElementById('id_shipping_local_states');
+    const dropdown = document.getElementById('stateRegionDropdown');
+    const container = document.getElementById('selectedStatesContainer');
+    const clearBtn = document.getElementById('btnClearStates');
+    const previewText = document.getElementById('previewSelectedStatesText');
+
+    if (!hiddenInput || !dropdown || !container) return;
+
+    function parseStates() {
+      return (hiddenInput.value || '')
+        .split(',')
+        .map(function(s) { return s.trim(); })
+        .filter(function(s) { return s.length > 0; });
+    }
+
+    function updatePreviewText(states) {
+      if (previewText) {
+        previewText.textContent = states.length > 0 ? states.join(', ') : 'None (all will use standard rate)';
+      }
+    }
+
+    function highlightQuickToggles(states) {
+      const lowerStates = states.map(function(s) { return s.toLowerCase(); });
+      document.querySelectorAll('[data-toggle-state]').forEach(function(el) {
+        const st = el.getAttribute('data-toggle-state');
+        if (lowerStates.indexOf(st.toLowerCase()) !== -1) {
+          el.style.background = 'rgba(59, 130, 246, 0.3)';
+          el.style.color = '#93c5fd';
+          el.style.border = '1px solid rgba(59, 130, 246, 0.5)';
+        } else {
+          el.style.background = 'rgba(255,255,255,0.06)';
+          el.style.color = 'rgba(255,255,255,0.75)';
+          el.style.border = '1px solid transparent';
+        }
+      });
+    }
+
+    function renderTags() {
+      container.innerHTML = '';
+      const current = parseStates();
+      updatePreviewText(current);
+      highlightQuickToggles(current);
+
+      if (current.length === 0) {
+        container.innerHTML = '<span style="color: var(--admin-text-muted); font-size: 0.82rem; font-style: italic; padding: 4px 6px;">No regions selected yet. Select a state from the dropdown bar above to add.</span>';
+        return;
+      }
+      current.forEach(function(state) {
+        const tag = document.createElement('span');
+        tag.className = 'state-tag-badge';
+        tag.innerHTML = '<span>' + state + '</span><button type="button" class="state-tag-remove-btn" data-remove="' + state + '" title="Remove ' + state + '">&times;</button>';
+        container.appendChild(tag);
+      });
+    }
+
+    function addState(stateName) {
+      if (!stateName) return;
+      const current = parseStates();
+      const exists = current.some(function(s) { return s.toLowerCase() === stateName.toLowerCase(); });
+      if (!exists) {
+        current.push(stateName);
+        hiddenInput.value = current.join(', ');
+        renderTags();
+      }
+    }
+
+    function removeState(stateName) {
+      let current = parseStates();
+      current = current.filter(function(s) { return s.toLowerCase() !== stateName.toLowerCase(); });
+      hiddenInput.value = current.join(', ');
+      renderTags();
+    }
+
+    dropdown.addEventListener('change', function() {
+      const val = this.value;
+      if (val) {
+        addState(val);
+        this.value = '';
+      }
+    });
+
+    const btnAdd = document.getElementById('btnAddState');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', function() {
+        const val = dropdown.value;
+        if (val) {
+          addState(val);
+          dropdown.value = '';
+        }
+      });
+    }
+
+    container.addEventListener('click', function(e) {
+      const btn = e.target.closest('button[data-remove]');
+      if (btn) {
+        removeState(btn.getAttribute('data-remove'));
+      }
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        hiddenInput.value = '';
+        renderTags();
+      });
+    }
+
+    document.querySelectorAll('[data-toggle-state]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        const st = this.getAttribute('data-toggle-state');
+        const current = parseStates();
+        if (current.some(function(s) { return s.toLowerCase() === st.toLowerCase(); })) {
+          removeState(st);
+        } else {
+          addState(st);
+        }
+      });
+    });
+
+    renderTags();
+  });
+  </script>
+{% endblock %}

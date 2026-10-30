@@ -1,0 +1,341 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Packing Charges | Rates Handling{% endblock %}
+{% block page_heading %}Packing Charges{% endblock %}
+{% block page_description %}Customize beverage can packaging rules and batch costs. First 6 cans are packed free; each subsequent batch adds ₹20.{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'cart' %}" class="quick-chip" target="_blank" rel="noopener">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="21" r="1"></circle>
+      <circle cx="20" cy="21" r="1"></circle>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+    </svg>
+    Test in Cart ↗
+  </a>
+{% endblock %}
+
+{% block admin_content %}
+  <!-- Rates Handling Navigative Tabs (Switch easily between Shipping & Packing) -->
+  <nav class="rates-nav-pills" aria-label="Rates Navigation">
+    <a href="{% url 'admin_shipping_charges' %}" class="rates-nav-pill">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="3" width="15" height="13"></rect>
+        <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+        <circle cx="5.5" cy="18.5" r="2.5"></circle>
+        <circle cx="18.5" cy="18.5" r="2.5"></circle>
+      </svg>
+      <span>Shipping Charges</span>
+    </a>
+    <a href="{% url 'admin_packing_charges' %}" class="rates-nav-pill active">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m7.5 4.27 9 5.15"></path>
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+        <path d="m3.3 7 8.7 5 8.7-5"></path>
+        <path d="M12 22V12"></path>
+      </svg>
+      <span>Packing Charges</span>
+    </a>
+  </nav>
+
+  <!-- Responsive Stats Section -->
+  <section class="rates-stats-grid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Free Packaging</span>
+        <span class="stat-tag stat-tag-green">Allowance</span>
+      </div>
+      <div class="stat-value">{{ details.packing_free_cans }} Cans</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        Zero fee for first {{ details.packing_free_cans }} cans
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Batch Fee</span>
+        <span class="stat-tag stat-tag-purple">Carton</span>
+      </div>
+      <div class="stat-value">₹{{ details.packing_cost_per_batch }}</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        Per extra batch
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Batch Size</span>
+        <span class="stat-tag stat-tag-blue">Capacity</span>
+      </div>
+      <div class="stat-value">{{ details.packing_batch_size }} Cans</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        Cans per sleeve
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Rule Status</span>
+        <span class="stat-tag stat-tag-orange">Live</span>
+      </div>
+      <div class="stat-value" style="font-size: 1.35rem; padding-top: 4px;">Active</div>
+      <div class="stat-change" style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px;">
+        Applied at checkout
+      </div>
+    </div>
+  </section>
+
+  <!-- Responsive Layout Grid (Stacks on Tablet & Mobile) -->
+  <div class="rates-layout-grid">
+    <!-- LEFT: Packing Charges Customization Form -->
+    <section class="admin-panel" style="width: 100%; box-sizing: border-box;">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7.5 4.27 9 5.15"></path>
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+              <path d="m3.3 7 8.7 5 8.7-5"></path>
+              <path d="M12 22V12"></path>
+            </svg>
+            Customizable Packing Charges
+          </h2>
+          <p class="panel-subtitle">
+            Configure packaging fees applied when packing orders into beverage carton sleeves.
+          </p>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'admin_packing_charges' %}" class="admin-form" style="width: 100%;">
+        {% csrf_token %}
+
+        <!-- Responsive Packing Inputs (3-col desktop, 1-col mobile) -->
+        <div class="packing-inputs-grid">
+          <!-- 1. Free Cans Threshold -->
+          <div class="form-group">
+            <label class="form-label" for="id_packing_free_cans">
+              {{ packing_form.packing_free_cans.label }}
+            </label>
+            {{ packing_form.packing_free_cans }}
+            <small class="form-hint" style="color: var(--admin-text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              First N cans packed free of cost (default: 6).
+            </small>
+          </div>
+
+          <!-- 2. Cost Per Batch -->
+          <div class="form-group">
+            <label class="form-label" for="id_packing_cost_per_batch">
+              {{ packing_form.packing_cost_per_batch.label }}
+            </label>
+            {{ packing_form.packing_cost_per_batch }}
+            <small class="form-hint" style="color: var(--admin-text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              Fee for each additional batch (default: ₹20).
+            </small>
+          </div>
+
+          <!-- 3. Cans Per Batch -->
+          <div class="form-group">
+            <label class="form-label" for="id_packing_batch_size">
+              {{ packing_form.packing_batch_size.label }}
+            </label>
+            {{ packing_form.packing_batch_size }}
+            <small class="form-hint" style="color: var(--admin-text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              Cans per carton pack (default: 6).
+            </small>
+          </div>
+        </div>
+
+        <!-- Explanation Card -->
+        <div style="margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); width: 100%; box-sizing: border-box;">
+          <h4 style="font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            How Packaging Calculation Works
+          </h4>
+          <ul style="margin: 0; padding-left: 20px; color: rgba(255,255,255,0.72); font-size: 0.82rem; line-height: 1.6;">
+            <li>First <strong>Free Allowance</strong> cans are packed at <strong>₹0.00 (Free)</strong>.</li>
+            <li>Each additional batch of cans adds <strong>Cost Per Batch</strong>.</li>
+            <li>Shows transparently as Packing Cost in Cart, Checkout, and on orders.</li>
+          </ul>
+        </div>
+
+        <div class="form-actions" style="margin-top: 24px;">
+          <button type="submit" class="btn-primary" style="min-height: 44px;">
+            Save Packing Charges
+          </button>
+          <a href="{% url 'cart' %}" target="_blank" class="btn-secondary" style="min-height: 44px; display: inline-flex; align-items: center; justify-content: center;">
+            Test in Cart ↗
+          </a>
+        </div>
+      </form>
+    </section>
+
+    <!-- RIGHT: Live Rules Preview & Interactive Calculator -->
+    <section class="admin-panel" style="background: #0d1012; border: 1px solid rgba(255,255,255,0.12); width: 100%; box-sizing: border-box;">
+      <div class="panel-header">
+        <h2 class="panel-title" style="font-size: 0.95rem; color: var(--admin-text-muted);">
+          Rules Preview & Test
+        </h2>
+        <span class="brand-badge">Live Preview</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 6px 0; width: 100%; box-sizing: border-box;">
+        <!-- Live Rule Summary Card -->
+        <div style="padding: 16px; border-radius: 12px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); width: 100%; box-sizing: border-box;">
+          <div style="font-size: 0.68rem; text-transform: uppercase; color: #c084fc; font-weight: 700; letter-spacing: 0.05em;">
+            Current Active Rule
+          </div>
+          <div id="ruleTitle" style="font-size: 1.35rem; font-weight: 800; color: #fff; margin-top: 4px;">
+            First {{ details.packing_free_cans }} Cans FREE
+          </div>
+          <div id="ruleSubtitle" style="font-size: 0.84rem; color: rgba(255,255,255,0.75); margin-top: 4px;">
+            +₹{{ details.packing_cost_per_batch }} for every {{ details.packing_batch_size }} cans thereafter.
+          </div>
+        </div>
+
+        <!-- Dynamic Tier Breakdown Table -->
+        <div style="padding: 16px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); width: 100%; box-sizing: border-box; overflow-x: auto;">
+          <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--admin-text-muted); font-weight: 700; margin-bottom: 10px;">
+            Tier Breakdown Table
+          </div>
+          <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse; color: rgba(255,255,255,0.85);">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--admin-text-muted); text-align: left;">
+                <th style="padding: 6px 4px;">Can Quantity</th>
+                <th style="padding: 6px 4px; text-align: right;">Packing Fee</th>
+              </tr>
+            </thead>
+            <tbody id="tierTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Interactive Live Can Calculator (Touch friendly) -->
+        <div style="padding: 16px; border-radius: 12px; background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.2); width: 100%; box-sizing: border-box;">
+          <div style="font-size: 0.68rem; text-transform: uppercase; color: #60a5fa; font-weight: 700; margin-bottom: 10px;">
+            Interactive Test Calculator
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+            <label for="testQuantityInput" style="font-size: 0.82rem; color: var(--admin-text-muted);">Number of cans:</label>
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <button type="button" id="btnMinus" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: #fff; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center;">-</button>
+              <input type="number" id="testQuantityInput" value="8" min="1" max="100" style="width: 64px; text-align: center; background: #14191c; color: #fff; border: 1px solid rgba(255,255,255,0.22); border-radius: 8px; padding: 6px 4px; font-weight: 700; font-size: 0.95rem;">
+              <button type="button" id="btnPlus" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); color: #fff; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center;">+</button>
+            </div>
+          </div>
+          <div style="padding: 12px 14px; border-radius: 10px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.78rem; color: var(--admin-text-muted);">Calculated Packing Fee:</span>
+              <span id="calculatedFeeDisplay" style="font-size: 1.25rem; font-weight: 800; color: #4ade80;">₹20.00</span>
+            </div>
+            <div id="calculationExplanation" style="font-size: 0.74rem; color: rgba(255,255,255,0.6); margin-top: 4px;">
+              6 free + 2 extra cans (1 batch)
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- JavaScript to power Live Calculator and Tier Table -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const freeInput = document.getElementById('id_packing_free_cans');
+    const costInput = document.getElementById('id_packing_cost_per_batch');
+    const batchInput = document.getElementById('id_packing_batch_size');
+    const testInput = document.getElementById('testQuantityInput');
+    const btnMinus = document.getElementById('btnMinus');
+    const btnPlus = document.getElementById('btnPlus');
+    const feeDisplay = document.getElementById('calculatedFeeDisplay');
+    const expDisplay = document.getElementById('calculationExplanation');
+    const tierTableBody = document.getElementById('tierTableBody');
+    const ruleTitle = document.getElementById('ruleTitle');
+    const ruleSubtitle = document.getElementById('ruleSubtitle');
+
+    function getValues() {
+      const free = parseInt(freeInput ? freeInput.value : '{{ details.packing_free_cans }}', 10) || 0;
+      const cost = parseFloat(costInput ? costInput.value : '{{ details.packing_cost_per_batch }}') || 0;
+      const batch = parseInt(batchInput ? batchInput.value : '{{ details.packing_batch_size }}', 10) || 1;
+      return { free: free, cost: cost, batch: batch };
+    }
+
+    function calculateFee(qty, cfg) {
+      if (qty <= cfg.free) return { fee: 0, batches: 0, extra: 0 };
+      const extra = qty - cfg.free;
+      const batches = Math.ceil(extra / cfg.batch);
+      return { fee: batches * cfg.cost, batches: batches, extra: extra };
+    }
+
+    function renderTiers() {
+      const cfg = getValues();
+      if (ruleTitle) ruleTitle.textContent = 'First ' + cfg.free + ' Cans FREE';
+      if (ruleSubtitle) ruleSubtitle.textContent = '+₹' + cfg.cost.toFixed(2) + ' for every ' + cfg.batch + ' cans thereafter.';
+
+      if (!tierTableBody) return;
+      tierTableBody.innerHTML = '';
+
+      // Tier 1: Free
+      const r1 = document.createElement('tr');
+      r1.style.cssText = 'border-bottom: 1px solid rgba(255,255,255,0.05);';
+      r1.innerHTML = '<td style="padding: 7px 4px;">1 – ' + cfg.free + ' cans</td><td style="padding: 7px 4px; text-align: right; color: #4ade80; font-weight: 700;">₹0.00 (Free)</td>';
+      tierTableBody.appendChild(r1);
+
+      // Next 4 tiers
+      for (let i = 1; i <= 4; i++) {
+        const start = cfg.free + (i - 1) * cfg.batch + 1;
+        const end = cfg.free + i * cfg.batch;
+        const fee = i * cfg.cost;
+        const row = document.createElement('tr');
+        row.style.cssText = 'border-bottom: 1px solid rgba(255,255,255,0.05);';
+        row.innerHTML = '<td style="padding: 7px 4px;">' + start + ' – ' + end + ' cans</td><td style="padding: 7px 4px; text-align: right; font-weight: 700; color: #fff;">₹' + fee.toFixed(2) + '</td>';
+        tierTableBody.appendChild(row);
+      }
+    }
+
+    function updateCalculator() {
+      const cfg = getValues();
+      const qty = parseInt(testInput ? testInput.value : '8', 10) || 1;
+      const res = calculateFee(qty, cfg);
+
+      if (feeDisplay) {
+        feeDisplay.textContent = '₹' + res.fee.toFixed(2);
+        feeDisplay.style.color = res.fee === 0 ? '#4ade80' : '#fff';
+      }
+      if (expDisplay) {
+        if (qty <= cfg.free) {
+          expDisplay.textContent = qty + ' can' + (qty > 1 ? 's' : '') + ' is within the free ' + cfg.free + ' cans limit.';
+        } else {
+          expDisplay.textContent = cfg.free + ' free + ' + res.extra + ' extra can' + (res.extra > 1 ? 's' : '') + ' (' + res.batches + ' pack' + (res.batches > 1 ? 's' : '') + ' × ₹' + cfg.cost.toFixed(2) + ')';
+        }
+      }
+    }
+
+    if (freeInput) freeInput.addEventListener('input', function() { renderTiers(); updateCalculator(); });
+    if (costInput) costInput.addEventListener('input', function() { renderTiers(); updateCalculator(); });
+    if (batchInput) batchInput.addEventListener('input', function() { renderTiers(); updateCalculator(); });
+    if (testInput) testInput.addEventListener('input', updateCalculator);
+
+    if (btnMinus) {
+      btnMinus.addEventListener('click', function() {
+        const current = parseInt(testInput.value, 10) || 1;
+        if (current > 1) {
+          testInput.value = current - 1;
+          updateCalculator();
+        }
+      });
+    }
+
+    if (btnPlus) {
+      btnPlus.addEventListener('click', function() {
+        const current = parseInt(testInput.value, 10) || 1;
+        testInput.value = current + 1;
+        updateCalculator();
+      });
+    }
+
+    renderTiers();
+    updateCalculator();
+  });
+  </script>
+{% endblock %}

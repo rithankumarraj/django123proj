@@ -1,6 +1,12 @@
 <details class="profile-menu">
-  <summary class="admin-access-button">{{ user.first_name|default:user.username }}</summary>
+  <summary class="admin-access-button">{% if user.customer_profile.avatar %}<img src="{{ user.customer_profile.avatar.url }}" alt="{{ user.first_name|default:user.username }}" class="navbar-avatar-thumb">{% endif %}{{ user.first_name|default:user.username }}</summary>
   <div class="profile-menu-panel">
+    {% if user.is_staff %}
+      <a href="{% url 'admin_dashboard' %}">Admin dashboard</a>
+    {% endif %}
+    {% if is_delivery_user %}
+      <a href="{% url 'delivery_dashboard' %}">Delivery dashboard</a>
+    {% endif %}
     <a href="{% url 'customer_profile' %}">My profile</a>
     <a href="{% url 'wishlist' %}">Wishlist</a>
     {% if not is_delivery_user %}
