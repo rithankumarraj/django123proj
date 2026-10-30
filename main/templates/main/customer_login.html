@@ -39,6 +39,7 @@
       </form>
 
       <a class="customer-auth-back" href="{% url 'customer_register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">New here? Create a customer account</a>
+      <a class="customer-auth-back" href="{% url 'admin_login' %}">Store Staff &amp; Admin Sign In</a>
       <a class="customer-auth-back" href="{% url 'home' %}">Back to store</a>
     </section>
   </main>

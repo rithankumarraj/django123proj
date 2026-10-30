@@ -1559,11 +1559,16 @@ def create_delivery_account(request):
 
 def customer_login(request):
     if request.user.is_authenticated:
+        if request.user.is_staff and not request.GET.get("next"):
+            return redirect("admin_dashboard")
         return redirect(_customer_redirect_target(request))
 
     form = EmailAuthenticationForm(request, data=request.POST or None)
     if request.method == "POST" and form.is_valid():
-        login(request, form.get_user())
+        user = form.get_user()
+        login(request, user)
+        if user.is_staff and not request.POST.get("next") and not request.GET.get("next"):
+            return redirect("admin_dashboard")
         return redirect(_customer_redirect_target(request))
 
     return render(
