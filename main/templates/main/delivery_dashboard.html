@@ -543,11 +543,17 @@
       color: var(--admin-purple);
       border: 1px solid rgba(179, 127, 235, 0.3);
     }
+    .status-shipped {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
     .status-delivered {
       background: var(--admin-green-glow);
       color: var(--admin-green);
       border: 1px solid rgba(47, 207, 122, 0.3);
     }
+    .status-cancelled,
     .status-returned {
       background: var(--admin-red-glow);
       color: var(--admin-red);
@@ -683,6 +689,7 @@
       background: #4be090;
       transform: translateY(-1px);
     }
+    .btn-cancelled,
     .btn-returned {
       display: inline-flex;
       align-items: center;
@@ -697,6 +704,7 @@
       cursor: pointer;
       transition: all 0.18s ease;
     }
+    .btn-cancelled:hover,
     .btn-returned:hover {
       background: rgba(255, 118, 118, 0.22);
       color: #fff;
@@ -1050,7 +1058,7 @@
               {% if active_tab == 'available' %}
                 Showing orders matching your delivery zones ({% for p in serviceable_pins %}{{ p }}{% if not forloop.last %}, {% endif %}{% empty %}All PINs{% endfor %}).
               {% else %}
-                Manage your active deliveries. Update status to Delivered or Returned.
+                Manage your active deliveries. Update status to Delivered or Cancelled.
               {% endif %}
             </p>
           </div>
@@ -1126,7 +1134,7 @@
                   </svg>
                   <span>My Deliveries</span>
                 </h2>
-                <p class="panel-subtitle">Orders assigned to you. Deliver package and update status to Delivered or Returned.</p>
+                <p class="panel-subtitle">Orders assigned to you. Deliver package and update status to Delivered or Cancelled.</p>
               </div>
               <span class="status-pill status-out_for_delivery">{{ active_picked_count }} Out for Delivery</span>
             </div>
@@ -1234,15 +1242,16 @@
                             </button>
                           </form>
 
-                          <form method="post" action="{% url 'update_delivery_status' order.id %}" style="margin: 0;" onsubmit="return confirm('Confirm marking Order #{{ order.id }} as Returned?');">
+                          <form method="post" action="{% url 'update_delivery_status' order.id %}" style="margin: 0;" onsubmit="return confirm('Confirm marking Order #{{ order.id }} as Cancelled?');">
                             {% csrf_token %}
-                            <input type="hidden" name="status" value="returned">
-                            <button type="submit" class="btn-returned" title="Mark order as returned">
+                            <input type="hidden" name="status" value="cancelled">
+                            <button type="submit" class="btn-cancelled" title="Mark order as cancelled">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                                <path d="M3 3v5h5"></path>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
                               </svg>
-                              <span>Mark Returned</span>
+                              <span>Mark Cancelled</span>
                             </button>
                           </form>
                         </div>
@@ -1253,13 +1262,14 @@
                           </svg>
                           <span>Delivered {% if order.delivered_at %}on {{ order.delivered_at|date:"M d, H:i" }}{% endif %}</span>
                         </div>
-                      {% elif order.status == 'returned' %}
+                      {% elif order.status == 'cancelled' or order.status == 'returned' %}
                         <div class="completion-badge" style="color: var(--admin-red);">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                            <path d="M3 3v5h5"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
                           </svg>
-                          <span>Returned to store</span>
+                          <span>Cancelled</span>
                         </div>
                       {% endif %}
                     </div>
@@ -1305,9 +1315,9 @@
                   </svg>
                   <span>Orders to Pick</span>
                 </h2>
-                <p class="panel-subtitle">All pending and packed customer orders ready for driver pickup. Pick any order to start delivery.</p>
+                <p class="panel-subtitle">All shipped customer orders ready for driver pickup. Pick any order to start delivery.</p>
               </div>
-              <span class="status-pill status-packed">{{ available_count }} Available</span>
+              <span class="status-pill status-shipped">{{ available_count }} Shipped & Ready</span>
             </div>
 
             {% if available_orders %}

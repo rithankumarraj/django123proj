@@ -1577,19 +1577,12 @@ def delivery_dashboard(request):
 
     serviceable_pins = profile.get_serviceable_pincodes_list()
 
-    # 1. Orders available to be picked (shows all pending and packed unassigned orders)
+    # 1. Orders available to be picked (shows only SHIPPED unassigned orders ready for driver pickup)
     available_orders = (
-        Order.objects.filter(status__in=["pending", "packed"], delivery_user__isnull=True)
+        Order.objects.filter(status="shipped", delivery_user__isnull=True)
         .select_related("product", "customer")
         .prefetch_related("items__product")
-        .order_by(
-            models.Case(
-                models.When(status="packed", then=0),
-                models.When(status="pending", then=1),
-                default=2,
-            ),
-            "-created_at",
-        )
+        .order_by("-created_at")
     )
 
     # Core requirement: Delivery partners can ONLY view orders whose PIN code they can deliver to
@@ -1609,6 +1602,7 @@ def delivery_dashboard(request):
         .order_by(
             models.Case(
                 models.When(status="out_for_delivery", then=0),
+                models.When(status="cancelled", then=1),
                 models.When(status="returned", then=1),
                 models.When(status="delivered", then=2),
                 default=3,
@@ -1668,11 +1662,11 @@ def pick_delivery_order(request, order_id):
         messages.error(request, f"Order #{order.pk} has already been picked by another delivery partner.")
         return redirect(f"{reverse('delivery_dashboard')}?tab=available")
 
-    # Pending or packed orders can be picked
-    if order.status not in ["pending", "packed", "out_for_delivery"]:
+    # Only shipped orders can be picked
+    if order.status not in ["shipped", "out_for_delivery"]:
         messages.error(
             request,
-            f"Order #{order.pk} cannot be picked because its status is {order.get_status_display()}.",
+            f"Order #{order.pk} cannot be picked because it is not shipped yet (current status: {order.get_status_display()}).",
         )
         return redirect(f"{reverse('delivery_dashboard')}?tab=available")
 
@@ -1703,10 +1697,12 @@ def update_delivery_status(request, order_id):
         order.delivery_user = request.user
 
     status = request.POST.get("status")
-    # Delivery drivers can ONLY update to delivered or returned
-    allowed_statuses = {"delivered", "returned"}
+    if status == "returned":
+        status = "cancelled"
+    # Delivery drivers can ONLY update to delivered or cancelled
+    allowed_statuses = {"delivered", "cancelled"}
     if status not in allowed_statuses:
-        return HttpResponseBadRequest("Delivery partners can only update orders as Delivered or Returned.")
+        return HttpResponseBadRequest("Delivery partners can only update orders as Delivered or Cancelled.")
 
     order.status = status
     order.delivered_at = timezone.now() if status == "delivered" else None
@@ -1715,7 +1711,7 @@ def update_delivery_status(request, order_id):
     if status == "delivered":
         messages.success(request, f"Order #{order.pk} marked as Delivered.")
     else:
-        messages.warning(request, f"Order #{order.pk} marked as Returned.")
+        messages.warning(request, f"Order #{order.pk} marked as Cancelled.")
 
     return redirect(f"{reverse('delivery_dashboard')}?tab=picked")
 
@@ -2057,6 +2053,8 @@ def admin_delete_delivery_partner(request, profile_id):
 @user_passes_test(lambda user: user.is_staff)
 def admin_delivery_status(request):
     status_filter = request.GET.get("status", "all").strip().lower()
+    if status_filter == "returned":
+        status_filter = "cancelled"
     search_query = request.GET.get("q", "").strip()
 
     orders_queryset = (
@@ -2084,9 +2082,10 @@ def admin_delivery_status(request):
     total_orders_count = orders_queryset.count()
     pending_count = orders_queryset.filter(status="pending").count()
     packed_count = orders_queryset.filter(status="packed").count()
+    shipped_count = orders_queryset.filter(status="shipped").count()
     out_for_delivery_count = orders_queryset.filter(status="out_for_delivery").count()
     delivered_count = orders_queryset.filter(status="delivered").count()
-    returned_count = orders_queryset.filter(status="returned").count()
+    cancelled_count = orders_queryset.filter(status__in=["cancelled", "returned"]).count()
 
     context = {
         "active_page": "delivery_status",
@@ -2097,9 +2096,11 @@ def admin_delivery_status(request):
         "total_orders_count": total_orders_count,
         "pending_count": pending_count,
         "packed_count": packed_count,
+        "shipped_count": shipped_count,
         "out_for_delivery_count": out_for_delivery_count,
         "delivered_count": delivered_count,
-        "returned_count": returned_count,
+        "cancelled_count": cancelled_count,
+        "returned_count": cancelled_count,
         "total_products_count": Product.objects.count(),
         "total_delivery_users_count": DeliveryProfile.objects.count(),
         "pending_orders_count": pending_count,
@@ -2113,8 +2114,12 @@ def admin_delivery_status(request):
 def admin_update_order_status(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     new_status = request.POST.get("status")
+    if new_status == "returned":
+        new_status = "cancelled"
     valid_statuses = {choice for choice, _ in Order.STATUS_CHOICES}
     if new_status not in valid_statuses:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+            return JsonResponse({"status": "error", "message": "Please choose a valid delivery status."}, status=400)
         messages.error(request, "Please choose a valid delivery status.")
         return redirect("admin_delivery_status")
 
@@ -2125,6 +2130,15 @@ def admin_update_order_status(request, order_id):
         order.delivered_at = None
     order.save(update_fields=["status", "delivered_at"])
     messages.success(request, f"Order #{order.pk} status updated to {order.get_status_display()}.")
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+        return JsonResponse({
+            "status": "success",
+            "order_id": order.id,
+            "new_status": new_status,
+            "new_status_display": order.get_status_display(),
+            "message": f"Order #{order.pk} status updated to {order.get_status_display()}."
+        })
 
     next_url = request.POST.get("next")
     if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
@@ -2142,6 +2156,8 @@ def admin_order_detail(request, order_id):
     )
     if request.method == "POST":
         new_status = request.POST.get("status")
+        if new_status == "returned":
+            new_status = "cancelled"
         valid_statuses = {choice for choice, _ in Order.STATUS_CHOICES}
         if new_status in valid_statuses:
             order.status = new_status

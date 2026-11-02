@@ -264,9 +264,10 @@ class Order(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("packed", "Packed"),
+        ("shipped", "Shipped"),
         ("out_for_delivery", "Out for delivery"),
         ("delivered", "Delivered"),
-        ("returned", "Returned"),
+        ("cancelled", "Cancelled"),
     ]
 
     product = models.ForeignKey(Product, related_name="orders", on_delete=models.CASCADE)
@@ -308,6 +309,11 @@ class Order(models.Model):
     def items_subtotal(self):
         sub = self.total_amount - self.shipping_fee - self.packing_fee - self.gst_amount
         return sub if sub > 0 else self.total_amount
+
+    def save(self, *args, **kwargs):
+        if self.status == "returned":
+            self.status = "cancelled"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Order #{self.pk} - {self.status}"

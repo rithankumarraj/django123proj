@@ -25,9 +25,16 @@
     <div class="stat-card">
       <div class="stat-header">
         <span class="stat-label">Packed</span>
-        <span class="stat-tag stat-tag-blue">Ready</span>
+        <span class="stat-tag stat-tag-blue">Packed</span>
       </div>
       <div class="stat-value">{{ packed_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Shipped</span>
+        <span class="stat-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">Driver Ready</span>
+      </div>
+      <div class="stat-value">{{ shipped_count }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-header">
@@ -45,10 +52,10 @@
     </div>
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Returned</span>
-        <span class="stat-tag stat-tag-orange" style="background: var(--admin-red-glow); color: var(--admin-red);">Issues</span>
+        <span class="stat-label">Cancelled</span>
+        <span class="stat-tag stat-tag-orange" style="background: var(--admin-red-glow); color: var(--admin-red);">Cancelled</span>
       </div>
-      <div class="stat-value">{{ returned_count }}</div>
+      <div class="stat-value">{{ cancelled_count }}</div>
     </div>
   </section>
 
@@ -102,6 +109,10 @@
         Packed
         <span class="tab-count">{{ packed_count }}</span>
       </a>
+      <a href="?status=shipped{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if current_status_filter == 'shipped' %}active{% endif %}">
+        Shipped
+        <span class="tab-count">{{ shipped_count }}</span>
+      </a>
       <a href="?status=out_for_delivery{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if current_status_filter == 'out_for_delivery' %}active{% endif %}">
         Out for Delivery
         <span class="tab-count">{{ out_for_delivery_count }}</span>
@@ -110,9 +121,9 @@
         Delivered
         <span class="tab-count">{{ delivered_count }}</span>
       </a>
-      <a href="?status=returned{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if current_status_filter == 'returned' %}active{% endif %}">
-        Returned
-        <span class="tab-count">{{ returned_count }}</span>
+      <a href="?status=cancelled{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if current_status_filter == 'cancelled' or current_status_filter == 'returned' %}active{% endif %}">
+        Cancelled
+        <span class="tab-count">{{ cancelled_count }}</span>
       </a>
     </div>
 
@@ -201,7 +212,7 @@
               </td>
 
               <td>
-                <span class="status-pill status-{{ order.status }}">
+                <span class="status-pill status-{{ order.status }}" id="statusBadge-{{ order.id }}">
                   {{ order.get_status_display }}
                 </span>
                 {% if order.delivery_user %}
@@ -214,6 +225,16 @@
                     </svg>
                     <span>{{ order.delivery_user.get_full_name|default:order.delivery_user.username }}</span>
                   </div>
+                {% elif order.status == 'shipped' %}
+                  <div class="cell-sub-info" style="margin-top: 5px; color: #38bdf8; display: flex; align-items: center; gap: 4px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="16" height="13" x="1" y="6" rx="2"></rect>
+                      <path d="M17 10h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4"></path>
+                      <circle cx="6" cy="18" r="2"></circle>
+                      <circle cx="18" cy="18" r="2"></circle>
+                    </svg>
+                    <span>Ready for driver pickup</span>
+                  </div>
                 {% elif order.status == 'packed' %}
                   <div class="cell-sub-info" style="margin-top: 5px; color: var(--admin-blue); display: flex; align-items: center; gap: 4px;">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -222,27 +243,24 @@
                       <path d="m3.3 7 8.7 5 8.7-5"></path>
                       <path d="M12 22V12"></path>
                     </svg>
-                    <span>Ready for driver</span>
+                    <span>Packed (Ship next)</span>
                   </div>
                 {% endif %}
               </td>
 
               <td>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                  <!-- Direct Inline Status Editor Form -->
-                  <form method="post" action="{% url 'admin_update_order_status' order.id %}" class="status-editor-form" style="margin: 0;">
+                  <!-- Direct Inline Dynamic Status Editor Form (No Update button needed) -->
+                  <form method="post" action="{% url 'admin_update_order_status' order.id %}" class="status-editor-form" data-order-id="{{ order.id }}" style="margin: 0;">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <select name="status" class="status-select-input" aria-label="Change status for order #{{ order.id }}">
+                    <select name="status" class="status-select-input auto-status-select" data-order-id="{{ order.id }}" aria-label="Change status for order #{{ order.id }}">
                       {% for code, label in status_choices %}
                         <option value="{{ code }}" {% if order.status == code %}selected{% endif %}>
                           {{ label }}
                         </option>
                       {% endfor %}
                     </select>
-                    <button type="submit" class="btn-update-status" title="Save delivery status">
-                      Update
-                    </button>
                   </form>
 
                   {% if order.status == 'pending' %}
@@ -251,7 +269,7 @@
                       {% csrf_token %}
                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
                       <input type="hidden" name="status" value="packed">
-                      <button type="submit" class="btn-mini" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(90, 163, 255, 0.15); color: #5aa3ff; border: 1px solid rgba(90, 163, 255, 0.35); font-weight: 700;" title="Mark order as packed and ready for delivery pickup">
+                      <button type="submit" class="btn-mini" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(90, 163, 255, 0.15); color: #5aa3ff; border: 1px solid rgba(90, 163, 255, 0.35); font-weight: 700;" title="Mark order as packed">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <path d="m7.5 4.27 9 5.15"></path>
                           <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
@@ -259,6 +277,26 @@
                         <span>Pack Order</span>
                       </button>
                     </form>
+                  {% elif order.status == 'packed' %}
+                    <!-- Quick 1-click ship button for admin -->
+                    <form method="post" action="{% url 'admin_update_order_status' order.id %}" style="margin: 0;">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <input type="hidden" name="status" value="shipped">
+                      <button type="submit" class="btn-quick-ship" title="Mark order as shipped and ready for delivery partner pickup">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect width="16" height="13" x="1" y="6" rx="2"></rect>
+                          <path d="M17 10h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4"></path>
+                          <circle cx="6" cy="18" r="2"></circle>
+                          <circle cx="18" cy="18" r="2"></circle>
+                        </svg>
+                        <span>Ship Order</span>
+                      </button>
+                    </form>
+                  {% elif order.status == 'shipped' and not order.delivery_user %}
+                    <span class="badge" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-size: 0.72rem; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(56, 189, 248, 0.25); font-weight: 600;">
+                      Waiting for Driver
+                    </span>
                   {% endif %}
                 </div>
               </td>
@@ -646,6 +684,48 @@
           openOrderModal(orderParam);
         }
       }
+
+      // Dynamic status change handler (no update button needed)
+      document.querySelectorAll('.auto-status-select').forEach(function(select) {
+        select.addEventListener('change', function() {
+          var form = this.closest('form');
+          if (!form) return;
+          var orderId = this.dataset.orderId;
+          var selectEl = this;
+          selectEl.classList.add('is-saving');
+          
+          var formData = new FormData(form);
+          fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json'
+            }
+          })
+          .then(function(res) {
+            if (!res.ok) throw new Error('Status update failed');
+            return res.json();
+          })
+          .then(function(data) {
+            selectEl.classList.remove('is-saving');
+            selectEl.classList.add('is-saved');
+            setTimeout(function() {
+              selectEl.classList.remove('is-saved');
+            }, 1500);
+
+            var badge = document.getElementById('statusBadge-' + orderId);
+            if (badge) {
+              badge.className = 'status-pill status-' + data.new_status;
+              badge.textContent = data.new_status_display;
+            }
+          })
+          .catch(function(err) {
+            selectEl.classList.remove('is-saving');
+            form.submit();
+          });
+        });
+      });
     });
   </script>
 {% endblock %}

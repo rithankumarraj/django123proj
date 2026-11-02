@@ -1175,7 +1175,7 @@ class DeliveryProfileTests(TestCase):
             delivery_postal_code="400001",
             quantity=2,
             total_amount="180.00",
-            status="packed",
+            status="shipped",
         )
 
     def test_delivery_login_is_restricted_to_delivery_profiles(self):
@@ -1247,7 +1247,7 @@ class DeliveryProfileTests(TestCase):
         self.assertEqual(dashboard.status_code, 403)
         self.assertEqual(status.status_code, 403)
         self.order.refresh_from_db()
-        self.assertEqual(self.order.status, "packed")
+        self.assertEqual(self.order.status, "shipped")
 
     def test_picking_order_automatically_marks_out_for_delivery_and_hides_from_others(self):
         other_driver_user = get_user_model().objects.create_user(
@@ -1303,14 +1303,14 @@ class DeliveryProfileTests(TestCase):
         self.assertEqual(self.order.status, "delivered")
         self.assertIsNotNone(self.order.delivered_at)
 
-        # Mark Returned
+        # Mark Returned / Cancelled
         response_return = self.client.post(
             reverse("update_delivery_status", kwargs={"order_id": self.order.pk}),
-            {"status": "returned"},
+            {"status": "cancelled"},
         )
         self.assertRedirects(response_return, f"{reverse('delivery_dashboard')}?tab=picked")
         self.order.refresh_from_db()
-        self.assertEqual(self.order.status, "returned")
+        self.assertEqual(self.order.status, "cancelled")
         self.assertIsNone(self.order.delivered_at)
 
     def test_delivery_user_cannot_set_status_to_packed(self):
@@ -2993,7 +2993,7 @@ class DeliveryPartnerManagementTests(TestCase):
             delivery_postal_code="625018",
             quantity=1,
             total_amount="90.00",
-            status="packed",
+            status="shipped",
         )
 
         # Order 2: outside driver's PIN (Chennai 600001)
@@ -3007,7 +3007,7 @@ class DeliveryPartnerManagementTests(TestCase):
             delivery_postal_code="600001",
             quantity=1,
             total_amount="90.00",
-            status="packed",
+            status="shipped",
         )
 
         self.client.force_login(driver_user)
@@ -3260,6 +3260,136 @@ class ProductPincodeAvailabilityTests(TestCase):
         self.assertContains(res, 'id="cartPincodeNotice"')
         self.assertContains(res, 'id="cart-pin-rules-data"')
         self.assertContains(res, "625018")
+
+
+class OrderStatusProgressionTests(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_superuser(
+            username="admin_progression",
+            email="admin_prog@example.com",
+            password="adminpassword123",
+        )
+        self.driver_user = get_user_model().objects.create_user(
+            username="driver_progression",
+            password="driverpassword123",
+        )
+        self.driver_profile = DeliveryProfile.objects.create(
+            user=self.driver_user,
+            is_approved=True,
+            status="approved",
+            serviceable_pincodes="625018",
+        )
+        self.product = Product.objects.create(
+            name="Sparkling Drink",
+            price=Decimal("90.00"),
+            available=True,
+        )
+        self.order = Order.objects.create(
+            product=self.product,
+            customer_name="John Doe",
+            customer_phone="+91 9876543210",
+            delivery_address="12 Main St",
+            delivery_city="Madurai",
+            delivery_state="Tamil Nadu",
+            delivery_postal_code="625018",
+            quantity=1,
+            total_amount=Decimal("90.00"),
+            status="pending",
+        )
+
+    def test_shipped_status_progression_and_ajax_update(self):
+        self.client.force_login(self.admin)
+
+        # 1. Quick pack: pending -> packed
+        res_pack = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": self.order.id}),
+            {"status": "packed"},
+        )
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "packed")
+
+        # 2. Quick ship: packed -> shipped
+        res_ship = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": self.order.id}),
+            {"status": "shipped"},
+        )
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "shipped")
+
+        # 3. Dynamic AJAX update
+        res_ajax = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": self.order.id}),
+            {"status": "cancelled"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(res_ajax.status_code, 200)
+        ajax_data = res_ajax.json()
+        self.assertEqual(ajax_data["status"], "success")
+        self.assertEqual(ajax_data["new_status"], "cancelled")
+        self.assertEqual(ajax_data["new_status_display"], "Cancelled")
+
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "cancelled")
+
+    def test_delivery_partner_only_sees_and_picks_shipped_orders(self):
+        self.client.force_login(self.driver_user)
+
+        # Pending order: driver should NOT see in available orders
+        self.order.status = "pending"
+        self.order.save(update_fields=["status"])
+        res_pending = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertNotContains(res_pending, f"Pick Order #{self.order.id}")
+
+        # Cannot pick pending order
+        pick_pending = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": self.order.id})
+        )
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.delivery_user)
+
+        # Packed order: driver should NOT see in available orders
+        self.order.status = "packed"
+        self.order.save(update_fields=["status"])
+        res_packed = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertNotContains(res_packed, f"Pick Order #{self.order.id}")
+
+        # Cannot pick packed order
+        pick_packed = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": self.order.id})
+        )
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.delivery_user)
+
+        # Shipped order: driver CAN see in available orders
+        self.order.status = "shipped"
+        self.order.save(update_fields=["status"])
+        res_shipped = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertContains(res_shipped, f"Pick Order #{self.order.id}")
+
+        # Driver picks shipped order -> status automatically transitions to out_for_delivery
+        pick_res = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": self.order.id})
+        )
+        self.assertRedirects(pick_res, f"{reverse('delivery_dashboard')}?tab=picked")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.delivery_user, self.driver_user)
+        self.assertEqual(self.order.status, "out_for_delivery")
+
+        # Driver marks as cancelled
+        res_cancel = self.client.post(
+            reverse("update_delivery_status", kwargs={"order_id": self.order.id}),
+            {"status": "cancelled"},
+        )
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "cancelled")
+
+    def test_admin_delivery_status_page_renders_shipped_and_cancelled_tabs(self):
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("admin_delivery_status"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Shipped")
+        self.assertContains(res, "Cancelled")
+        self.assertContains(res, "auto-status-select")
 
 
 

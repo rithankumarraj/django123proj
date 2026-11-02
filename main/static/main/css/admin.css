@@ -874,16 +874,59 @@ input[type="number"]::-webkit-outer-spin-button:hover,
   border: 1px solid rgba(90, 163, 255, 0.25);
 }
 
+.status-shipped {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
 .status-out_for_delivery {
   background: var(--admin-purple-glow);
   color: var(--admin-purple);
   border: 1px solid rgba(179, 127, 235, 0.25);
 }
 
+.status-cancelled, .status-returned {
+  background: var(--admin-red-glow);
+  color: var(--admin-red);
+  border: 1px solid rgba(255, 118, 118, 0.25);
+}
+
 .status-failed {
   background: var(--admin-red-glow);
   color: var(--admin-red);
   border: 1px solid rgba(255, 118, 118, 0.25);
+}
+
+.btn-quick-ship {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-quick-ship:hover {
+  background: #38bdf8;
+  color: #0b0f17;
+  transform: translateY(-1px);
+}
+
+.status-select-input.is-saving {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.status-select-input.is-saved {
+  border-color: #2fcf7a !important;
+  box-shadow: 0 0 0 2px rgba(47, 207, 122, 0.25) !important;
 }
 
 /* --------------------------------------------------------------------------
