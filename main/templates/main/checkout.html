@@ -417,6 +417,7 @@
                                     <div class="col-12 col-md-4">
                                         <label for="zip">ZIP</label>
                                         <input id="zip" name="postal_code" type="text" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
+                                        <div id="zipAvailabilityFeedback" class="small mt-1" style="display: none;"></div>
                                     </div>
 
                                     {% if user.is_authenticated %}
@@ -488,7 +489,8 @@
                                 {% if payment_simulation_enabled %}Payment simulated{% else %}Order submitted{% endif %}
                             </button>
                             {% else %}
-                            <button type="submit" class="btn btn-pay">Continue to payment</button>
+                            <div id="pincodeDeliveryNotice" class="pincode-delivery-alert mb-3" style="display: none;"></div>
+                            <button type="submit" id="continuePaymentBtn" class="btn btn-pay">Continue to payment</button>
                             {% endif %}
                         </aside>
                     </div>
@@ -571,8 +573,114 @@
                     this.value = digits;
                 });
             }
+
+            // Product PIN code availability checking
+            const pinsScript = document.getElementById('product-pins-data');
+            let allowedPins = [];
+            if (pinsScript) {
+                try {
+                    allowedPins = JSON.parse(pinsScript.textContent || '[]');
+                } catch (e) {
+                    allowedPins = [];
+                }
+            }
+            const productName = "{{ product.name|escapejs }}";
+            const zipInput = document.getElementById('zip');
+            const continueBtn = document.getElementById('continuePaymentBtn');
+            const zipFeedback = document.getElementById('zipAvailabilityFeedback');
+            const noticeBox = document.getElementById('pincodeDeliveryNotice');
+            const checkoutForm = continueBtn ? continueBtn.closest('form') : null;
+
+            function validatePincodeDelivery() {
+                if (!zipInput || !continueBtn) return;
+
+                // Nationwide delivery when no specific PIN codes are configured
+                if (!allowedPins || allowedPins.length === 0) {
+                    continueBtn.disabled = false;
+                    continueBtn.classList.remove('disabled');
+                    if (noticeBox) noticeBox.style.display = 'none';
+                    if (zipFeedback) {
+                        const val = zipInput.value.trim();
+                        if (val.length >= 6) {
+                            zipFeedback.className = 'small mt-1 text-success fw-medium';
+                            zipFeedback.innerHTML = '✓ Nationwide delivery available';
+                            zipFeedback.style.display = 'block';
+                        } else {
+                            zipFeedback.style.display = 'none';
+                        }
+                    }
+                    return;
+                }
+
+                const rawVal = zipInput.value.trim();
+                const cleanPin = rawVal.replace(/\D/g, '');
+
+                if (!rawVal) {
+                    continueBtn.disabled = true;
+                    continueBtn.classList.add('disabled');
+                    if (noticeBox) {
+                        noticeBox.className = 'pincode-delivery-alert';
+                        noticeBox.innerHTML = `<strong>⚠️ Delivery PIN required:</strong><br>'${productName}' is only deliverable to specific areas. Available in: <div class="pincode-badge-list">${allowedPins.map(function (p) { return '<span class="pincode-pill-sm">' + p + '</span>'; }).join('')}</div>`;
+                        noticeBox.style.display = 'block';
+                    }
+                    if (zipFeedback) {
+                        zipFeedback.className = 'small mt-1 text-warning fw-medium';
+                        zipFeedback.innerHTML = 'Please enter a 6-digit delivery PIN code';
+                        zipFeedback.style.display = 'block';
+                    }
+                    return;
+                }
+
+                const isAllowed = allowedPins.indexOf(cleanPin) !== -1 || allowedPins.indexOf(rawVal) !== -1;
+
+                if (isAllowed) {
+                    continueBtn.disabled = false;
+                    continueBtn.classList.remove('disabled');
+                    if (noticeBox) {
+                        noticeBox.style.display = 'none';
+                    }
+                    if (zipFeedback) {
+                        zipFeedback.className = 'small mt-1 text-success fw-semibold';
+                        zipFeedback.innerHTML = '✓ Deliverable to PIN ' + rawVal;
+                        zipFeedback.style.display = 'block';
+                    }
+                } else {
+                    continueBtn.disabled = true;
+                    continueBtn.classList.add('disabled');
+                    if (noticeBox) {
+                        noticeBox.className = 'pincode-delivery-alert';
+                        noticeBox.innerHTML = `<strong>⚠️ Delivery unavailable for PIN code ${rawVal}:</strong><br>'${productName}' is only deliverable to the following PIN codes:<div class="pincode-badge-list">${allowedPins.map(function (p) { return '<span class="pincode-pill-sm">' + p + '</span>'; }).join('')}</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please change your delivery ZIP code to proceed with payment.</div>`;
+                        noticeBox.style.display = 'block';
+                    }
+                    if (zipFeedback) {
+                        zipFeedback.className = 'small mt-1 text-danger fw-semibold';
+                        zipFeedback.innerHTML = '✕ Not deliverable to PIN ' + rawVal;
+                        zipFeedback.style.display = 'block';
+                    }
+                }
+            }
+
+            if (zipInput) {
+                zipInput.addEventListener('input', validatePincodeDelivery);
+                zipInput.addEventListener('change', validatePincodeDelivery);
+            }
+
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', function (e) {
+                    if (continueBtn && continueBtn.disabled) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (zipInput) {
+                            zipInput.focus();
+                        }
+                    }
+                });
+            }
+
+            validatePincodeDelivery();
         });
     </script>
+    {{ product.available_pins_list|json_script:"product-pins-data" }}
 </body>
 
 </html>

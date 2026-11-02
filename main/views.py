@@ -815,11 +815,21 @@ def cart_page(request):
     initial_gst_amount = site_details.calculate_gst(total)
     total_with_shipping = total + initial_gst_amount + initial_packing_fee + initial_shipping_fee
 
+    cart_pin_rules = [
+        {
+            "name": it["product"].name,
+            "pins": it["product"].get_available_pincodes_list(),
+        }
+        for it in items
+        if it["product"].get_available_pincodes_list()
+    ]
+
     return render(
         request,
         "main/cart.html",
         {
             "items": items,
+            "cart_pin_rules": cart_pin_rules,
             "cart_total": total,
             "cart_count": cart_count,
             "customer_profile": customer_profile,
@@ -1284,6 +1294,8 @@ def checkout(request, product_id):
                 "description": product.description,
                 "price": str(product.price),
                 "image": product.image_url,
+                "available_pincodes": product.available_pincodes,
+                "available_pins_list": product.get_available_pincodes_list(),
             },
             "quantity": quantity,
             "unit_price": unit_price,

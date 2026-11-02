@@ -51,7 +51,10 @@
                 }
                 stateInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            if (zipInput && data.postalCode) zipInput.value = data.postalCode;
+            if (zipInput && data.postalCode) {
+                zipInput.value = data.postalCode;
+                zipInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         }
 
         // Handle clicking any saved address card
@@ -96,7 +99,10 @@
                 stateInput.value = '';
                 stateInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            if (zipInput) zipInput.value = '';
+            if (zipInput) {
+                zipInput.value = '';
+                zipInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
 
             // Deactivate and dim all saved address cards
             addressCards.forEach(function (c) {

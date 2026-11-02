@@ -3242,6 +3242,25 @@ class ProductPincodeAvailabilityTests(TestCase):
         self.assertContains(res, "addPartnerModal")
         self.assertContains(res, "Residential Address")
 
+    def test_checkout_template_contains_pincode_validation_elements(self):
+        # GET checkout page for restricted product
+        res = self.client.get(f"/checkout/{self.product_restricted.id}/?qty=1")
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'id="continuePaymentBtn"')
+        self.assertContains(res, 'id="pincodeDeliveryNotice"')
+        self.assertContains(res, 'id="product-pins-data"')
+        self.assertContains(res, "625018")
+        self.assertContains(res, "625001")
+
+    def test_cart_template_contains_pincode_validation_elements(self):
+        # Add restricted product to cart
+        self.client.post(reverse("add_to_cart", kwargs={"product_id": self.product_restricted.id}), data={"quantity": 1})
+        res = self.client.get(reverse("cart"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'id="cartPincodeNotice"')
+        self.assertContains(res, 'id="cart-pin-rules-data"')
+        self.assertContains(res, "625018")
+
 
 
 

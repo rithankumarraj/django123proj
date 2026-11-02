@@ -832,6 +832,7 @@
               <input id="delivery-postal-code" name="postal_code"
                 value="{% if customer_profile %}{{ customer_profile.postal_code }}{% endif %}"
                 autocomplete="postal-code" required>
+              <div id="cartZipFeedback" class="small mt-1" style="display: none;"></div>
             </div>
 
             {% if user.is_authenticated %}
@@ -889,7 +890,8 @@
             </div>
           </div>
 
-          <button type="submit" form="cart-checkout" class="cart-action-button cart-action-primary w-100"
+          <div id="cartPincodeNotice" class="pincode-delivery-alert mb-3" style="display: none;"></div>
+          <button type="submit" form="cart-checkout" class="cart-action-button cart-action-primary w-100 btn-pay"
             data-cart-checkout-total
             style="min-height: 52px; font-size: 1rem; font-weight: 800; border-radius: 14px; box-shadow: 0 4px 20px rgba(255,255,255,0.12);">
             Continue to payment · ₹{{ total_with_shipping|floatformat:2 }}
@@ -976,8 +978,96 @@
        document.addEventListener('input', function (e) {         if (e.target.matches('.cart-quantity')) {           window.updateCartCalculations();         }       });
        if (checkoutTotalBtn && checkoutForm) {         checkoutTotalBtn.addEventListener('click', function (e) {           if (checkoutForm.reportValidity && !checkoutForm.reportValidity()) {             return;           }           if (checkoutForm.requestSubmit) {             checkoutForm.requestSubmit();           } else {             checkoutForm.submit();           }         });       }
        if (phoneInput) {         phoneInput.addEventListener('input', function () {           let digits = this.value.replace(/\D/g, '');           if (digits.length > 10) {             digits = digits.slice(-10);           }           this.value = digits;         });       }
+       // Cart PIN code availability checking
+       const cartRulesScript = document.getElementById('cart-pin-rules-data');
+       let cartPinRules = [];
+       if (cartRulesScript) {
+         try {
+           cartPinRules = JSON.parse(cartRulesScript.textContent || '[]');
+         } catch (e) {
+           cartPinRules = [];
+         }
+       }
+       const cartZipInput = document.getElementById('delivery-postal-code');
+       const cartZipFeedback = document.getElementById('cartZipFeedback');
+       const cartNoticeBox = document.getElementById('cartPincodeNotice');
+
+       function validateCartPincode() {
+         if (!cartZipInput || !checkoutTotalBtn) return;
+         if (!cartPinRules || cartPinRules.length === 0) {
+           checkoutTotalBtn.disabled = false;
+           checkoutTotalBtn.classList.remove('disabled');
+           if (cartNoticeBox) cartNoticeBox.style.display = 'none';
+           if (cartZipFeedback) cartZipFeedback.style.display = 'none';
+           return;
+         }
+
+         const rawVal = cartZipInput.value.trim();
+         const cleanPin = rawVal.replace(/\D/g, '');
+
+         if (!rawVal) {
+           checkoutTotalBtn.disabled = true;
+           checkoutTotalBtn.classList.add('disabled');
+           if (cartNoticeBox) {
+             cartNoticeBox.className = 'pincode-delivery-alert';
+             cartNoticeBox.innerHTML = '<strong>⚠️ Delivery PIN required:</strong><br>Some items in your cart require a serviceable PIN code.';
+             cartNoticeBox.style.display = 'block';
+           }
+           if (cartZipFeedback) {
+             cartZipFeedback.className = 'small mt-1 text-warning fw-medium';
+             cartZipFeedback.innerHTML = 'Please enter a 6-digit delivery PIN code';
+             cartZipFeedback.style.display = 'block';
+           }
+           return;
+         }
+
+         const failedItems = [];
+         cartPinRules.forEach(function (rule) {
+           const isOk = (rule.pins || []).indexOf(cleanPin) !== -1 || (rule.pins || []).indexOf(rawVal) !== -1;
+           if (!isOk) {
+             failedItems.push(rule);
+           }
+         });
+
+         if (failedItems.length > 0) {
+           checkoutTotalBtn.disabled = true;
+           checkoutTotalBtn.classList.add('disabled');
+           if (cartNoticeBox) {
+             cartNoticeBox.className = 'pincode-delivery-alert';
+             const itemsDesc = failedItems.map(function (it) {
+               return '• <strong>' + it.name + '</strong> (Available in: ' + it.pins.join(', ') + ')';
+             }).join('<br>');
+             cartNoticeBox.innerHTML = '<strong>⚠️ Items unavailable for PIN code ' + rawVal + ':</strong><div class="mt-1">' + itemsDesc + '</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please update your delivery ZIP code or adjust your cart.</div>';
+             cartNoticeBox.style.display = 'block';
+           }
+           if (cartZipFeedback) {
+             cartZipFeedback.className = 'small mt-1 text-danger fw-semibold';
+             cartZipFeedback.innerHTML = '✕ Unavailable for PIN ' + rawVal;
+             cartZipFeedback.style.display = 'block';
+           }
+         } else {
+           checkoutTotalBtn.disabled = false;
+           checkoutTotalBtn.classList.remove('disabled');
+           if (cartNoticeBox) {
+             cartNoticeBox.style.display = 'none';
+           }
+           if (cartZipFeedback) {
+             cartZipFeedback.className = 'small mt-1 text-success fw-semibold';
+             cartZipFeedback.innerHTML = '✓ All items deliverable to PIN ' + rawVal;
+             cartZipFeedback.style.display = 'block';
+           }
+         }
+       }
+
+       if (cartZipInput) {
+         cartZipInput.addEventListener('input', validateCartPincode);
+         cartZipInput.addEventListener('change', validateCartPincode);
+       }
+       validateCartPincode();
+
        window.updateCartCalculations();     });
   </script>
+  {{ cart_pin_rules|json_script:"cart-pin-rules-data" }}
 </body>
 
 </html>
