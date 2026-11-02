@@ -70,10 +70,36 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2, default=90)
     volume = models.CharField(max_length=20, default="330 ml")
     image = models.CharField(max_length=255)
+    available_pincodes = models.TextField(
+        blank=True,
+        help_text="Comma-separated 6-digit postal codes where this product is deliverable. Leave empty for all PIN codes.",
+        verbose_name="Available PIN Codes",
+    )
     available = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
+
+    def get_available_pincodes_list(self):
+        if not self.available_pincodes:
+            return []
+        import re
+        codes = re.findall(r"\b\d{6}\b", self.available_pincodes)
+        if not codes:
+            codes = [c.strip() for c in re.split(r"[,;\s]+", self.available_pincodes) if c.strip()]
+        return sorted(list(dict.fromkeys(codes)))
+
+    def is_available_for_pincode(self, pincode):
+        if not self.available:
+            return False
+        codes = self.get_available_pincodes_list()
+        if not codes:
+            return True
+        if not pincode:
+            return False
+        import re
+        clean_pin = re.sub(r"\D", "", str(pincode).strip())
+        return clean_pin in codes or str(pincode).strip() in codes
 
     @property
     def category_slug(self):

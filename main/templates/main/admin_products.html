@@ -2,21 +2,87 @@
 
 {% block title %}Products Management{% endblock %}
 {% block page_heading %}Products Management{% endblock %}
-{% block page_description %}Manage store inventory, upload product imagery, create custom categories, and toggle availability.{% endblock %}
+{% block page_description %}Manage store inventory, upload product imagery, set serviceable PIN codes, and toggle storefront availability.{% endblock %}
 
 {% block topbar_actions %}
-  {% if editing_product %}
-    <a href="{% url 'admin_products' %}" class="quick-chip">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-      Add New Product
-    </a>
-  {% endif %}
+  <button type="button" class="btn-primary" onclick="openProductModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    <span>Add New Product</span>
+  </button>
 {% endblock %}
 
 {% block admin_content %}
+  <style>
+    .pin-pill {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+      background: rgba(90, 163, 255, 0.12);
+      border: 1px solid rgba(90, 163, 255, 0.25);
+      color: #5aa3ff;
+      margin: 1px 2px;
+    }
+    .pin-all-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(47, 207, 122, 0.12);
+      border: 1px solid rgba(47, 207, 122, 0.25);
+      color: #2fcf7a;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .btn-action-blue {
+      background: rgba(90, 163, 255, 0.15);
+      border: 1px solid rgba(90, 163, 255, 0.35);
+      color: #5aa3ff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-action-blue:hover {
+      background: #5aa3ff;
+      color: #0d1114;
+    }
+    .admin-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-modal-overlay.active {
+      display: flex;
+    }
+    .admin-modal-dialog {
+      background: #11161a;
+      border: 1px solid var(--admin-line-strong);
+      border-radius: 18px;
+      width: min(100%, 640px);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    }
+  </style>
+
   <!-- Stats Section -->
   <section class="stats-grid">
     <div class="stat-card">
@@ -42,35 +108,146 @@
     </div>
   </section>
 
-  <!-- Split Grid: Form & List -->
-  <div class="admin-split-grid">
-    <!-- Form: Add or Edit Product -->
-    <section class="admin-panel" id="productFormPanel">
-      <div class="panel-header">
-        <div>
-          <h2 class="panel-title">
-            {% if editing_product %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-              </svg>
-              Edit Product
-            {% else %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="16"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-              </svg>
-              Add New Product
-            {% endif %}
-          </h2>
-          <p class="panel-subtitle">
-            {% if editing_product %}
-              Editing details for "<strong>{{ editing_product.name }}</strong>"
-            {% else %}
-              Fill details to introduce a new drink to the store catalog.
-            {% endif %}
-          </p>
-        </div>
+  <!-- Full-Width Product Catalog Table -->
+  <section class="admin-panel" style="width: 100%;">
+    <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+      <div>
+        <h2 class="panel-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="16" height="13" x="1" y="6" rx="2"></rect>
+            <path d="M17 10h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4"></path>
+            <circle cx="6" cy="18" r="2"></circle>
+            <circle cx="18" cy="18" r="2"></circle>
+          </svg>
+          Product Catalog
+        </h2>
+        <p class="panel-subtitle">Review inventory, adjust storefront visibility, and configure available delivery PIN codes.</p>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="openProductModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Add New Product</span>
+      </button>
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Available Delivery PINs</th>
+            <th>Storefront</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr {% if editing_product.id == product.id %}style="background: rgba(255,255,255,0.05);"{% endif %}>
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <img src="{{ product.image_url }}" alt="{{ product.name }}" class="table-product-thumb">
+                  <div>
+                    <div class="cell-main-title">{{ product.name }}</div>
+                    <div class="cell-sub-info">{{ product.volume }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="admin-category-badge">{{ product.category_display }}</span>
+              </td>
+              <td>
+                <strong>₹{{ product.price }}</strong>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  {% with pins=product.get_available_pincodes_list %}
+                    {% if pins %}
+                      {% for pin in pins %}
+                        <span class="pin-pill">{{ pin }}</span>
+                      {% endfor %}
+                    {% else %}
+                      <span class="pin-all-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="2" y1="12" x2="22" y2="12"></line>
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        All PINs (Nationwide)
+                      </span>
+                    {% endif %}
+                  {% endwith %}
+                  <button type="button" class="btn-action-blue" onclick="openProductPincodesModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.available_pincodes|escapejs }}')">
+                    Edit PINs
+                  </button>
+                </div>
+              </td>
+              <td>
+                {% if product.available %}
+                  <span class="status-pill status-active">Active</span>
+                {% else %}
+                  <span class="status-pill status-hidden">Hidden</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end;">
+                  <!-- Availability Toggle -->
+                  <form method="post" action="{% url 'admin_toggle_product_availability' product.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    {% if product.available %}
+                      <button type="submit" class="btn-mini btn-mini-toggle-hide" title="Hide from storefront">
+                        Hide
+                      </button>
+                    {% else %}
+                      <button type="submit" class="btn-mini btn-mini-toggle-show" title="Make visible in store">
+                        Show
+                      </button>
+                    {% endif %}
+                  </form>
+
+                  <!-- Edit Full Details -->
+                  <a href="?edit={{ product.id }}" class="btn-mini">
+                    Edit
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                No products found in the catalog. Click "+ Add New Product" to create your first drink.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Modal: Add or Edit Product Form -->
+  <div class="admin-modal-overlay {% if editing_product %}active{% endif %}" id="productFormModal" onclick="if(event.target===this) closeProductModal();">
+    <div class="admin-modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px;">
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+          {% if editing_product %}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+            </svg>
+            Edit Product: <span style="color: #5aa3ff;">{{ editing_product.name }}</span>
+          {% else %}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            Add New Product
+          {% endif %}
+        </h3>
+        <button type="button" onclick="closeProductModal()" style="background: none; border: none; color: #9aa2a9; cursor: pointer; font-size: 1.3rem;">✕</button>
       </div>
 
       <form method="post" enctype="multipart/form-data" class="admin-form" action="{% if editing_product %}?edit={{ editing_product.id }}{% else %}{% url 'admin_products' %}{% endif %}">
@@ -93,11 +270,10 @@
         </div>
 
         <div class="form-row-2">
-          <!-- Integrated Category Dropdown with inline Add Category typing section -->
+          <!-- Integrated Category Dropdown -->
           <div class="form-group category-dropdown-group">
             <label class="form-label" for="categoryComboboxBar">Category</label>
             <div class="category-combobox" id="categoryCombobox">
-              <!-- Dropdown Bar / Selector Trigger -->
               <button type="button" class="category-combobox-bar" id="categoryComboboxBar" aria-haspopup="listbox" aria-expanded="false">
                 <span class="combobox-selected-text" id="comboboxSelectedText">
                   {% if editing_product %}{{ editing_product.category_display }}{% else %}Others{% endif %}
@@ -107,9 +283,7 @@
                 </svg>
               </button>
 
-              <!-- Dropdown Menu -->
               <div class="category-combobox-menu" id="categoryComboboxMenu" style="display: none;">
-                <!-- Existing categories list -->
                 <div class="combobox-options-list" id="comboboxOptionsList" role="listbox">
                   {% for cat in all_categories %}
                     <div class="combobox-option{% if editing_product and editing_product.category_slug == cat.slug %} is-selected{% elif not editing_product and cat.slug == 'others' %} is-selected{% endif %}" data-slug="{{ cat.slug }}" data-name="{{ cat.name }}" role="option">
@@ -121,35 +295,18 @@
                   {% empty %}
                     <div class="combobox-option" data-slug="cola" data-name="Cola" role="option">
                       <span class="option-name">Cola</span>
-                      <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    </div>
-                    <div class="combobox-option" data-slug="energy_drink" data-name="Energy Drink" role="option">
-                      <span class="option-name">Energy Drink</span>
-                      <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
                     </div>
                     <div class="combobox-option is-selected" data-slug="others" data-name="Others" role="option">
                       <span class="option-name">Others</span>
-                      <svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
                     </div>
                   {% endfor %}
                 </div>
 
-                <!-- Add Category typing section inside the dropdown itself -->
                 <div class="combobox-add-section">
                   <div class="combobox-add-title">Add New Category</div>
                   <div class="combobox-typing-row">
                     <input type="text" id="inlineNewCategoryInput" class="combobox-add-input" placeholder="Type category name..." autocomplete="off">
                     <button type="button" id="inlineAddCategoryBtn" class="combobox-add-btn">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
                       Add
                     </button>
                   </div>
@@ -157,28 +314,18 @@
                 </div>
               </div>
 
-              <!-- Native select & hidden fields for Django Form binding -->
               <select name="category" id="id_category" style="display: none;">
                 {% for cat in all_categories %}
                   <option value="{{ cat.slug }}"{% if editing_product and editing_product.category_slug == cat.slug %} selected{% elif not editing_product and cat.slug == 'others' %} selected{% endif %}>{{ cat.name }}</option>
                 {% empty %}
-                  <option value="cola">Cola</option>
-                  <option value="energy_drink">Energy Drink</option>
                   <option value="others" selected>Others</option>
                 {% endfor %}
               </select>
               <input type="hidden" name="new_category" id="id_new_category" value="">
             </div>
-
-            {% if product_form.category.errors %}
-              <span class="form-help" style="color: var(--admin-red);">{{ product_form.category.errors|first }}</span>
-            {% endif %}
-            {% if product_form.new_category.errors %}
-              <span class="form-help" style="color: var(--admin-red);">{{ product_form.new_category.errors|first }}</span>
-            {% endif %}
           </div>
 
-          <!-- Price with Monochromatic Stepper -->
+          <!-- Price -->
           <div class="form-group">
             <label class="form-label" for="id_price">Price (₹)</label>
             {{ product_form.price }}
@@ -197,7 +344,7 @@
             {% endif %}
           </div>
 
-          <!-- Upload Image Field with Preview -->
+          <!-- Image Upload -->
           <div class="form-group">
             <label class="form-label" for="id_image_file">Upload Image</label>
             <div class="upload-image-box">
@@ -220,8 +367,6 @@
                 </label>
                 {{ product_form.image_file }}
               </div>
-
-              <!-- Fallback / programmatic image path preserved for backward compatibility -->
               <div style="display: none;">
                 {{ product_form.image }}
               </div>
@@ -232,6 +377,16 @@
           </div>
         </div>
 
+        <!-- Available PIN Codes Input -->
+        <div class="form-group">
+          <label class="form-label" for="id_available_pincodes">Available Delivery PIN Codes</label>
+          {{ product_form.available_pincodes }}
+          <span class="form-help">Enter comma-separated 6-digit postal codes (e.g. <code>625018, 625001</code>). Leave empty to make deliverable nationwide to all PIN codes.</span>
+          {% if product_form.available_pincodes.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ product_form.available_pincodes.errors|first }}</span>
+          {% endif %}
+        </div>
+
         <div class="form-group">
           <label class="checkbox-control-wrap" for="id_available">
             {{ product_form.available }}
@@ -240,114 +395,71 @@
           <span class="form-help">When unchecked, this product will be hidden from the shopping menu.</span>
         </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn-primary">
+        <div class="form-actions" style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeProductModal()" class="btn-mini" style="padding: 11px 18px;">Cancel</button>
+          <button type="submit" class="btn-primary" style="padding: 11px 24px;">
             {% if editing_product %}
               Save Changes
             {% else %}
               Add Product
             {% endif %}
           </button>
-          {% if editing_product %}
-            <a href="{% url 'admin_products' %}" class="btn-secondary">Cancel Editing</a>
-          {% endif %}
         </div>
       </form>
-    </section>
+    </div>
+  </div>
 
-    <!-- List: Products Table -->
-    <section class="admin-panel">
-      <div class="panel-header">
-        <div>
-          <h2 class="panel-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
-            </svg>
-            Product Catalog
-          </h2>
-          <p class="panel-subtitle">Review status, adjust storefront availability, or update items.</p>
+  <!-- Modal: Quick Edit Product PIN Codes -->
+  <div class="admin-modal-overlay" id="productPincodesModal" onclick="if(event.target===this) closeProductPincodesModal();">
+    <div class="admin-modal-dialog" style="width: min(100%, 500px);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
+          Serviceable PIN Codes: <span id="modalProductName" style="color: #5aa3ff;"></span>
+        </h3>
+        <button type="button" onclick="closeProductPincodesModal()" style="background: none; border: none; color: #9aa2a9; cursor: pointer; font-size: 1.2rem;">✕</button>
+      </div>
+
+      <form method="post" id="editProductPincodesForm" action="">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" for="modalAvailablePincodes">Available PIN Codes</label>
+          <input type="text" name="available_pincodes" id="modalAvailablePincodes" class="form-control" placeholder="e.g. 625018, 625001">
+          <span class="form-help" style="font-size: 0.78rem; color: #9aa2a9;">Enter comma-separated 6-digit PIN codes. Leave completely empty to allow delivery to all PIN codes.</span>
         </div>
-      </div>
 
-      <div class="table-responsive-wrapper">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Storefront</th>
-              <th style="text-align: right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for product in products %}
-              <tr {% if editing_product.id == product.id %}style="background: rgba(255,255,255,0.05);"{% endif %}>
-                <td>
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="table-product-thumb">
-                    <div>
-                      <div class="cell-main-title">{{ product.name }}</div>
-                      <div class="cell-sub-info">{{ product.volume }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="admin-category-badge">{{ product.category_display }}</span>
-                </td>
-                <td>
-                  <strong>₹{{ product.price }}</strong>
-                </td>
-                <td>
-                  {% if product.available %}
-                    <span class="status-pill status-active">Active</span>
-                  {% else %}
-                    <span class="status-pill status-hidden">Hidden</span>
-                  {% endif %}
-                </td>
-                <td style="text-align: right;">
-                  <div style="display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end;">
-                    <!-- Edit Availability Toggle Button -->
-                    <form method="post" action="{% url 'admin_toggle_product_availability' product.id %}" style="margin: 0;">
-                      {% csrf_token %}
-                      {% if product.available %}
-                        <button type="submit" class="btn-mini btn-mini-toggle-hide" title="Change availability to Hidden">
-                          Hide
-                        </button>
-                      {% else %}
-                        <button type="submit" class="btn-mini btn-mini-toggle-show" title="Change availability to Active">
-                          Show
-                        </button>
-                      {% endif %}
-                    </form>
-
-                    <!-- Edit Full Details Button -->
-                    <a href="?edit={{ product.id }}#productFormPanel" class="btn-mini">
-                      Edit
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5" style="text-align: center; padding: 32px; color: var(--admin-text-muted);">
-                  No products found in the catalog. Use the form on the left to add one.
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeProductPincodesModal()" class="btn-mini" style="padding: 10px 16px;">Cancel</button>
+          <button type="submit" class="btn-primary" style="padding: 10px 20px;">Save PIN Codes</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script>
+    function openProductModal() {
+      document.getElementById('productFormModal').classList.add('active');
+    }
+    function closeProductModal() {
+      document.getElementById('productFormModal').classList.remove('active');
+      {% if editing_product %}
+        window.location.href = "{% url 'admin_products' %}";
+      {% endif %}
+    }
+
+    function openProductPincodesModal(id, name, pincodes) {
+      document.getElementById('modalProductName').textContent = name;
+      document.getElementById('editProductPincodesForm').action = '/admin-profile/products/' + id + '/update-pincodes/';
+      document.getElementById('modalAvailablePincodes').value = pincodes || '';
+      document.getElementById('productPincodesModal').classList.add('active');
+    }
+    function closeProductPincodesModal() {
+      document.getElementById('productPincodesModal').classList.remove('active');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-      // =========================================================================
-      // 1. Integrated Category Combobox with typing section inside the dropdown
-      // =========================================================================
+      // Combobox logic
       var combobox = document.getElementById('categoryCombobox');
       var triggerBtn = document.getElementById('categoryComboboxBar');
       var menu = document.getElementById('categoryComboboxMenu');
@@ -374,7 +486,7 @@
       }
 
       function toggleMenu() {
-        if (menu.style.display === 'none' || !menu.style.display) {
+        if (menu && (menu.style.display === 'none' || !menu.style.display)) {
           openMenu();
         } else {
           closeMenu();
@@ -388,18 +500,15 @@
         });
       }
 
-      // Close dropdown when clicking outside
       document.addEventListener('click', function(e) {
         if (combobox && !combobox.contains(e.target)) {
           closeMenu();
         }
       });
 
-      // Select an existing option
       function selectOption(slug, name) {
         if (selectedText) selectedText.textContent = name;
         if (nativeSelect) {
-          // Check if option exists in native select, if not add it
           var opt = nativeSelect.querySelector('option[value="' + slug + '"]');
           if (!opt) {
             opt = document.createElement('option');
@@ -411,16 +520,16 @@
         }
         if (hiddenNewCat) hiddenNewCat.value = '';
 
-        // Update active class in options list
-        var allOptions = optionsList.querySelectorAll('.combobox-option');
-        allOptions.forEach(function(el) {
-          if (el.getAttribute('data-slug') === slug) {
-            el.classList.add('is-selected');
-          } else {
-            el.classList.remove('is-selected');
-          }
-        });
-
+        if (optionsList) {
+          var allOptions = optionsList.querySelectorAll('.combobox-option');
+          allOptions.forEach(function(el) {
+            if (el.getAttribute('data-slug') === slug) {
+              el.classList.add('is-selected');
+            } else {
+              el.classList.remove('is-selected');
+            }
+          });
+        }
         closeMenu();
       }
 
@@ -428,14 +537,11 @@
         optionsList.addEventListener('click', function(e) {
           var optEl = e.target.closest('.combobox-option');
           if (optEl) {
-            var slug = optEl.getAttribute('data-slug');
-            var name = optEl.getAttribute('data-name');
-            selectOption(slug, name);
+            selectOption(optEl.getAttribute('data-slug'), optEl.getAttribute('data-name'));
           }
         });
       }
 
-      // Helper to slugify category name
       function slugify(text) {
         return text.toString().toLowerCase().trim()
           .replace(/\s+/g, '_')
@@ -443,7 +549,6 @@
           .replace(/\-\-+/g, '_');
       }
 
-      // Add category directly from the typing section inside the dropdown
       function handleAddCategoryFromDropdown() {
         if (!inlineInput) return;
         var val = inlineInput.value.trim();
@@ -457,39 +562,37 @@
           return;
         }
 
-        var slug = slugify(val);
-        if (!slug) slug = 'custom_category';
+        var slug = slugify(val) || 'custom_category';
         var displayName = val.charAt(0).toUpperCase() + val.slice(1);
 
-        // 1. Check if option already exists
-        var existingOption = optionsList.querySelector('.combobox-option[data-slug="' + slug + '"]');
-        if (!existingOption) {
-          // Create DOM option in combobox
-          var newOptEl = document.createElement('div');
-          newOptEl.className = 'combobox-option is-selected';
-          newOptEl.setAttribute('data-slug', slug);
-          newOptEl.setAttribute('data-name', displayName);
-          newOptEl.setAttribute('role', 'option');
-          newOptEl.innerHTML = '<span class="option-name">' + displayName + '</span>' +
-            '<svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-            '<polyline points="20 6 9 17 4 12"></polyline></svg>';
-          optionsList.appendChild(newOptEl);
+        if (optionsList) {
+          var existingOption = optionsList.querySelector('.combobox-option[data-slug="' + slug + '"]');
+          if (!existingOption) {
+            var newOptEl = document.createElement('div');
+            newOptEl.className = 'combobox-option is-selected';
+            newOptEl.setAttribute('data-slug', slug);
+            newOptEl.setAttribute('data-name', displayName);
+            newOptEl.setAttribute('role', 'option');
+            newOptEl.innerHTML = '<span class="option-name">' + displayName + '</span>' +
+              '<svg class="option-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+              '<polyline points="20 6 9 17 4 12"></polyline></svg>';
+            optionsList.appendChild(newOptEl);
+          }
         }
 
-        // 2. Add to native select
-        var nativeOpt = nativeSelect.querySelector('option[value="' + slug + '"]');
-        if (!nativeOpt) {
-          nativeOpt = document.createElement('option');
-          nativeOpt.value = slug;
-          nativeOpt.textContent = displayName;
-          nativeSelect.appendChild(nativeOpt);
+        if (nativeSelect) {
+          var nativeOpt = nativeSelect.querySelector('option[value="' + slug + '"]');
+          if (!nativeOpt) {
+            nativeOpt = document.createElement('option');
+            nativeOpt.value = slug;
+            nativeOpt.textContent = displayName;
+            nativeSelect.appendChild(nativeOpt);
+          }
         }
 
-        // 3. Select it
         selectOption(slug, displayName);
         if (hiddenNewCat) hiddenNewCat.value = displayName;
 
-        // 4. Background fetch to persist category permanently immediately
         var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]');
         var formData = new FormData();
         formData.append('action', 'add_category');
@@ -504,11 +607,9 @@
           },
           body: formData
         }).catch(function(err) {
-          // Failure is okay since hiddenNewCat will save on form submission
           console.warn('Category async save notice:', err);
         });
 
-        // 5. Provide feedback and reset input
         inlineInput.value = '';
         if (inlineFeedback) {
           inlineFeedback.textContent = 'Category added!';
@@ -536,9 +637,7 @@
         });
       }
 
-      // =========================================================================
-      // 2. Live Image Preview on File Selection
-      // =========================================================================
+      // Live Image Preview
       var fileInput = document.getElementById('id_image_file');
       var previewCard = document.getElementById('previewCard');
       var previewImg = document.getElementById('imagePreviewImg');

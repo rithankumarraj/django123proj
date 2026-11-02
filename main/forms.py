@@ -414,7 +414,7 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ["name", "category", "description", "price", "volume", "image", "available"]
+        fields = ["name", "category", "description", "price", "volume", "image", "available_pincodes", "available"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "category": forms.Select(attrs={"class": "form-control", "id": "id_category"}),
@@ -422,6 +422,7 @@ class ProductForm(forms.ModelForm):
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "volume": forms.TextInput(attrs={"class": "form-control"}),
             "image": forms.TextInput(attrs={"class": "form-control", "id": "id_image_path", "placeholder": "main/images/cola.png"}),
+            "available_pincodes": forms.TextInput(attrs={"class": "form-control", "id": "id_available_pincodes", "placeholder": "e.g. 625018, 625001 (leave empty for all PIN codes)"}),
             "available": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 

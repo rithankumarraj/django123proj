@@ -55,6 +55,16 @@ urlpatterns = [
         name="admin_toggle_product_availability",
     ),
     path(
+        "admin-profile/products/<int:product_id>/update-pincodes/",
+        views.admin_update_product_pincodes,
+        name="admin_update_product_pincodes",
+    ),
+    path(
+        "api/check-pincode/<int:product_id>/",
+        views.check_pincode_availability,
+        name="check_pincode_availability",
+    ),
+    path(
         "admin-profile/delivery-users/",
         views.admin_delivery_users,
         name="admin_delivery_users",

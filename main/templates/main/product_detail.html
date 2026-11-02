@@ -55,6 +55,22 @@
                                 <span>Subtotal</span>
                                 <strong data-quantity-total data-unit-price="{{ product.price }}">₹{{ product.price }}</strong>
                             </div>
+
+                            <div class="pincode-check-container mt-3 pt-3 border-top border-secondary border-opacity-25">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="small text-secondary fw-semibold text-uppercase" style="letter-spacing: 0.1em; font-size: 0.75rem;">Delivery Availability</span>
+                                    {% if not product.available_pins_list %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.72rem;">Nationwide Delivery</span>
+                                    {% else %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.72rem;">Select PINs Only</span>
+                                    {% endif %}
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" id="pincodeCheckInput" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Enter PIN code (e.g. 625018)" maxlength="10" data-product-id="{{ product.id }}">
+                                    <button type="button" id="pincodeCheckBtn" class="btn btn-sm btn-outline-light px-3">Check</button>
+                                </div>
+                                <div id="pincodeCheckFeedback" class="small mt-2" style="display: none;"></div>
+                            </div>
                         </div>
 
                         <div class="purchase-actions">
@@ -81,6 +97,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'main/product-detail.js' %}?v=cart-sync-1" defer></script>
+    <script src="{% static 'main/product-detail.js' %}?v=cart-sync-2" defer></script>
 </body>
 </html>

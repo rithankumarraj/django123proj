@@ -4,6 +4,18 @@
 {% block page_heading %}Delivery Partners{% endblock %}
 {% block page_description %}Manage delivery personnel, verify Aadhaar & driving licence credentials, assign delivery PIN codes, and approve applications.{% endblock %}
 
+{% block topbar_actions %}
+  <button type="button" class="btn-primary" onclick="openAddPartnerModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <line x1="19" y1="8" x2="19" y2="14"></line>
+      <line x1="22" y1="11" x2="16" y2="11"></line>
+    </svg>
+    <span>Add Delivery Partner</span>
+  </button>
+{% endblock %}
+
 {% block admin_content %}
   <style>
     .pin-pill {
@@ -139,27 +151,29 @@
       border-color: #ff7676;
       color: #ff7676;
     }
-    .edit-partner-modal {
+    .admin-modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(6px);
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
       z-index: 1000;
       align-items: center;
       justify-content: center;
       padding: 20px;
     }
-    .edit-partner-modal.active {
+    .admin-modal-overlay.active {
       display: flex;
     }
-    .edit-partner-dialog {
+    .admin-modal-dialog {
       background: #11161a;
       border: 1px solid var(--admin-line-strong);
-      border-radius: 16px;
-      width: min(100%, 540px);
-      padding: 24px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      border-radius: 18px;
+      width: min(100%, 640px);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
     }
   </style>
 
@@ -199,23 +213,260 @@
     </div>
   </section>
 
-  <!-- Split Grid: Form & List -->
-  <div class="admin-split-grid">
-    <!-- Form: Add Delivery User -->
-    <section class="admin-panel">
-      <div class="panel-header">
-        <div>
-          <h2 class="panel-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <line x1="19" y1="8" x2="19" y2="14"></line>
-              <line x1="22" y1="11" x2="16" y2="11"></line>
-            </svg>
-            Add Delivery Partner
-          </h2>
-          <p class="panel-subtitle">Onboard a delivery partner with address, vehicle & PIN codes.</p>
-        </div>
+  <!-- Full-Width Delivery Partners Directory Panel -->
+  <section class="admin-panel" style="width: 100%;">
+    <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+      <div>
+        <h2 class="panel-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Delivery Partners Directory
+        </h2>
+        <p class="panel-subtitle">Review KYC documents, verify vehicles & addresses, assign serviceable PIN codes, and approve drivers.</p>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <!-- Search Bar -->
+        <form method="get" action="{% url 'admin_delivery_users' %}" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+          {% if status_filter != 'all' %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+          {% endif %}
+          <input 
+            type="text" 
+            name="q" 
+            value="{{ search_query }}" 
+            placeholder="Search driver, PIN, vehicle..." 
+            class="form-control" 
+            style="padding: 8px 14px; font-size: 0.85rem; width: 220px;"
+          >
+          <button type="submit" class="btn-mini" style="padding: 8px 14px;">Search</button>
+          {% if search_query %}
+            <a href="?status={{ status_filter }}" class="btn-mini" title="Clear">Clear</a>
+          {% endif %}
+        </form>
+
+        <!-- Button to open Add Partner Modal -->
+        <button type="button" class="btn-primary" onclick="openAddPartnerModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+          <span>Add Delivery Partner</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs-bar" style="margin-bottom: 18px;">
+      <a href="?status=all{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+        All Partners
+        <span class="tab-count">{{ total_delivery_users_count }}</span>
+      </a>
+      <a href="?status=pending{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">
+        Pending Review
+        <span class="tab-count" style="{% if pending_delivery_users_count > 0 %}background: var(--admin-orange); color: #000;{% endif %}">{{ pending_delivery_users_count }}</span>
+      </a>
+      <a href="?status=approved{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">
+        Approved
+        <span class="tab-count">{{ approved_delivery_users_count }}</span>
+      </a>
+      <a href="?status=rejected{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
+        Rejected
+        <span class="tab-count">{{ rejected_delivery_users_count }}</span>
+      </a>
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Partner</th>
+            <th>Verification & Contact</th>
+            <th>Vehicle</th>
+            <th>Serviceable PINs</th>
+            <th>Status</th>
+            <th style="text-align: right;">Admin Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for profile in delivery_profiles %}
+            <tr>
+              <!-- Partner Info -->
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div class="admin-avatar-circle" style="width: 38px; height: 38px; font-size: 0.88rem;">
+                    {{ profile.user.username|make_list|first|upper }}
+                  </div>
+                  <div>
+                    <div class="cell-main-title" style="font-size: 0.95rem;">{{ profile.user.username }}</div>
+                    <div class="cell-sub-info">
+                      {{ profile.user.get_full_name|default:"Driver Partner" }}
+                    </div>
+                    <div class="cell-sub-info" style="font-size: 0.72rem; color: var(--admin-text-dimmed);">
+                      Joined {{ profile.created_at|date:"M d, Y" }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Contact & Documents -->
+              <td>
+                <div style="font-size: 0.85rem; line-height: 1.45;">
+                  {% if profile.phone %}
+                    <div><strong style="color: #fff;">{{ profile.phone }}</strong></div>
+                  {% endif %}
+                  <div class="cell-sub-info">{{ profile.user.email|default:"No email" }}</div>
+                  {% if profile.address %}
+                    <div style="margin-top: 4px; font-size: 0.78rem; color: #d1d5db;">
+                      <span style="color: var(--admin-text-muted);">Address:</span> {{ profile.address }}
+                    </div>
+                  {% endif %}
+                  {% if profile.aadhar_number %}
+                    <div style="margin-top: 2px; font-size: 0.78rem; color: var(--admin-text-muted);">
+                      Aadhaar: <span style="font-family: monospace; color: #fff;">{{ profile.aadhar_number }}</span>
+                    </div>
+                  {% endif %}
+                  {% if profile.driving_license %}
+                    <div style="font-size: 0.78rem; color: var(--admin-text-muted);">
+                      DL: <span style="font-family: monospace; color: #fff;">{{ profile.driving_license }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Vehicle Info -->
+              <td>
+                <div class="vehicle-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="16" height="12" x="1" y="3" rx="2"></rect>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                  </svg>
+                  <span>{{ profile.vehicle_display }}</span>
+                </div>
+                {% if profile.vehicle_number %}
+                  <div style="font-size: 0.8rem; font-weight: 600; color: #d1d5db; margin-top: 4px; font-family: monospace;">
+                    {{ profile.vehicle_number }}
+                  </div>
+                {% endif %}
+              </td>
+
+              <!-- Serviceable PIN Codes -->
+              <td>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 240px;">
+                  {% with pins=profile.get_serviceable_pincodes_list %}
+                    {% if pins %}
+                      {% for pin in pins %}
+                        <span class="pin-pill">{{ pin }}</span>
+                      {% endfor %}
+                    {% else %}
+                      <span style="font-size: 0.78rem; color: var(--admin-text-dimmed); font-style: italic;">
+                        All PINs (Unrestricted)
+                      </span>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              </td>
+
+              <!-- Status Badge -->
+              <td>
+                {% if profile.status == 'approved' and profile.is_approved %}
+                  <span class="status-badge-approved">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Approved
+                  </span>
+                {% elif profile.status == 'rejected' or not profile.is_approved and profile.status == 'rejected' %}
+                  <span class="status-badge-rejected" title="{{ profile.rejection_reason|default:'Rejected' }}">
+                    Rejected
+                  </span>
+                {% else %}
+                  <span class="status-badge-pending">
+                    Pending Review
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Actions -->
+              <td style="text-align: right;">
+                <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                  {% if not profile.is_approved or profile.status != 'approved' %}
+                    <!-- Approve Button -->
+                    <form method="post" action="{% url 'admin_approve_delivery_partner' profile.id %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn-action-green" title="Approve partner">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Approve
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  {% if profile.is_approved and profile.status == 'approved' %}
+                    <!-- Reject / Suspend Button -->
+                    <form method="post" action="{% url 'admin_reject_delivery_partner' profile.id %}" onsubmit="return confirm('Suspend or reject delivery partner {{ profile.user.username }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn-action-red" title="Suspend partner">
+                        Suspend
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  <!-- Edit PINs & Details Trigger Button -->
+                  <button type="button" class="btn-action-blue" onclick="openEditPartnerModal('{{ profile.id }}', '{{ profile.user.username }}', '{{ profile.serviceable_pincodes|escapejs }}', '{{ profile.vehicle_type }}', '{{ profile.vehicle_number|escapejs }}', '{{ profile.phone|escapejs }}', '{{ profile.address|escapejs }}', '{{ profile.aadhar_number|escapejs }}', '{{ profile.driving_license|escapejs }}')">
+                    Edit PINs
+                  </button>
+
+                  <!-- Delete Button -->
+                  <form method="post" action="{% url 'admin_delete_delivery_partner' profile.id %}" onsubmit="return confirm('Permanently delete partner account {{ profile.user.username }}?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn-action-delete" title="Delete account">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 48px; color: var(--admin-text-muted);">
+                No delivery partners found matching this filter. Click "+ Add Delivery Partner" above to register one.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Modal: Add Delivery Partner Form -->
+  <div class="admin-modal-overlay" id="addPartnerModal" onclick="if(event.target===this) closeAddPartnerModal();">
+    <div class="admin-modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px;">
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+          Add Delivery Partner
+        </h3>
+        <button type="button" onclick="closeAddPartnerModal()" style="background: none; border: none; color: #9aa2a9; cursor: pointer; font-size: 1.3rem;">✕</button>
       </div>
 
       <form method="post" class="admin-form" action="{% url 'admin_delivery_users' %}">
@@ -301,7 +552,7 @@
           {% endif %}
         </div>
 
-        <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin: 4px 0 10px;">
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin: 6px 0 12px;">
           {{ delivery_form.is_approved }}
           <label class="form-label" for="id_is_approved" style="margin: 0; cursor: pointer;">
             Approve immediately (Allow instant login)
@@ -325,249 +576,19 @@
           </div>
         </div>
 
-        <p class="form-help" style="margin-top: 10px;">
-          Public application page: <a href="{% url 'delivery_partner_apply' %}" target="_blank" style="color: var(--admin-blue); text-decoration: underline;">/delivery-partner/apply/</a>
-        </p>
-
-        <div class="form-actions">
-          <button type="submit" class="btn-primary">
+        <div class="form-actions" style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeAddPartnerModal()" class="btn-mini" style="padding: 11px 18px;">Cancel</button>
+          <button type="submit" class="btn-primary" style="padding: 11px 24px;">
             Create Delivery Account
           </button>
         </div>
       </form>
-    </section>
-
-    <!-- List: Delivery Users Table with Verification Controls -->
-    <section class="admin-panel">
-      <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
-        <div>
-          <h2 class="panel-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            Delivery Partners Directory
-          </h2>
-          <p class="panel-subtitle">Review KYC documents, verify vehicles & addresses, update delivery zones, and approve partners.</p>
-        </div>
-
-        <!-- Search Bar -->
-        <form method="get" action="{% url 'admin_delivery_users' %}" style="display: flex; gap: 8px; align-items: center; margin: 0;">
-          {% if status_filter != 'all' %}
-            <input type="hidden" name="status" value="{{ status_filter }}">
-          {% endif %}
-          <input 
-            type="text" 
-            name="q" 
-            value="{{ search_query }}" 
-            placeholder="Search driver, PIN, vehicle..." 
-            class="form-control" 
-            style="padding: 7px 12px; font-size: 0.8rem; width: 200px;"
-          >
-          <button type="submit" class="btn-mini" style="padding: 7px 12px;">Search</button>
-          {% if search_query %}
-            <a href="?status={{ status_filter }}" class="btn-mini" title="Clear">Clear</a>
-          {% endif %}
-        </form>
-      </div>
-
-      <!-- Filter Tabs -->
-      <div class="filter-tabs-bar" style="margin-bottom: 16px;">
-        <a href="?status=all{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
-          All Partners
-          <span class="tab-count">{{ total_delivery_users_count }}</span>
-        </a>
-        <a href="?status=pending{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">
-          Pending Review
-          <span class="tab-count" style="{% if pending_delivery_users_count > 0 %}background: var(--admin-orange); color: #000;{% endif %}">{{ pending_delivery_users_count }}</span>
-        </a>
-        <a href="?status=approved{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">
-          Approved
-          <span class="tab-count">{{ approved_delivery_users_count }}</span>
-        </a>
-        <a href="?status=rejected{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
-          Rejected
-          <span class="tab-count">{{ rejected_delivery_users_count }}</span>
-        </a>
-      </div>
-
-      <div class="table-responsive-wrapper">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Partner</th>
-              <th>Verification & Contact</th>
-              <th>Vehicle</th>
-              <th>Serviceable PINs</th>
-              <th>Status</th>
-              <th style="text-align: right;">Admin Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for profile in delivery_profiles %}
-              <tr>
-                <!-- Partner Info -->
-                <td>
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="admin-avatar-circle" style="width: 34px; height: 34px; font-size: 0.82rem;">
-                      {{ profile.user.username|make_list|first|upper }}
-                    </div>
-                    <div>
-                      <div class="cell-main-title">{{ profile.user.username }}</div>
-                      <div class="cell-sub-info">
-                        {{ profile.user.get_full_name|default:"Driver Partner" }}
-                      </div>
-                      <div class="cell-sub-info" style="font-size: 0.72rem; color: var(--admin-text-dimmed);">
-                        Joined {{ profile.created_at|date:"M d, Y" }}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-
-                <!-- Contact & Documents -->
-                <td>
-                  <div style="font-size: 0.82rem;">
-                    {% if profile.phone %}
-                      <div><strong style="color: #fff;">{{ profile.phone }}</strong></div>
-                    {% endif %}
-                    <div class="cell-sub-info">{{ profile.user.email|default:"No email" }}</div>
-                    {% if profile.address %}
-                      <div style="margin-top: 4px; font-size: 0.75rem; color: var(--admin-text-muted);">
-                        Address: <span style="color: #fff;">{{ profile.address }}</span>
-                      </div>
-                    {% endif %}
-                    {% if profile.aadhar_number %}
-                      <div style="margin-top: 3px; font-size: 0.75rem; color: var(--admin-text-muted);">
-                        Aadhaar: <span style="font-family: monospace; color: #fff;">{{ profile.aadhar_number }}</span>
-                      </div>
-                    {% endif %}
-                    {% if profile.driving_license %}
-                      <div style="font-size: 0.75rem; color: var(--admin-text-muted);">
-                        DL: <span style="font-family: monospace; color: #fff;">{{ profile.driving_license }}</span>
-                      </div>
-                    {% endif %}
-                  </div>
-                </td>
-
-                <!-- Vehicle Info -->
-                <td>
-                  <div class="vehicle-pill">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect width="16" height="12" x="1" y="3" rx="2"></rect>
-                      <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                      <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                    </svg>
-                    <span>{{ profile.vehicle_display }}</span>
-                  </div>
-                  {% if profile.vehicle_number %}
-                    <div style="font-size: 0.78rem; font-weight: 600; color: #d1d5db; margin-top: 4px; font-family: monospace;">
-                      {{ profile.vehicle_number }}
-                    </div>
-                  {% endif %}
-                </td>
-
-                <!-- Serviceable PIN Codes -->
-                <td>
-                  <div style="max-width: 220px;">
-                    {% with pins=profile.get_serviceable_pincodes_list %}
-                      {% if pins %}
-                        {% for pin in pins %}
-                          <span class="pin-pill">{{ pin }}</span>
-                        {% endfor %}
-                      {% else %}
-                        <span style="font-size: 0.78rem; color: var(--admin-text-dimmed); font-style: italic;">
-                          All PINs (Unrestricted)
-                        </span>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                </td>
-
-                <!-- Status Badge -->
-                <td>
-                  {% if profile.status == 'approved' and profile.is_approved %}
-                    <span class="status-badge-approved">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      Approved
-                    </span>
-                  {% elif profile.status == 'rejected' or not profile.is_approved and profile.status == 'rejected' %}
-                    <span class="status-badge-rejected" title="{{ profile.rejection_reason|default:'Rejected' }}">
-                      Rejected
-                    </span>
-                  {% else %}
-                    <span class="status-badge-pending">
-                      Pending Review
-                    </span>
-                  {% endif %}
-                </td>
-
-                <!-- Actions -->
-                <td style="text-align: right;">
-                  <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
-                    {% if not profile.is_approved or profile.status != 'approved' %}
-                      <!-- Approve Button -->
-                      <form method="post" action="{% url 'admin_approve_delivery_partner' profile.id %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button type="submit" class="btn-action-green" title="Approve partner">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          Approve
-                        </button>
-                      </form>
-                    {% endif %}
-
-                    {% if profile.is_approved and profile.status == 'approved' %}
-                      <!-- Reject / Suspend Button -->
-                      <form method="post" action="{% url 'admin_reject_delivery_partner' profile.id %}" onsubmit="return confirm('Suspend or reject delivery partner {{ profile.user.username }}?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button type="submit" class="btn-action-red" title="Suspend partner">
-                          Suspend
-                        </button>
-                      </form>
-                    {% endif %}
-
-                    <!-- Edit PINs / Details Trigger Button -->
-                    <button type="button" class="btn-action-blue" onclick="openEditPartnerModal('{{ profile.id }}', '{{ profile.user.username }}', '{{ profile.serviceable_pincodes|escapejs }}', '{{ profile.vehicle_type }}', '{{ profile.vehicle_number|escapejs }}', '{{ profile.phone|escapejs }}', '{{ profile.address|escapejs }}', '{{ profile.aadhar_number|escapejs }}', '{{ profile.driving_license|escapejs }}')">
-                      Edit PINs
-                    </button>
-
-                    <!-- Delete Button -->
-                    <form method="post" action="{% url 'admin_delete_delivery_partner' profile.id %}" onsubmit="return confirm('Permanently delete partner account {{ profile.user.username }}?');">
-                      {% csrf_token %}
-                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                      <button type="submit" class="btn-action-delete" title="Delete account">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
-                  No delivery partners found matching this filter.
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    </div>
   </div>
 
-  <!-- Modal for Editing Partner PIN Codes & Details -->
-  <div class="edit-partner-modal" id="editPartnerModal" onclick="if(event.target===this) closeEditPartnerModal();">
-    <div class="edit-partner-dialog">
+  <!-- Modal: Edit Partner PIN Codes & Details -->
+  <div class="admin-modal-overlay" id="editPartnerModal" onclick="if(event.target===this) closeEditPartnerModal();">
+    <div class="admin-modal-dialog">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
           Edit Delivery Zones & Info: <span id="modalDriverName" style="color: #5aa3ff;"></span>
@@ -630,6 +651,13 @@
   </div>
 
   <script>
+    function openAddPartnerModal() {
+      document.getElementById('addPartnerModal').classList.add('active');
+    }
+    function closeAddPartnerModal() {
+      document.getElementById('addPartnerModal').classList.remove('active');
+    }
+
     function openEditPartnerModal(id, username, pincodes, vehicleType, vehicleNumber, phone, address, aadhar, dl) {
       document.getElementById('modalDriverName').textContent = username;
       document.getElementById('editPartnerForm').action = '/admin-profile/delivery-users/' + id + '/update-pincodes/';

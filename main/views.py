@@ -647,6 +647,8 @@ def product_detail(request, product_id):
                 "image": product.image_url,
                 "category": product.category_slug,
                 "category_display": product.category_display,
+                "available_pincodes": product.available_pincodes,
+                "available_pins_list": product.get_available_pincodes_list(),
             },
             "cart_count": _cart_quantity(request),
             "wishlist_count": len(wishlist_products),
@@ -1114,6 +1116,15 @@ def cart_checkout(request):
     if not address_form.is_valid():
         return HttpResponseBadRequest("Complete all required delivery details.")
     details = address_form.cleaned_data
+    postal_code = details.get("postal_code", "").strip()
+    unavailable_items = [it for it in items if not it["product"].is_available_for_pincode(postal_code)]
+    if unavailable_items:
+        names = ", ".join(it["product"].name for it in unavailable_items)
+        messages.error(
+            request,
+            f"The following drinks are not available for delivery to PIN code {postal_code}: {names}. Please update your delivery location or adjust your cart."
+        )
+        return redirect("cart")
 
     items_subtotal = sum((item["line_total"] for item in items), Decimal("0.00"))
     total_quantity = sum(item["quantity"] for item in items)
@@ -1193,6 +1204,13 @@ def checkout(request, product_id):
         if not address_form.is_valid():
             return HttpResponseBadRequest("Complete all required delivery details.")
         details = address_form.cleaned_data
+        postal_code = details.get("postal_code", "").strip()
+        if not product.is_available_for_pincode(postal_code):
+            messages.error(
+                request,
+                f"Sorry, '{product.name}' is not deliverable to PIN code {postal_code}. Please choose a different delivery address."
+            )
+            return redirect(f"{reverse('checkout', kwargs={'product_id': product.id})}?qty={quantity}")
 
         state = details.get("state") or ""
         gst_amount = site_details.calculate_gst(items_subtotal)
@@ -1837,6 +1855,45 @@ def admin_toggle_product_availability(request, product_id):
     status_label = "Active (visible to customers)" if product.available else "Hidden from storefront"
     messages.success(request, f"Availability for '{product.name}' set to {status_label}.")
     return redirect("admin_products")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_update_product_pincodes(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    pincodes_raw = request.POST.get("available_pincodes", "").strip()
+    codes = re.findall(r"\b\d{6}\b", pincodes_raw)
+    if not codes and pincodes_raw:
+        codes = [c.strip() for c in re.split(r"[,;\s]+", pincodes_raw) if c.strip()]
+    product.available_pincodes = ", ".join(sorted(list(dict.fromkeys(codes))))
+    product.save(update_fields=["available_pincodes"])
+    messages.success(request, f"Updated available delivery PIN codes for '{product.name}'.")
+    next_url = request.POST.get("next") or reverse("admin_products")
+    return redirect(next_url)
+
+
+def check_pincode_availability(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    pin = (request.GET.get("pin") or request.GET.get("pincode") or "").strip()
+    if not pin:
+        return JsonResponse({"available": False, "pincode": "", "message": "Please enter a PIN code."})
+    is_available = product.is_available_for_pincode(pin)
+    pins_list = product.get_available_pincodes_list()
+    if is_available:
+        msg = f"Delivery is available for PIN code {pin}!"
+    else:
+        if pins_list:
+            msg = f"Sorry, {product.name} is not deliverable to PIN code {pin}. Available in: {', '.join(pins_list)}"
+        else:
+            msg = f"Sorry, {product.name} is currently unavailable for delivery."
+    return JsonResponse({
+        "available": is_available,
+        "pincode": pin,
+        "product_id": product.id,
+        "product_name": product.name,
+        "message": msg,
+    })
 
 
 @login_required

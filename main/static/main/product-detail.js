@@ -84,3 +84,51 @@ if (quantityInput && quantityTotal && buyButton) {
 
     updateQuantityDetails();
 }
+
+const pincodeInput = document.getElementById('pincodeCheckInput');
+const pincodeBtn = document.getElementById('pincodeCheckBtn');
+const pincodeFeedback = document.getElementById('pincodeCheckFeedback');
+
+if (pincodeInput && pincodeBtn && pincodeFeedback) {
+    const doCheck = () => {
+        const pin = pincodeInput.value.trim();
+        const productId = pincodeInput.dataset.productId;
+        if (!pin) {
+            pincodeFeedback.className = 'small mt-2 text-warning';
+            pincodeFeedback.textContent = 'Please enter a PIN code to check.';
+            pincodeFeedback.style.display = 'block';
+            return;
+        }
+        pincodeBtn.disabled = true;
+        pincodeBtn.textContent = '...';
+        fetch(`/api/check-pincode/${productId}/?pincode=${encodeURIComponent(pin)}`)
+            .then((res) => res.json())
+            .then((data) => {
+                pincodeFeedback.style.display = 'block';
+                if (data.available) {
+                    pincodeFeedback.className = 'small mt-2 text-success fw-medium';
+                    pincodeFeedback.innerHTML = `✓ ${data.message}`;
+                } else {
+                    pincodeFeedback.className = 'small mt-2 text-danger fw-medium';
+                    pincodeFeedback.innerHTML = `✕ ${data.message}`;
+                }
+            })
+            .catch(() => {
+                pincodeFeedback.className = 'small mt-2 text-warning';
+                pincodeFeedback.textContent = 'Could not verify PIN code right now. Please try again.';
+                pincodeFeedback.style.display = 'block';
+            })
+            .finally(() => {
+                pincodeBtn.disabled = false;
+                pincodeBtn.textContent = 'Check';
+            });
+    };
+
+    pincodeBtn.addEventListener('click', doCheck);
+    pincodeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            doCheck();
+        }
+    });
+}

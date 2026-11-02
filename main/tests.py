@@ -3088,6 +3088,161 @@ class DeliveryPartnerManagementTests(TestCase):
         self.assertFalse(get_user_model().objects.filter(username="driver_to_edit").exists())
 
 
+class ProductPincodeAvailabilityTests(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_superuser(
+            username="admin_pincode",
+            email="admin_pincode@example.com",
+            password="adminpassword123",
+        )
+        self.customer = get_user_model().objects.create_user(
+            username="pincode_customer",
+            email="pin_cust@example.com",
+            password="custpassword123",
+        )
+        self.product_any = Product.objects.create(
+            name="Open Drink",
+            price=Decimal("100.00"),
+            available=True,
+            available_pincodes="",
+        )
+        self.product_restricted = Product.objects.create(
+            name="Local Madurai Cola",
+            price=Decimal("80.00"),
+            available=True,
+            available_pincodes="625001, 625018, 625020",
+        )
+
+    def test_product_pincode_model_methods(self):
+        # Open drink is deliverable anywhere
+        self.assertEqual(self.product_any.get_available_pincodes_list(), [])
+        self.assertTrue(self.product_any.is_available_for_pincode("625018"))
+        self.assertTrue(self.product_any.is_available_for_pincode("110001"))
+        self.assertTrue(self.product_any.is_available_for_pincode(""))
+
+        # Restricted product is deliverable only to specified PINs
+        self.assertEqual(
+            self.product_restricted.get_available_pincodes_list(),
+            ["625001", "625018", "625020"],
+        )
+        self.assertTrue(self.product_restricted.is_available_for_pincode("625018"))
+        self.assertTrue(self.product_restricted.is_available_for_pincode("625001"))
+        self.assertFalse(self.product_restricted.is_available_for_pincode("110001"))
+        self.assertFalse(self.product_restricted.is_available_for_pincode(""))
+
+    def test_admin_update_product_pincodes(self):
+        self.client.force_login(self.admin)
+        res = self.client.post(
+            reverse("admin_update_product_pincodes", kwargs={"product_id": self.product_any.id}),
+            data={"available_pincodes": "600001, 600002"},
+        )
+        self.assertRedirects(res, reverse("admin_products"))
+        self.product_any.refresh_from_db()
+        self.assertEqual(self.product_any.available_pincodes, "600001, 600002")
+        self.assertTrue(self.product_any.is_available_for_pincode("600001"))
+        self.assertFalse(self.product_any.is_available_for_pincode("625018"))
+
+    def test_check_pincode_availability_api(self):
+        # Available pincode
+        res = self.client.get(
+            reverse("check_pincode_availability", kwargs={"product_id": self.product_restricted.id})
+            + "?pincode=625018"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data["available"])
+        self.assertIn("625018", data["message"])
+
+        # Disallowed pincode
+        res = self.client.get(
+            reverse("check_pincode_availability", kwargs={"product_id": self.product_restricted.id})
+            + "?pincode=110001"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertFalse(data["available"])
+        self.assertIn("not deliverable", data["message"])
+
+    def test_single_product_checkout_blocks_unsupported_pincode(self):
+        self.client.force_login(self.customer)
+        # Attempt checkout for restricted product with wrong pincode 110001
+        res = self.client.post(
+            f"/checkout/{self.product_restricted.id}/?qty=1",
+            data={
+                "first_name": "Pin",
+                "last_name": "Tester",
+                "email": "pin@example.com",
+                "phone": "+91 9842100000",
+                "address": "12 Main St",
+                "city": "Delhi",
+                "state": "Delhi",
+                "postal_code": "110001",
+            },
+            follow=True,
+        )
+        self.assertEqual(res.status_code, 200)
+        # Verify order was NOT created
+        self.assertFalse(Order.objects.filter(customer=self.customer).exists())
+        self.assertContains(res, "not deliverable to PIN code 110001")
+
+        # Now attempt checkout with supported pincode 625018
+        res_ok = self.client.post(
+            f"/checkout/{self.product_restricted.id}/?qty=1",
+            data={
+                "first_name": "Pin",
+                "last_name": "Tester",
+                "email": "pin@example.com",
+                "phone": "+91 9842100000",
+                "address": "12 Main St",
+                "city": "Madurai",
+                "state": "Tamil Nadu",
+                "postal_code": "625018",
+            },
+        )
+        self.assertEqual(res_ok.status_code, 302)
+        self.assertTrue(Order.objects.filter(customer=self.customer).exists())
+
+    def test_cart_checkout_blocks_unsupported_pincode(self):
+        # Add restricted product to cart
+        self.client.post(reverse("add_to_cart", kwargs={"product_id": self.product_restricted.id}), data={"quantity": 1})
+
+        # Checkout with disallowed pincode
+        res = self.client.post(
+            reverse("cart_checkout"),
+            data={
+                "first_name": "Cart",
+                "last_name": "Tester",
+                "email": "cart@example.com",
+                "phone": "+91 9842100000",
+                "address": "12 Main St",
+                "city": "Delhi",
+                "state": "Delhi",
+                "postal_code": "110001",
+            },
+            follow=True,
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "not available for delivery to PIN code 110001")
+        self.assertFalse(Order.objects.filter(customer_phone="+91 9842100000").exists())
+
+    def test_admin_products_renders_full_width_and_modal_button(self):
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("admin_products"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Add New Product")
+        self.assertContains(res, "productFormModal")
+        self.assertContains(res, "Available Delivery PINs")
+        self.assertContains(res, "productPincodesModal")
+
+    def test_admin_delivery_users_renders_full_width_and_address(self):
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("admin_delivery_users"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Add Delivery Partner")
+        self.assertContains(res, "addPartnerModal")
+        self.assertContains(res, "Residential Address")
+
+
 
 
 
