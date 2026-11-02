@@ -619,14 +619,10 @@
                     continueBtn.disabled = true;
                     continueBtn.classList.add('disabled');
                     if (noticeBox) {
-                        noticeBox.className = 'pincode-delivery-alert';
-                        noticeBox.innerHTML = `<strong>⚠️ Delivery PIN required:</strong><br>'${productName}' is only deliverable to specific areas. Available in: <div class="pincode-badge-list">${allowedPins.map(function (p) { return '<span class="pincode-pill-sm">' + p + '</span>'; }).join('')}</div>`;
-                        noticeBox.style.display = 'block';
+                        noticeBox.style.display = 'none';
                     }
                     if (zipFeedback) {
-                        zipFeedback.className = 'small mt-1 text-warning fw-medium';
-                        zipFeedback.innerHTML = 'Please enter a 6-digit delivery PIN code';
-                        zipFeedback.style.display = 'block';
+                        zipFeedback.style.display = 'none';
                     }
                     return;
                 }
@@ -649,7 +645,7 @@
                     continueBtn.classList.add('disabled');
                     if (noticeBox) {
                         noticeBox.className = 'pincode-delivery-alert';
-                        noticeBox.innerHTML = `<strong>⚠️ Delivery unavailable for PIN code ${rawVal}:</strong><br>'${productName}' is only deliverable to the following PIN codes:<div class="pincode-badge-list">${allowedPins.map(function (p) { return '<span class="pincode-pill-sm">' + p + '</span>'; }).join('')}</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please change your delivery ZIP code to proceed with payment.</div>`;
+                        noticeBox.innerHTML = `<strong>⚠️ Delivery unavailable for PIN code ${rawVal}</strong><div class="mt-1 text-white-50" style="font-size: 0.78rem;">'${productName}' is not deliverable to this PIN code. Please enter a deliverable delivery PIN code.</div>`;
                         noticeBox.style.display = 'block';
                     }
                     if (zipFeedback) {

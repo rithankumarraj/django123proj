@@ -1891,10 +1891,7 @@ def check_pincode_availability(request, product_id):
     if is_available:
         msg = f"Delivery is available for PIN code {pin}!"
     else:
-        if pins_list:
-            msg = f"Sorry, {product.name} is not deliverable to PIN code {pin}. Available in: {', '.join(pins_list)}"
-        else:
-            msg = f"Sorry, {product.name} is currently unavailable for delivery."
+        msg = f"Sorry, {product.name} is not deliverable to PIN code {pin}."
     return JsonResponse({
         "available": is_available,
         "pincode": pin,

@@ -1,9 +1,9 @@
 {% extends "main/admin_base.html" %}
 {% load static %}
 
-{% block title %}Delivery Status & Orders{% endblock %}
-{% block page_heading %}Delivery Status{% endblock %}
-{% block page_description %}Monitor live delivery orders, verify destination addresses, and edit delivery statuses.{% endblock %}
+{% block title %}Customer Orders{% endblock %}
+{% block page_heading %}Customer Orders{% endblock %}
+{% block page_description %}Monitor live customer orders, verify destination addresses, and update fulfillment statuses.{% endblock %}
 
 {% block admin_content %}
   <!-- Stats Section -->
@@ -70,7 +70,7 @@
             <circle cx="6" cy="18" r="2"></circle>
             <circle cx="18" cy="18" r="2"></circle>
           </svg>
-          Customer Orders & Delivery Status
+          Customer Orders
         </h2>
         <p class="panel-subtitle">Review shipment progress, pack orders for driver pickup, and track assigned delivery partners.</p>
       </div>
@@ -138,7 +138,7 @@
             <th>Destination Address</th>
             <th>Payment</th>
             <th>Status & Partner</th>
-            <th style="min-width: 240px;">Edit Delivery Status</th>
+            <th style="min-width: 240px;">Edit Order Status</th>
             <th style="text-align: center; min-width: 90px;">Actions</th>
           </tr>
         </thead>

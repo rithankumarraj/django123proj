@@ -1009,14 +1009,10 @@
            checkoutTotalBtn.disabled = true;
            checkoutTotalBtn.classList.add('disabled');
            if (cartNoticeBox) {
-             cartNoticeBox.className = 'pincode-delivery-alert';
-             cartNoticeBox.innerHTML = '<strong>⚠️ Delivery PIN required:</strong><br>Some items in your cart require a serviceable PIN code.';
-             cartNoticeBox.style.display = 'block';
+             cartNoticeBox.style.display = 'none';
            }
            if (cartZipFeedback) {
-             cartZipFeedback.className = 'small mt-1 text-warning fw-medium';
-             cartZipFeedback.innerHTML = 'Please enter a 6-digit delivery PIN code';
-             cartZipFeedback.style.display = 'block';
+             cartZipFeedback.style.display = 'none';
            }
            return;
          }
@@ -1035,7 +1031,7 @@
            if (cartNoticeBox) {
              cartNoticeBox.className = 'pincode-delivery-alert';
              const itemsDesc = failedItems.map(function (it) {
-               return '• <strong>' + it.name + '</strong> (Available in: ' + it.pins.join(', ') + ')';
+               return '• <strong>' + it.name + '</strong> is not deliverable to this PIN';
              }).join('<br>');
              cartNoticeBox.innerHTML = '<strong>⚠️ Items unavailable for PIN code ' + rawVal + ':</strong><div class="mt-1">' + itemsDesc + '</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please update your delivery ZIP code or adjust your cart.</div>';
              cartNoticeBox.style.display = 'block';

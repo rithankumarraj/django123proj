@@ -3162,6 +3162,7 @@ class ProductPincodeAvailabilityTests(TestCase):
         data = res.json()
         self.assertFalse(data["available"])
         self.assertIn("not deliverable", data["message"])
+        self.assertNotIn("Available in", data["message"])
 
     def test_single_product_checkout_blocks_unsupported_pincode(self):
         self.client.force_login(self.customer)
@@ -3389,6 +3390,7 @@ class OrderStatusProgressionTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Shipped")
         self.assertContains(res, "Cancelled")
+        self.assertContains(res, "Customer Orders")
         self.assertContains(res, "auto-status-select")
 
 
