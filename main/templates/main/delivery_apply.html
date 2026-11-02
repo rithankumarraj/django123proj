@@ -268,6 +268,15 @@
             {% endif %}
           </div>
         </div>
+
+        <div class="apply-field">
+          <label for="id_address">Residential Address <span class="required">*</span></label>
+          {{ form.address }}
+          <div class="field-hint">Door / Flat No., Building, Street, Area, City</div>
+          {% if form.address.errors %}
+            <div class="field-hint" style="color: #ff7676;">{{ form.address.errors|first }}</div>
+          {% endif %}
+        </div>
       </div>
 
       <!-- Section 2: Identity & Government Verification -->

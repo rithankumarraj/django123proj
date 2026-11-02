@@ -146,6 +146,7 @@ class DeliveryProfile(models.Model):
         on_delete=models.CASCADE,
     )
     phone = models.CharField(max_length=20, blank=True)
+    address = models.CharField(max_length=255, blank=True, verbose_name="Address")
     aadhar_number = models.CharField(max_length=30, blank=True, verbose_name="Aadhaar Number")
     driving_license = models.CharField(max_length=50, blank=True, verbose_name="Driving Licence")
     vehicle_type = models.CharField(max_length=30, choices=VEHICLE_CHOICES, default="bike")

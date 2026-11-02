@@ -130,6 +130,7 @@ class CustomerRegistrationForm(UserCreationForm):
 class DeliveryAccountForm(UserCreationForm):
     email = forms.EmailField(required=True)
     phone = forms.CharField(required=False, max_length=20, label="Phone Number", widget=forms.TextInput(attrs={"placeholder": "+91 98765 43210"}))
+    address = forms.CharField(required=False, max_length=255, label="Residential Address", widget=forms.TextInput(attrs={"placeholder": "Door / Flat No., Street, Area, City"}))
     aadhar_number = forms.CharField(required=False, max_length=30, label="Aadhaar Number", widget=forms.TextInput(attrs={"placeholder": "12-digit Aadhaar"}))
     driving_license = forms.CharField(required=False, max_length=50, label="Driving Licence", widget=forms.TextInput(attrs={"placeholder": "DL number"}))
     vehicle_type = forms.ChoiceField(choices=DeliveryProfile.VEHICLE_CHOICES, required=False, initial="bike", label="Vehicle Type")
@@ -149,6 +150,7 @@ class DeliveryAccountForm(UserCreationForm):
             "first_name",
             "last_name",
             "phone",
+            "address",
             "aadhar_number",
             "driving_license",
             "vehicle_type",
@@ -168,6 +170,7 @@ class DeliveryAccountForm(UserCreationForm):
         if commit:
             dp, _ = DeliveryProfile.objects.get_or_create(user=user)
             dp.phone = self.cleaned_data.get("phone", "")
+            dp.address = self.cleaned_data.get("address", "")
             dp.aadhar_number = self.cleaned_data.get("aadhar_number", "")
             dp.driving_license = self.cleaned_data.get("driving_license", "")
             dp.vehicle_type = self.cleaned_data.get("vehicle_type", "bike")
@@ -204,6 +207,12 @@ class DeliveryPartnerApplicationForm(forms.Form):
         max_length=20,
         label="Mobile Phone Number",
         widget=forms.TextInput(attrs={"placeholder": "+91 98765 43210", "autocomplete": "tel"}),
+    )
+    address = forms.CharField(
+        max_length=255,
+        label="Full Residential Address",
+        widget=forms.TextInput(attrs={"placeholder": "Door / Flat No., Street, Area, City"}),
+        help_text="Your residential address for partner verification.",
     )
     aadhar_number = forms.CharField(
         max_length=25,

@@ -2914,6 +2914,7 @@ class DeliveryPartnerManagementTests(TestCase):
             "username": "ramesh_delivery",
             "email": "ramesh@example.com",
             "phone": "+91 98765 43210",
+            "address": "12 Gandhi Nagar, Madurai",
             "aadhar_number": "1234 5678 9012",
             "driving_license": "TN-58-2022-0012345",
             "vehicle_type": "bike",
@@ -2925,11 +2926,13 @@ class DeliveryPartnerManagementTests(TestCase):
         res = self.client.post(reverse("delivery_partner_apply"), data=post_data)
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Application Submitted!")
+        self.assertContains(res, "12 Gandhi Nagar, Madurai")
 
         user = get_user_model().objects.get(username="ramesh_delivery")
         profile = DeliveryProfile.objects.get(user=user)
         self.assertFalse(profile.is_approved)
         self.assertEqual(profile.status, "pending")
+        self.assertEqual(profile.address, "12 Gandhi Nagar, Madurai")
         self.assertEqual(profile.vehicle_type, "bike")
         self.assertEqual(profile.vehicle_number, "TN 58 AB 1234")
         self.assertEqual(profile.get_serviceable_pincodes_list(), ["625001", "625018"])
@@ -3049,19 +3052,21 @@ class DeliveryPartnerManagementTests(TestCase):
 
         self.client.force_login(self.admin)
 
-        # Update PIN codes
+        # Update PIN codes and Address
         update_res = self.client.post(
             reverse("admin_update_delivery_pincodes", kwargs={"profile_id": dp.id}),
             data={
                 "serviceable_pincodes": "625001, 625018, 625020",
                 "vehicle_type": "ev",
                 "vehicle_number": "TN 58 EV 9999",
+                "address": "45 New Lake Road, Madurai",
             },
         )
         self.assertRedirects(update_res, reverse("admin_delivery_users"))
         dp.refresh_from_db()
         self.assertEqual(dp.vehicle_type, "ev")
         self.assertEqual(dp.vehicle_number, "TN 58 EV 9999")
+        self.assertEqual(dp.address, "45 New Lake Road, Madurai")
         self.assertIn("625018", dp.get_serviceable_pincodes_list())
 
         # Reject partner

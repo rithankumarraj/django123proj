@@ -214,7 +214,7 @@
             </svg>
             Add Delivery Partner
           </h2>
-          <p class="panel-subtitle">Onboard a delivery partner with vehicle & PIN codes.</p>
+          <p class="panel-subtitle">Onboard a delivery partner with address, vehicle & PIN codes.</p>
         </div>
       </div>
 
@@ -253,6 +253,14 @@
           {{ delivery_form.phone }}
           {% if delivery_form.phone.errors %}
             <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.phone.errors|first }}</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="id_address">Residential Address</label>
+          {{ delivery_form.address }}
+          {% if delivery_form.address.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.address.errors|first }}</span>
           {% endif %}
         </div>
 
@@ -342,7 +350,7 @@
             </svg>
             Delivery Partners Directory
           </h2>
-          <p class="panel-subtitle">Review KYC documents, verify vehicles, update delivery zones, and approve partners.</p>
+          <p class="panel-subtitle">Review KYC documents, verify vehicles & addresses, update delivery zones, and approve partners.</p>
         </div>
 
         <!-- Search Bar -->
@@ -425,8 +433,13 @@
                       <div><strong style="color: #fff;">{{ profile.phone }}</strong></div>
                     {% endif %}
                     <div class="cell-sub-info">{{ profile.user.email|default:"No email" }}</div>
-                    {% if profile.aadhar_number %}
+                    {% if profile.address %}
                       <div style="margin-top: 4px; font-size: 0.75rem; color: var(--admin-text-muted);">
+                        Address: <span style="color: #fff;">{{ profile.address }}</span>
+                      </div>
+                    {% endif %}
+                    {% if profile.aadhar_number %}
+                      <div style="margin-top: 3px; font-size: 0.75rem; color: var(--admin-text-muted);">
                         Aadhaar: <span style="font-family: monospace; color: #fff;">{{ profile.aadhar_number }}</span>
                       </div>
                     {% endif %}
@@ -521,7 +534,7 @@
                     {% endif %}
 
                     <!-- Edit PINs / Details Trigger Button -->
-                    <button type="button" class="btn-action-blue" onclick="openEditPartnerModal('{{ profile.id }}', '{{ profile.user.username }}', '{{ profile.serviceable_pincodes|escapejs }}', '{{ profile.vehicle_type }}', '{{ profile.vehicle_number|escapejs }}', '{{ profile.phone|escapejs }}', '{{ profile.aadhar_number|escapejs }}', '{{ profile.driving_license|escapejs }}')">
+                    <button type="button" class="btn-action-blue" onclick="openEditPartnerModal('{{ profile.id }}', '{{ profile.user.username }}', '{{ profile.serviceable_pincodes|escapejs }}', '{{ profile.vehicle_type }}', '{{ profile.vehicle_number|escapejs }}', '{{ profile.phone|escapejs }}', '{{ profile.address|escapejs }}', '{{ profile.aadhar_number|escapejs }}', '{{ profile.driving_license|escapejs }}')">
                       Edit PINs
                     </button>
 
@@ -572,6 +585,11 @@
           <span class="form-help" style="font-size: 0.75rem; color: #9aa2a9;">Driver can only view & pick orders within these comma-separated PIN codes.</span>
         </div>
 
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="modalAddress">Residential Address</label>
+          <input type="text" name="address" id="modalAddress" class="form-control" placeholder="Door / Flat No., Street, Area, City">
+        </div>
+
         <div class="form-row-2" style="margin-bottom: 14px;">
           <div class="form-group">
             <label class="form-label" for="modalVehicleType">Vehicle Type</label>
@@ -612,15 +630,16 @@
   </div>
 
   <script>
-    function openEditPartnerModal(id, username, pincodes, vehicleType, vehicleNumber, phone, aadhar, dl) {
+    function openEditPartnerModal(id, username, pincodes, vehicleType, vehicleNumber, phone, address, aadhar, dl) {
       document.getElementById('modalDriverName').textContent = username;
       document.getElementById('editPartnerForm').action = '/admin-profile/delivery-users/' + id + '/update-pincodes/';
-      document.getElementById('modalServiceablePincodes').value = pincodes;
-      document.getElementById('modalVehicleType').value = vehicleType;
-      document.getElementById('modalVehicleNumber').value = vehicleNumber;
-      document.getElementById('modalPhone').value = phone;
-      document.getElementById('modalAadhar').value = aadhar;
-      document.getElementById('modalDrivingLicense').value = dl;
+      document.getElementById('modalServiceablePincodes').value = pincodes || '';
+      document.getElementById('modalAddress').value = address || '';
+      document.getElementById('modalVehicleType').value = vehicleType || 'bike';
+      document.getElementById('modalVehicleNumber').value = vehicleNumber || '';
+      document.getElementById('modalPhone').value = phone || '';
+      document.getElementById('modalAadhar').value = aadhar || '';
+      document.getElementById('modalDrivingLicense').value = dl || '';
       document.getElementById('editPartnerModal').classList.add('active');
     }
     function closeEditPartnerModal() {

@@ -1465,6 +1465,7 @@ def delivery_partner_apply(request):
                 dp = DeliveryProfile.objects.create(
                     user=user,
                     phone=form.cleaned_data["phone"].strip(),
+                    address=form.cleaned_data["address"].strip(),
                     aadhar_number=form.cleaned_data["aadhar_number"].strip(),
                     driving_license=form.cleaned_data["driving_license"].strip(),
                     vehicle_type=form.cleaned_data["vehicle_type"],
@@ -1883,6 +1884,7 @@ def admin_delivery_users(request):
             | Q(user__last_name__icontains=search_query)
             | Q(user__email__icontains=search_query)
             | Q(phone__icontains=search_query)
+            | Q(address__icontains=search_query)
             | Q(aadhar_number__icontains=search_query)
             | Q(driving_license__icontains=search_query)
             | Q(vehicle_number__icontains=search_query)
@@ -1956,6 +1958,8 @@ def admin_update_delivery_pincodes(request, profile_id):
         profile.vehicle_number = request.POST.get("vehicle_number", profile.vehicle_number).strip()
     if "phone" in request.POST:
         profile.phone = request.POST.get("phone", profile.phone).strip()
+    if "address" in request.POST:
+        profile.address = request.POST.get("address", profile.address).strip()
     if "aadhar_number" in request.POST:
         profile.aadhar_number = request.POST.get("aadhar_number", profile.aadhar_number).strip()
     if "driving_license" in request.POST:
