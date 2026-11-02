@@ -932,6 +932,26 @@
         </div>
       </div>
 
+      {% if profile %}
+        <div style="padding: 12px 20px; border-bottom: 1px solid var(--admin-line); font-size: 0.78rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--admin-text-dimmed); text-transform: uppercase; font-weight: 700; font-size: 0.68rem; letter-spacing: 0.08em;">Vehicle</span>
+            <span style="color: var(--admin-text-white); font-weight: 600;">{{ profile.vehicle_display }}</span>
+          </div>
+          {% if profile.vehicle_number %}
+            <div style="color: #9aa2a9; font-size: 0.75rem; margin-bottom: 8px; font-family: monospace;">{{ profile.vehicle_number }}</div>
+          {% endif %}
+          <div style="color: var(--admin-text-dimmed); text-transform: uppercase; font-weight: 700; font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 6px;">Assigned PINs</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            {% for pin in serviceable_pins %}
+              <span style="padding: 2px 7px; background: rgba(90, 163, 255, 0.15); border: 1px solid rgba(90, 163, 255, 0.3); border-radius: 4px; color: #5aa3ff; font-weight: 700; font-size: 0.72rem;">{{ pin }}</span>
+            {% empty %}
+              <span style="color: var(--admin-text-dimmed); font-style: italic;">All PIN Codes</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
       <!-- Side Navigation Section -->
       <div class="sidebar-nav-container">
         <div class="nav-section">
@@ -1028,7 +1048,7 @@
             </h1>
             <p class="page-subtitle">
               {% if active_tab == 'available' %}
-                Showing all pending and packed orders ready for partner pickup.
+                Showing orders matching your delivery zones ({% for p in serviceable_pins %}{{ p }}{% if not forloop.last %}, {% endif %}{% empty %}All PINs{% endfor %}).
               {% else %}
                 Manage your active deliveries. Update status to Delivered or Returned.
               {% endif %}
@@ -1117,7 +1137,14 @@
                   <article class="order-card">
                     <div class="order-card-header">
                       <div>
-                        <div class="order-number">Order #{{ order.id }} · {{ order.customer_name }}</div>
+                        <div class="order-number" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                          <span>Order #{{ order.id }} · {{ order.customer_name }}</span>
+                          {% if order.delivery_postal_code %}
+                            <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; background: rgba(90, 163, 255, 0.14); border: 1px solid rgba(90, 163, 255, 0.3); color: #5aa3ff; font-weight: 700; letter-spacing: 0.03em;">
+                              PIN {{ order.delivery_postal_code }}
+                            </span>
+                          {% endif %}
+                        </div>
                         <div class="order-timestamp">Claimed by you · Placed {{ order.created_at|date:"M d, H:i" }}</div>
                       </div>
                       <span class="status-pill status-{{ order.status }}">{{ order.get_status_display }}</span>
@@ -1289,7 +1316,14 @@
                   <article class="order-card">
                     <div class="order-card-header">
                       <div>
-                        <div class="order-number">Order #{{ order.id }} · {{ order.customer_name }}</div>
+                        <div class="order-number" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                          <span>Order #{{ order.id }} · {{ order.customer_name }}</span>
+                          {% if order.delivery_postal_code %}
+                            <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; background: rgba(90, 163, 255, 0.14); border: 1px solid rgba(90, 163, 255, 0.3); color: #5aa3ff; font-weight: 700; letter-spacing: 0.03em;">
+                              PIN {{ order.delivery_postal_code }}
+                            </span>
+                          {% endif %}
+                        </div>
                         <div class="order-timestamp">Placed {{ order.created_at|date:"M d, H:i" }}</div>
                       </div>
                       {% if order.status == 'packed' %}
@@ -1395,8 +1429,10 @@
                     <path d="M12 22V12"></path>
                   </svg>
                 </div>
-                <h3 class="empty-title">No Orders Available to Pick</h3>
-                <p class="empty-subtitle">All customer orders have been claimed by delivery partners. New orders will appear here as soon as placed.</p>
+                <h3 class="empty-title">No Orders Available in Your Zone</h3>
+                <p class="empty-subtitle">
+                  No orders currently awaiting pickup for your assigned PIN codes ({% for p in serviceable_pins %}{{ p }}{% if not forloop.last %}, {% endif %}{% empty %}All PINs{% endfor %}). New orders in your zone will appear here automatically.
+                </p>
                 <a href="?tab=available" class="btn-pick" style="display: inline-flex;">Refresh Orders</a>
               </div>
             {% endif %}

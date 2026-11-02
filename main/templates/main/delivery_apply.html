@@ -1,0 +1,405 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Become a Delivery Partner | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'main/css/customer-auth.css' %}">
+  <style>
+    .apply-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(90, 163, 255, 0.15), transparent),
+        linear-gradient(180deg, #090c0e 0%, #0d1114 100%);
+      color: #f3f5f7;
+    }
+    .apply-card {
+      width: min(100%, 720px);
+      background: #11161a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: clamp(24px, 5vw, 44px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    }
+    .apply-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .apply-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(47, 207, 122, 0.12);
+      border: 1px solid rgba(47, 207, 122, 0.3);
+      color: #2fcf7a;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+    .apply-header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.3rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 0 0 10px;
+      color: #fff;
+    }
+    .apply-header p {
+      color: #9aa2a9;
+      font-size: 0.95rem;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .apply-section {
+      margin-bottom: 28px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .apply-section:last-of-type {
+      border-bottom: none;
+      margin-bottom: 16px;
+      padding-bottom: 0;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #5aa3ff;
+      margin-bottom: 16px;
+    }
+    .section-title svg {
+      flex-shrink: 0;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+    .apply-field {
+      margin-bottom: 16px;
+    }
+    .apply-field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #d1d5db;
+    }
+    .apply-field label .required {
+      color: #ff7676;
+    }
+    .apply-field input,
+    .apply-field select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.18s ease;
+    }
+    .apply-field select option {
+      background: #11161a;
+      color: #fff;
+    }
+    .apply-field input:focus,
+    .apply-field select:focus {
+      border-color: #5aa3ff;
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 3px rgba(90, 163, 255, 0.2);
+    }
+    .field-hint {
+      font-size: 0.78rem;
+      color: #9aa2a9;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+    .field-hint strong {
+      color: #f6be5d;
+    }
+    .btn-apply-submit {
+      width: 100%;
+      padding: 14px 24px;
+      background: #2fcf7a;
+      color: #052410;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 18px rgba(47, 207, 122, 0.25);
+    }
+    .btn-apply-submit:hover {
+      background: #39df87;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(47, 207, 122, 0.35);
+    }
+    .info-callout {
+      background: rgba(90, 163, 255, 0.08);
+      border: 1px solid rgba(90, 163, 255, 0.2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: #c0d8ff;
+      line-height: 1.45;
+    }
+    .info-callout svg {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .apply-footer-links {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.9rem;
+      color: #9aa2a9;
+    }
+    .apply-footer-links a {
+      color: #fff;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body class="apply-shell">
+  <div class="apply-card">
+    <div class="apply-header">
+      <a href="{% url 'home' %}" class="brand-link" style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; color: #fff; font-weight: 800; font-size: 1.3rem;">
+        J CSD
+      </a>
+      <div>
+        <span class="apply-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Partner Onboarding
+        </span>
+      </div>
+      <h1>Apply as Delivery Partner</h1>
+      <p>Deliver refreshing drinks to customers in your local service area. Submit your identity, vehicle, and postal code zones for verification.</p>
+    </div>
+
+    {% if messages %}
+      <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+          <div style="padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; font-size: 0.9rem;
+            {% if message.tags == 'error' %}background: rgba(255, 118, 118, 0.15); border: 1px solid rgba(255, 118, 118, 0.4); color: #ffb4b4;
+            {% elif message.tags == 'success' %}background: rgba(47, 207, 122, 0.15); border: 1px solid rgba(47, 207, 122, 0.4); color: #9df0c0;
+            {% else %}background: rgba(246, 190, 93, 0.15); border: 1px solid rgba(246, 190, 93, 0.4); color: #ffe0a3;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'delivery_partner_apply' %}">
+      {% csrf_token %}
+
+      <!-- Section 1: Personal Details -->
+      <div class="apply-section">
+        <div class="section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          1. Personal Information
+        </div>
+        <div class="form-grid-2">
+          <div class="apply-field">
+            <label for="id_first_name">First Name <span class="required">*</span></label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.first_name.errors|first }}</div>
+            {% endif %}
+          </div>
+          <div class="apply-field">
+            <label for="id_last_name">Last Name</label>
+            {{ form.last_name }}
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="apply-field">
+            <label for="id_email">Email Address <span class="required">*</span></label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.email.errors|first }}</div>
+            {% endif %}
+          </div>
+          <div class="apply-field">
+            <label for="id_phone">Mobile Number <span class="required">*</span></label>
+            {{ form.phone }}
+            <div class="field-hint">Active phone for delivery OTPs & customer contact</div>
+            {% if form.phone.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.phone.errors|first }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Identity & Government Verification -->
+      <div class="apply-section">
+        <div class="section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+            <path d="M3 9h18"></path>
+            <path d="M9 21V9"></path>
+          </svg>
+          2. Identity & Verification Details
+        </div>
+        <div class="form-grid-2">
+          <div class="apply-field">
+            <label for="id_aadhar_number">Aadhaar Card Number <span class="required">*</span></label>
+            {{ form.aadhar_number }}
+            <div class="field-hint">12-digit Indian Aadhaar number (e.g. 1234 5678 9012)</div>
+            {% if form.aadhar_number.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.aadhar_number.errors|first }}</div>
+            {% endif %}
+          </div>
+          <div class="apply-field">
+            <label for="id_driving_license">Driving Licence Number <span class="required">*</span></label>
+            {{ form.driving_license }}
+            <div class="field-hint">e.g. TN-58-2022-0001234</div>
+            {% if form.driving_license.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.driving_license.errors|first }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Vehicle & Delivery Zones -->
+      <div class="apply-section">
+        <div class="section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="16" height="12" x="1" y="3" rx="2"></rect>
+            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+          </svg>
+          3. Vehicle & Serviceable PIN Codes
+        </div>
+        <div class="form-grid-2">
+          <div class="apply-field">
+            <label for="id_vehicle_type">Vehicle Type <span class="required">*</span></label>
+            {{ form.vehicle_type }}
+            {% if form.vehicle_type.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.vehicle_type.errors|first }}</div>
+            {% endif %}
+          </div>
+          <div class="apply-field">
+            <label for="id_vehicle_number">Vehicle Registration Plate <span class="required">*</span></label>
+            {{ form.vehicle_number }}
+            <div class="field-hint">e.g. TN 58 AB 1234</div>
+            {% if form.vehicle_number.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.vehicle_number.errors|first }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="apply-field">
+          <label for="id_serviceable_pincodes">PIN Codes You Can Deliver To <span class="required">*</span></label>
+          {{ form.serviceable_pincodes }}
+          <div class="field-hint">
+            <strong>Important:</strong> Enter comma-separated 6-digit postal codes (e.g. <code>625018, 625001, 625020</code>). You will <strong>only</strong> see and be authorized to pick customer orders destined for these PIN codes.
+          </div>
+          {% if form.serviceable_pincodes.errors %}
+            <div class="field-hint" style="color: #ff7676;">{{ form.serviceable_pincodes.errors|first }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Section 4: Account Credentials -->
+      <div class="apply-section">
+        <div class="section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          4. Delivery Portal Credentials
+        </div>
+        <div class="apply-field">
+          <label for="id_username">Portal Username <span class="required">*</span></label>
+          {{ form.username }}
+          <div class="field-hint">Used to sign in to the delivery partner dashboard</div>
+          {% if form.username.errors %}
+            <div class="field-hint" style="color: #ff7676;">{{ form.username.errors|first }}</div>
+          {% endif %}
+        </div>
+        <div class="form-grid-2">
+          <div class="apply-field">
+            <label for="id_password">Create Password <span class="required">*</span></label>
+            {{ form.password }}
+            {% if form.password.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.password.errors|first }}</div>
+            {% endif %}
+          </div>
+          <div class="apply-field">
+            <label for="id_password_confirm">Confirm Password <span class="required">*</span></label>
+            {{ form.password_confirm }}
+            {% if form.password_confirm.errors %}
+              <div class="field-hint" style="color: #ff7676;">{{ form.password_confirm.errors|first }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="info-callout">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>
+          After submitting, our store admin team will verify your Aadhaar number, driving licence, and assigned delivery PIN codes before approving your account.
+        </span>
+      </div>
+
+      <button type="submit" class="btn-apply-submit">
+        <span>Submit Application for Admin Review</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </form>
+
+    <div class="apply-footer-links">
+      Already approved? <a href="{% url 'delivery_login' %}">Sign in to Delivery Portal</a>
+      &nbsp;•&nbsp;
+      <a href="{% url 'home' %}">Back to Storefront</a>
+    </div>
+  </div>
+</body>
+</html>

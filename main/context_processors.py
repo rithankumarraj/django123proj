@@ -43,7 +43,7 @@ def navbar_context(request):
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
         try:
-            is_delivery_user = DeliveryProfile.objects.filter(user=user).exists()
+            is_delivery_user = DeliveryProfile.objects.filter(user=user, is_approved=True).exists()
         except Exception:
             is_delivery_user = False
 

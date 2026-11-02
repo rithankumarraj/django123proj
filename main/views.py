@@ -32,6 +32,7 @@ from .forms import (
     CustomerRegistrationForm,
     DeliveryAccountForm,
     DeliveryAddressForm,
+    DeliveryPartnerApplicationForm,
     EmailAuthenticationForm,
     PackingChargesForm,
     PasswordChangeForm,
@@ -465,7 +466,10 @@ def _wishlist_products(request):
 
 
 def _is_delivery_user(user):
-    return user.is_authenticated and DeliveryProfile.objects.filter(user=user).exists()
+    return (
+        user.is_authenticated
+        and DeliveryProfile.objects.filter(user=user, is_approved=True).exists()
+    )
 
 
 def home(request):
@@ -956,25 +960,31 @@ def customer_profile(request):
             account_form = CustomerAccountForm(request.POST, instance=request.user)
             profile_form = CustomerProfileForm(request.POST, request.FILES, instance=profile)
             if request.POST.get("remove_avatar") == "1" and profile.avatar:
-                profile.avatar.delete(save=False)
+                try:
+                    profile.avatar.delete(save=False)
+                except Exception:
+                    pass
                 profile.avatar = None
             if account_form.is_valid() and profile_form.is_valid():
-                with transaction.atomic():
-                    account_form.save()
-                    profile_obj = profile_form.save()
-                    if profile_obj.address:
-                        save_customer_address(
-                            user=request.user,
-                            phone=profile_obj.phone,
-                            address=profile_obj.address,
-                            city=profile_obj.city,
-                            state=profile_obj.state,
-                            postal_code=profile_obj.postal_code,
-                            full_name=f"{request.user.first_name} {request.user.last_name}".strip(),
-                            set_default=True,
-                        )
-                messages.success(request, "Your profile has been updated.")
-                return redirect("customer_profile")
+                try:
+                    with transaction.atomic():
+                        account_form.save()
+                        profile_obj = profile_form.save()
+                        if profile_obj.address:
+                            save_customer_address(
+                                user=request.user,
+                                phone=profile_obj.phone,
+                                address=profile_obj.address,
+                                city=profile_obj.city,
+                                state=profile_obj.state,
+                                postal_code=profile_obj.postal_code,
+                                full_name=f"{request.user.first_name} {request.user.last_name}".strip(),
+                                set_default=True,
+                            )
+                    messages.success(request, "Your profile has been updated.")
+                    return redirect("customer_profile")
+                except Exception as e:
+                    messages.error(request, f"Could not save profile: {e}")
         elif action == "add_address":
             current_count = CustomerAddress.objects.filter(user=request.user).count()
             if current_count >= MAX_SAVED_ADDRESSES:
@@ -1435,14 +1445,86 @@ def admin_login(request):
     )
 
 
+def delivery_partner_apply(request):
+    if request.user.is_authenticated and DeliveryProfile.objects.filter(user=request.user).exists():
+        dp = DeliveryProfile.objects.filter(user=request.user).first()
+        if dp and dp.is_approved:
+            return redirect("delivery_dashboard")
+
+    if request.method == "POST":
+        form = DeliveryPartnerApplicationForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                user = get_user_model().objects.create_user(
+                    username=form.cleaned_data["username"].strip(),
+                    email=form.cleaned_data["email"].strip().lower(),
+                    password=form.cleaned_data["password"],
+                    first_name=form.cleaned_data["first_name"].strip(),
+                    last_name=form.cleaned_data.get("last_name", "").strip(),
+                )
+                dp = DeliveryProfile.objects.create(
+                    user=user,
+                    phone=form.cleaned_data["phone"].strip(),
+                    aadhar_number=form.cleaned_data["aadhar_number"].strip(),
+                    driving_license=form.cleaned_data["driving_license"].strip(),
+                    vehicle_type=form.cleaned_data["vehicle_type"],
+                    vehicle_number=form.cleaned_data["vehicle_number"].strip(),
+                    serviceable_pincodes=form.cleaned_data["serviceable_pincodes"].strip(),
+                    is_approved=False,
+                    status="pending",
+                )
+            return render(
+                request,
+                "main/delivery_apply_success.html",
+                {
+                    "applicant": dp,
+                    "serviceable_pins": dp.get_serviceable_pincodes_list(),
+                },
+            )
+        else:
+            for error_list in form.errors.values():
+                for error in error_list:
+                    messages.error(request, error)
+    else:
+        form = DeliveryPartnerApplicationForm()
+
+    return render(
+        request,
+        "main/delivery_apply.html",
+        {
+            "form": form,
+            "vehicle_choices": DeliveryProfile.VEHICLE_CHOICES,
+        },
+    )
+
+
 def delivery_login(request):
     if request.user.is_authenticated and DeliveryProfile.objects.filter(user=request.user).exists():
+        dp = DeliveryProfile.objects.filter(user=request.user).first()
+        if dp and not dp.is_approved:
+            logout(request)
+            messages.warning(
+                request,
+                "Your delivery partner account is currently pending admin verification. You can log in once approved.",
+            )
+            return redirect("delivery_login")
         return redirect("delivery_dashboard")
 
     form = EmailAuthenticationForm(request, data=request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.get_user()
-        if DeliveryProfile.objects.filter(user=user).exists():
+        dp = DeliveryProfile.objects.filter(user=user).first()
+        if dp:
+            if not dp.is_approved:
+                if dp.status == "rejected":
+                    reason = dp.rejection_reason or "Document verification requirements were not met."
+                    form.add_error(None, f"Your delivery partner application was not approved. Reason: {reason}")
+                else:
+                    form.add_error(
+                        None,
+                        "Your delivery partner application is under review. Our admin team will verify your Aadhaar, Licence, and Vehicle details soon.",
+                    )
+                return render(request, "main/delivery_login.html", {"form": form})
             login(request, user)
             return redirect("delivery_dashboard")
         form.add_error(None, "This account does not have delivery access.")
@@ -1452,12 +1534,17 @@ def delivery_login(request):
 
 @login_required(login_url="delivery_login")
 def delivery_dashboard(request):
-    if not DeliveryProfile.objects.filter(user=request.user).exists():
+    profile = DeliveryProfile.objects.filter(user=request.user).first()
+    if not profile:
         return HttpResponseForbidden("Delivery access is required.")
+    if not profile.is_approved:
+        return HttpResponseForbidden("Your delivery partner account is pending admin approval.")
 
     active_tab = request.GET.get("tab", "picked").strip().lower()
     if active_tab not in {"picked", "available"}:
         active_tab = "picked"
+
+    serviceable_pins = profile.get_serviceable_pincodes_list()
 
     # 1. Orders available to be picked (shows all pending and packed unassigned orders)
     available_orders = (
@@ -1473,6 +1560,14 @@ def delivery_dashboard(request):
             "-created_at",
         )
     )
+
+    # Core requirement: Delivery partners can ONLY view orders whose PIN code they can deliver to
+    if serviceable_pins:
+        pin_q = Q()
+        for pin in serviceable_pins:
+            pin_q |= Q(delivery_postal_code__iexact=pin) | Q(delivery_postal_code__icontains=pin)
+        available_orders = available_orders.filter(pin_q)
+
     available_count = available_orders.count()
 
     # 2. Orders picked by the current delivery partner
@@ -1510,6 +1605,9 @@ def delivery_dashboard(request):
             "active_picked_count": active_picked_count,
             "total_picked_count": total_picked_count,
             "orders": display_orders,
+            "profile": profile,
+            "delivery_profile": profile,
+            "serviceable_pins": serviceable_pins,
         },
     )
 
@@ -1517,10 +1615,22 @@ def delivery_dashboard(request):
 @login_required(login_url="delivery_login")
 @require_POST
 def pick_delivery_order(request, order_id):
-    if not DeliveryProfile.objects.filter(user=request.user).exists():
+    profile = DeliveryProfile.objects.filter(user=request.user).first()
+    if not profile:
         return HttpResponseForbidden("Delivery access is required.")
+    if not profile.is_approved:
+        return HttpResponseForbidden("Your delivery partner account is pending admin approval.")
 
     order = get_object_or_404(Order, pk=order_id)
+
+    # Core requirement: Delivery partners can ONLY pick orders whose PIN code they can deliver to
+    if not profile.can_deliver_to_pincode(order.delivery_postal_code):
+        pins_str = ", ".join(profile.get_serviceable_pincodes_list())
+        messages.error(
+            request,
+            f"You cannot pick Order #{order.pk} because its delivery PIN code ({order.delivery_postal_code or 'Unspecified'}) is outside your assigned area ({pins_str}).",
+        )
+        return redirect(f"{reverse('delivery_dashboard')}?tab=available")
 
     # If already picked by another delivery partner, prevent double pickup
     if order.delivery_user is not None and order.delivery_user != request.user:
@@ -1585,9 +1695,7 @@ def update_delivery_status(request, order_id):
 def create_delivery_account(request):
     form = DeliveryAccountForm(request.POST)
     if form.is_valid():
-        with transaction.atomic():
-            user = form.save()
-            DeliveryProfile.objects.create(user=user)
+        user = form.save()
         messages.success(request, f"Delivery account created for {user.get_username()}.")
     else:
         for error in form.errors.values():
@@ -1736,9 +1844,7 @@ def admin_delivery_users(request):
     if request.method == "POST":
         form = DeliveryAccountForm(request.POST)
         if form.is_valid():
-            with transaction.atomic():
-                user = form.save()
-                DeliveryProfile.objects.create(user=user)
+            user = form.save()
             messages.success(request, f"Delivery staff account '{user.get_username()}' created successfully.")
             return redirect("admin_delivery_users")
         else:
@@ -1748,22 +1854,130 @@ def admin_delivery_users(request):
     else:
         form = DeliveryAccountForm()
 
+    status_filter = request.GET.get("status", "all").strip().lower()
+    search_query = request.GET.get("q", "").strip()
+
     delivery_profiles = DeliveryProfile.objects.select_related("user").order_by("-created_at")
+
     total_delivery_users_count = delivery_profiles.count()
-    active_delivery_users_count = sum(1 for dp in delivery_profiles if dp.user.is_active)
+    pending_delivery_users_count = delivery_profiles.filter(Q(status="pending") | Q(is_approved=False)).count()
+    approved_delivery_users_count = delivery_profiles.filter(status="approved", is_approved=True).count()
+    rejected_delivery_users_count = delivery_profiles.filter(status="rejected").count()
     total_products_count = Product.objects.count()
     pending_orders_count = Order.objects.filter(status="pending").count()
 
+    if status_filter == "pending":
+        filtered_profiles = delivery_profiles.filter(Q(status="pending") | Q(is_approved=False))
+    elif status_filter == "approved":
+        filtered_profiles = delivery_profiles.filter(status="approved", is_approved=True)
+    elif status_filter == "rejected":
+        filtered_profiles = delivery_profiles.filter(status="rejected")
+    else:
+        status_filter = "all"
+        filtered_profiles = delivery_profiles
+
+    if search_query:
+        filtered_profiles = filtered_profiles.filter(
+            Q(user__username__icontains=search_query)
+            | Q(user__first_name__icontains=search_query)
+            | Q(user__last_name__icontains=search_query)
+            | Q(user__email__icontains=search_query)
+            | Q(phone__icontains=search_query)
+            | Q(aadhar_number__icontains=search_query)
+            | Q(driving_license__icontains=search_query)
+            | Q(vehicle_number__icontains=search_query)
+            | Q(serviceable_pincodes__icontains=search_query)
+        )
+
     context = {
         "active_page": "delivery_users",
-        "delivery_profiles": delivery_profiles,
+        "delivery_profiles": filtered_profiles,
         "delivery_form": form,
+        "status_filter": status_filter,
+        "search_query": search_query,
         "total_delivery_users_count": total_delivery_users_count,
-        "active_delivery_users_count": active_delivery_users_count,
+        "pending_delivery_users_count": pending_delivery_users_count,
+        "approved_delivery_users_count": approved_delivery_users_count,
+        "rejected_delivery_users_count": rejected_delivery_users_count,
+        "active_delivery_users_count": approved_delivery_users_count,
         "total_products_count": total_products_count,
         "pending_orders_count": pending_orders_count,
+        "vehicle_choices": DeliveryProfile.VEHICLE_CHOICES,
     }
     return render(request, "main/admin_delivery_users.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_approve_delivery_partner(request, profile_id):
+    profile = get_object_or_404(DeliveryProfile, pk=profile_id)
+    profile.is_approved = True
+    profile.status = "approved"
+    profile.rejection_reason = ""
+    profile.save(update_fields=["is_approved", "status", "rejection_reason", "updated_at"])
+    if not profile.user.is_active:
+        profile.user.is_active = True
+        profile.user.save(update_fields=["is_active"])
+    messages.success(request, f"Delivery partner '{profile.user.username}' has been approved successfully.")
+    next_url = request.POST.get("next") or reverse("admin_delivery_users")
+    return redirect(next_url)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_reject_delivery_partner(request, profile_id):
+    profile = get_object_or_404(DeliveryProfile, pk=profile_id)
+    reason = request.POST.get("rejection_reason", "").strip() or "Application rejected by admin."
+    profile.is_approved = False
+    profile.status = "rejected"
+    profile.rejection_reason = reason
+    profile.save(update_fields=["is_approved", "status", "rejection_reason", "updated_at"])
+    messages.warning(request, f"Delivery partner '{profile.user.username}' has been rejected.")
+    next_url = request.POST.get("next") or reverse("admin_delivery_users")
+    return redirect(next_url)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_update_delivery_pincodes(request, profile_id):
+    profile = get_object_or_404(DeliveryProfile, pk=profile_id)
+    pincodes_raw = request.POST.get("serviceable_pincodes", "").strip()
+    codes = re.findall(r"\b\d{6}\b", pincodes_raw)
+    if not codes:
+        codes = [c.strip() for c in re.split(r"[,;\s]+", pincodes_raw) if c.strip()]
+    profile.serviceable_pincodes = ", ".join(sorted(list(dict.fromkeys(codes))))
+
+    if "vehicle_type" in request.POST:
+        profile.vehicle_type = request.POST.get("vehicle_type", profile.vehicle_type)
+    if "vehicle_number" in request.POST:
+        profile.vehicle_number = request.POST.get("vehicle_number", profile.vehicle_number).strip()
+    if "phone" in request.POST:
+        profile.phone = request.POST.get("phone", profile.phone).strip()
+    if "aadhar_number" in request.POST:
+        profile.aadhar_number = request.POST.get("aadhar_number", profile.aadhar_number).strip()
+    if "driving_license" in request.POST:
+        profile.driving_license = request.POST.get("driving_license", profile.driving_license).strip()
+
+    profile.save()
+    messages.success(request, f"Updated delivery details & PIN codes for '{profile.user.username}'.")
+    next_url = request.POST.get("next") or reverse("admin_delivery_users")
+    return redirect(next_url)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_delete_delivery_partner(request, profile_id):
+    profile = get_object_or_404(DeliveryProfile, pk=profile_id)
+    username = profile.user.username
+    with transaction.atomic():
+        profile.user.delete()
+    messages.success(request, f"Delivery partner account '{username}' has been deleted.")
+    next_url = request.POST.get("next") or reverse("admin_delivery_users")
+    return redirect(next_url)
 
 
 @login_required

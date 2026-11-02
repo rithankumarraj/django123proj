@@ -124,15 +124,67 @@ class Product(models.Model):
 
 
 class DeliveryProfile(models.Model):
+    VEHICLE_CHOICES = [
+        ("bike", "Motorcycle / Bike"),
+        ("scooter", "Scooter / Moped"),
+        ("ev", "Electric Vehicle (EV)"),
+        ("auto", "Auto Rickshaw (3-Wheeler)"),
+        ("van", "Delivery Van / Mini Truck"),
+        ("car", "Car"),
+        ("other", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("pending", "Pending Verification"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         related_name="delivery_profile",
         on_delete=models.CASCADE,
     )
+    phone = models.CharField(max_length=20, blank=True)
+    aadhar_number = models.CharField(max_length=30, blank=True, verbose_name="Aadhaar Number")
+    driving_license = models.CharField(max_length=50, blank=True, verbose_name="Driving Licence")
+    vehicle_type = models.CharField(max_length=30, choices=VEHICLE_CHOICES, default="bike")
+    vehicle_number = models.CharField(max_length=40, blank=True, verbose_name="Vehicle Number")
+    serviceable_pincodes = models.TextField(
+        blank=True,
+        help_text="Comma-separated postal/PIN codes this partner can deliver to (e.g. 625018, 625001)",
+    )
+    is_approved = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="approved")
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Delivery profile for {self.user.get_username()}"
+        return f"Delivery profile for {self.user.get_username()} ({self.get_status_display()})"
+
+    def get_serviceable_pincodes_list(self):
+        if not self.serviceable_pincodes:
+            return []
+        import re
+        codes = re.findall(r"\b\d{6}\b", self.serviceable_pincodes)
+        if not codes:
+            codes = [c.strip() for c in re.split(r"[,;\s]+", self.serviceable_pincodes) if c.strip()]
+        return sorted(list(dict.fromkeys(codes)))
+
+    def can_deliver_to_pincode(self, pincode):
+        pincodes = self.get_serviceable_pincodes_list()
+        if not pincodes:
+            return True
+        if not pincode:
+            return False
+        import re
+        clean_pin = re.sub(r"\D", "", str(pincode).strip())
+        return clean_pin in pincodes or str(pincode).strip() in pincodes
+
+    @property
+    def vehicle_display(self):
+        return dict(self.VEHICLE_CHOICES).get(self.vehicle_type, self.vehicle_type.title())
 
 
 class CustomerProfile(models.Model):

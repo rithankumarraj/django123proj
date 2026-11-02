@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, Us
 from django.core.files.storage import default_storage
 from django.utils.text import slugify
 
-from .models import CustomerAddress, CustomerProfile, INDIAN_STATES, Product, ProductCategory, SiteDetails
+from .models import CustomerAddress, CustomerProfile, DeliveryProfile, INDIAN_STATES, Product, ProductCategory, SiteDetails
 
 
 class CustomerAccountForm(forms.ModelForm):
@@ -128,16 +128,166 @@ class CustomerRegistrationForm(UserCreationForm):
 
 
 class DeliveryAccountForm(UserCreationForm):
-    email = forms.EmailField()
+    email = forms.EmailField(required=True)
+    phone = forms.CharField(required=False, max_length=20, label="Phone Number", widget=forms.TextInput(attrs={"placeholder": "+91 98765 43210"}))
+    aadhar_number = forms.CharField(required=False, max_length=30, label="Aadhaar Number", widget=forms.TextInput(attrs={"placeholder": "12-digit Aadhaar"}))
+    driving_license = forms.CharField(required=False, max_length=50, label="Driving Licence", widget=forms.TextInput(attrs={"placeholder": "DL number"}))
+    vehicle_type = forms.ChoiceField(choices=DeliveryProfile.VEHICLE_CHOICES, required=False, initial="bike", label="Vehicle Type")
+    vehicle_number = forms.CharField(required=False, max_length=40, label="Vehicle Registration Number", widget=forms.TextInput(attrs={"placeholder": "e.g. TN 58 AB 1234"}))
+    serviceable_pincodes = forms.CharField(
+        required=False,
+        label="Serviceable PIN Codes",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. 625018, 625001"}),
+        help_text="Comma-separated PIN codes this driver can deliver to",
+    )
+    is_approved = forms.BooleanField(required=False, initial=True, label="Approve Immediately")
 
     class Meta(UserCreationForm.Meta):
-        fields = ("username", "email", "first_name", "last_name")
+        fields = (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "phone",
+            "aadhar_number",
+            "driving_license",
+            "vehicle_type",
+            "vehicle_number",
+            "serviceable_pincodes",
+            "is_approved",
+        )
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip()
         if get_user_model()._default_manager.filter(email__iexact=email).exists():
             raise forms.ValidationError("An account with this email already exists.")
         return email
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        if commit:
+            dp, _ = DeliveryProfile.objects.get_or_create(user=user)
+            dp.phone = self.cleaned_data.get("phone", "")
+            dp.aadhar_number = self.cleaned_data.get("aadhar_number", "")
+            dp.driving_license = self.cleaned_data.get("driving_license", "")
+            dp.vehicle_type = self.cleaned_data.get("vehicle_type", "bike")
+            dp.vehicle_number = self.cleaned_data.get("vehicle_number", "")
+            dp.serviceable_pincodes = self.cleaned_data.get("serviceable_pincodes", "")
+            dp.is_approved = self.cleaned_data.get("is_approved", True)
+            dp.status = "approved" if dp.is_approved else "pending"
+            dp.save()
+        return user
+
+
+class DeliveryPartnerApplicationForm(forms.Form):
+    first_name = forms.CharField(
+        max_length=100,
+        label="First Name",
+        widget=forms.TextInput(attrs={"placeholder": "First Name", "autocomplete": "given-name"}),
+    )
+    last_name = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Last Name",
+        widget=forms.TextInput(attrs={"placeholder": "Last Name", "autocomplete": "family-name"}),
+    )
+    username = forms.CharField(
+        max_length=150,
+        label="Choose a Username",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. rahul_delivery", "autocomplete": "username"}),
+    )
+    email = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={"placeholder": "you@example.com", "autocomplete": "email"}),
+    )
+    phone = forms.CharField(
+        max_length=20,
+        label="Mobile Phone Number",
+        widget=forms.TextInput(attrs={"placeholder": "+91 98765 43210", "autocomplete": "tel"}),
+    )
+    aadhar_number = forms.CharField(
+        max_length=25,
+        label="Aadhaar Card Number",
+        widget=forms.TextInput(attrs={"placeholder": "12-digit Aadhaar (e.g. 1234 5678 9012)"}),
+        help_text="Government issued 12-digit Aadhaar number for identity verification.",
+    )
+    driving_license = forms.CharField(
+        max_length=50,
+        label="Driving Licence Number",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. TN-58-2022-0001234"}),
+        help_text="Valid driving licence for operating your delivery vehicle.",
+    )
+    vehicle_type = forms.ChoiceField(
+        choices=DeliveryProfile.VEHICLE_CHOICES,
+        initial="bike",
+        label="Vehicle Type",
+    )
+    vehicle_number = forms.CharField(
+        max_length=40,
+        label="Vehicle Registration Number",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. TN 58 AB 1234"}),
+        help_text="Vehicle plate / registration number.",
+    )
+    serviceable_pincodes = forms.CharField(
+        label="PIN Codes You Can Deliver To",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. 625018, 625001, 625020"}),
+        help_text="Comma-separated 6-digit postal codes. You will only see and pick orders for these PIN codes.",
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "Create secure password"}),
+        min_length=4,
+        label="Password",
+    )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput(attrs={"placeholder": "Re-enter password"}),
+        min_length=4,
+        label="Confirm Password",
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        user_model = get_user_model()
+        if user_model.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("This username is already taken. Please choose another.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        user_model = get_user_model()
+        if user_model.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("An account with this email address already exists.")
+        return email
+
+    def clean_phone(self):
+        raw = self.cleaned_data.get("phone", "").strip()
+        digits = re.sub(r"\D", "", raw)
+        if len(digits) < 10:
+            raise forms.ValidationError("Please enter a valid 10-digit mobile number.")
+        return raw
+
+    def clean_aadhar_number(self):
+        raw = self.cleaned_data.get("aadhar_number", "").strip()
+        digits = re.sub(r"\D", "", raw)
+        if len(digits) != 12:
+            raise forms.ValidationError("Aadhaar number must contain exactly 12 digits.")
+        return raw
+
+    def clean_serviceable_pincodes(self):
+        raw = self.cleaned_data.get("serviceable_pincodes", "").strip()
+        codes = re.findall(r"\b\d{6}\b", raw)
+        if not codes:
+            codes = [c.strip() for c in re.split(r"[,;\s]+", raw) if c.strip()]
+        if not codes:
+            raise forms.ValidationError("Please enter at least one valid 6-digit PIN code (e.g. 625018).")
+        return ", ".join(sorted(list(dict.fromkeys(codes))))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        p1 = cleaned_data.get("password")
+        p2 = cleaned_data.get("password_confirm")
+        if p1 and p2 and p1 != p2:
+            self.add_error("password_confirm", "Passwords do not match.")
+        return cleaned_data
 
 
 class DeliveryAddressForm(forms.Form):

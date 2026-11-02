@@ -9,6 +9,7 @@ urlpatterns = [
     path("privacy-policy/", views.privacy_policy, name="privacy_policy"),
     path("admin-login/", views.admin_login, name="admin_login"),
     path("delivery-login/", views.delivery_login, name="delivery_login"),
+    path("delivery-partner/apply/", views.delivery_partner_apply, name="delivery_partner_apply"),
     path("delivery-profile/", views.delivery_dashboard, name="delivery_dashboard"),
     path(
         "delivery-profile/orders/<int:order_id>/status/",
@@ -57,6 +58,26 @@ urlpatterns = [
         "admin-profile/delivery-users/",
         views.admin_delivery_users,
         name="admin_delivery_users",
+    ),
+    path(
+        "admin-profile/delivery-users/<int:profile_id>/approve/",
+        views.admin_approve_delivery_partner,
+        name="admin_approve_delivery_partner",
+    ),
+    path(
+        "admin-profile/delivery-users/<int:profile_id>/reject/",
+        views.admin_reject_delivery_partner,
+        name="admin_reject_delivery_partner",
+    ),
+    path(
+        "admin-profile/delivery-users/<int:profile_id>/update-pincodes/",
+        views.admin_update_delivery_pincodes,
+        name="admin_update_delivery_pincodes",
+    ),
+    path(
+        "admin-profile/delivery-users/<int:profile_id>/delete/",
+        views.admin_delete_delivery_partner,
+        name="admin_delete_delivery_partner",
     ),
     path(
         "admin-profile/delivery-status/",

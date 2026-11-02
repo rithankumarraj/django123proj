@@ -2880,6 +2880,210 @@ class OrderReceiptTests(TestCase):
         self.assertContains(receipt_res, "₹156.20")
 
 
+class DeliveryPartnerManagementTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = get_user_model().objects.create_user(
+            username="partner-admin",
+            password="admin-password-123",
+            is_staff=True,
+        )
+        cls.customer = get_user_model().objects.create_user(
+            username="test-customer",
+            password="customer-password-123",
+        )
+        cls.cola = Product.objects.create(
+            name="Test Cola",
+            description="Refreshing beverage",
+            price="90.00",
+            volume="330 ml",
+        )
+
+    def test_apply_page_renders_successfully(self):
+        res = self.client.get(reverse("delivery_partner_apply"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Apply as Delivery Partner")
+        self.assertContains(res, "Aadhaar Card Number")
+        self.assertContains(res, "PIN Codes You Can Deliver To")
+
+    def test_delivery_partner_application_flow_and_approval(self):
+        # 1. Partner submits application
+        post_data = {
+            "first_name": "Ramesh",
+            "last_name": "Kumar",
+            "username": "ramesh_delivery",
+            "email": "ramesh@example.com",
+            "phone": "+91 98765 43210",
+            "aadhar_number": "1234 5678 9012",
+            "driving_license": "TN-58-2022-0012345",
+            "vehicle_type": "bike",
+            "vehicle_number": "TN 58 AB 1234",
+            "serviceable_pincodes": "625018, 625001",
+            "password": "partner-pass-123",
+            "password_confirm": "partner-pass-123",
+        }
+        res = self.client.post(reverse("delivery_partner_apply"), data=post_data)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Application Submitted!")
+
+        user = get_user_model().objects.get(username="ramesh_delivery")
+        profile = DeliveryProfile.objects.get(user=user)
+        self.assertFalse(profile.is_approved)
+        self.assertEqual(profile.status, "pending")
+        self.assertEqual(profile.vehicle_type, "bike")
+        self.assertEqual(profile.vehicle_number, "TN 58 AB 1234")
+        self.assertEqual(profile.get_serviceable_pincodes_list(), ["625001", "625018"])
+
+        # 2. Pending partner cannot log in
+        login_res = self.client.post(
+            reverse("delivery_login"),
+            {"username": "ramesh_delivery", "password": "partner-pass-123"},
+        )
+        self.assertEqual(login_res.status_code, 200)
+        self.assertContains(login_res, "under review")
+
+        # 3. Admin views directory and approves partner
+        self.client.force_login(self.admin)
+        dir_res = self.client.get(reverse("admin_delivery_users"))
+        self.assertEqual(dir_res.status_code, 200)
+        self.assertContains(dir_res, "ramesh_delivery")
+        self.assertContains(dir_res, "625018")
+
+        approve_res = self.client.post(
+            reverse("admin_approve_delivery_partner", kwargs={"profile_id": profile.id})
+        )
+        self.assertRedirects(approve_res, reverse("admin_delivery_users"))
+        profile.refresh_from_db()
+        self.assertTrue(profile.is_approved)
+        self.assertEqual(profile.status, "approved")
+
+        # 4. Partner can now log in
+        self.client.logout()
+        login_success = self.client.post(
+            reverse("delivery_login"),
+            {"username": "ramesh_delivery", "password": "partner-pass-123"},
+        )
+        self.assertRedirects(login_success, reverse("delivery_dashboard"))
+
+    def test_delivery_partner_pincode_order_filtering_and_picking_restriction(self):
+        # Create partner restricted to PIN 625018
+        driver_user = get_user_model().objects.create_user(
+            username="local_driver",
+            email="driver@example.com",
+            password="driver-pass-123",
+        )
+        driver_profile = DeliveryProfile.objects.create(
+            user=driver_user,
+            serviceable_pincodes="625018",
+            is_approved=True,
+            status="approved",
+        )
+
+        # Order 1: inside driver's PIN 625018
+        order_in_zone = Order.objects.create(
+            product=self.cola,
+            customer=self.customer,
+            customer_name="Local Customer",
+            delivery_address="10 Madurai Road",
+            delivery_city="Madurai",
+            delivery_state="Tamil Nadu",
+            delivery_postal_code="625018",
+            quantity=1,
+            total_amount="90.00",
+            status="packed",
+        )
+
+        # Order 2: outside driver's PIN (Chennai 600001)
+        order_outside_zone = Order.objects.create(
+            product=self.cola,
+            customer=self.customer,
+            customer_name="Out of Zone Customer",
+            delivery_address="50 Anna Salai",
+            delivery_city="Chennai",
+            delivery_state="Tamil Nadu",
+            delivery_postal_code="600001",
+            quantity=1,
+            total_amount="90.00",
+            status="packed",
+        )
+
+        self.client.force_login(driver_user)
+
+        # Driver views available orders
+        avail_res = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
+        self.assertEqual(avail_res.status_code, 200)
+        # Order 1 (625018) should appear
+        self.assertContains(avail_res, f"Order #{order_in_zone.id}")
+        self.assertContains(avail_res, "625018")
+        # Order 2 (600001) should NOT appear
+        self.assertNotContains(avail_res, f"Order #{order_outside_zone.id}")
+
+        # Attempt to pick out-of-zone order -> blocked!
+        pick_outside_res = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": order_outside_zone.id})
+        )
+        self.assertRedirects(pick_outside_res, f"{reverse('delivery_dashboard')}?tab=available")
+        order_outside_zone.refresh_from_db()
+        self.assertIsNone(order_outside_zone.delivery_user)
+
+        # Pick in-zone order -> allowed!
+        pick_inside_res = self.client.post(
+            reverse("pick_delivery_order", kwargs={"order_id": order_in_zone.id})
+        )
+        self.assertRedirects(pick_inside_res, f"{reverse('delivery_dashboard')}?tab=picked")
+        order_in_zone.refresh_from_db()
+        self.assertEqual(order_in_zone.delivery_user, driver_user)
+        self.assertEqual(order_in_zone.status, "out_for_delivery")
+
+    def test_admin_reject_update_and_delete_partner(self):
+        driver = get_user_model().objects.create_user(
+            username="driver_to_edit",
+            password="password",
+        )
+        dp = DeliveryProfile.objects.create(
+            user=driver,
+            is_approved=True,
+            status="approved",
+            serviceable_pincodes="625001",
+        )
+
+        self.client.force_login(self.admin)
+
+        # Update PIN codes
+        update_res = self.client.post(
+            reverse("admin_update_delivery_pincodes", kwargs={"profile_id": dp.id}),
+            data={
+                "serviceable_pincodes": "625001, 625018, 625020",
+                "vehicle_type": "ev",
+                "vehicle_number": "TN 58 EV 9999",
+            },
+        )
+        self.assertRedirects(update_res, reverse("admin_delivery_users"))
+        dp.refresh_from_db()
+        self.assertEqual(dp.vehicle_type, "ev")
+        self.assertEqual(dp.vehicle_number, "TN 58 EV 9999")
+        self.assertIn("625018", dp.get_serviceable_pincodes_list())
+
+        # Reject partner
+        reject_res = self.client.post(
+            reverse("admin_reject_delivery_partner", kwargs={"profile_id": dp.id}),
+            data={"rejection_reason": "Incomplete documentation"},
+        )
+        self.assertRedirects(reject_res, reverse("admin_delivery_users"))
+        dp.refresh_from_db()
+        self.assertFalse(dp.is_approved)
+        self.assertEqual(dp.status, "rejected")
+        self.assertEqual(dp.rejection_reason, "Incomplete documentation")
+
+        # Delete partner
+        delete_res = self.client.post(
+            reverse("admin_delete_delivery_partner", kwargs={"profile_id": dp.id})
+        )
+        self.assertRedirects(delete_res, reverse("admin_delivery_users"))
+        self.assertFalse(get_user_model().objects.filter(username="driver_to_edit").exists())
+
+
+
 
 
 

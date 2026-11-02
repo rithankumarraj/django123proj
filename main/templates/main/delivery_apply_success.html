@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Submitted | J CSD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(47, 207, 122, 0.15), transparent),
+        linear-gradient(180deg, #090c0e 0%, #0d1114 100%);
+      color: #f3f5f7;
+      font-family: "Inter", sans-serif;
+    }
+    .success-card {
+      width: min(100%, 540px);
+      background: #11161a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: clamp(24px, 5vw, 40px);
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    }
+    .check-icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(47, 207, 122, 0.15);
+      border: 2px solid #2fcf7a;
+      color: #2fcf7a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    p {
+      color: #9aa2a9;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+    .details-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 18px 20px;
+      text-align: left;
+      margin-bottom: 28px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.9rem;
+    }
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    .detail-label {
+      color: #68727a;
+    }
+    .detail-value {
+      font-weight: 600;
+      color: #fff;
+    }
+    .pin-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(90, 163, 255, 0.15);
+      color: #5aa3ff;
+      font-size: 0.8rem;
+      margin: 2px;
+    }
+    .btn-action {
+      display: block;
+      width: 100%;
+      padding: 13px 20px;
+      background: #f3f5f7;
+      color: #0d1114;
+      font-weight: 700;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.18s ease;
+      margin-bottom: 12px;
+    }
+    .btn-action:hover {
+      background: #ffffff;
+      transform: translateY(-1px);
+    }
+    .link-secondary {
+      color: #9aa2a9;
+      font-size: 0.88rem;
+      text-decoration: none;
+    }
+    .link-secondary:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="success-card">
+    <div class="check-icon-circle">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h1>Application Submitted!</h1>
+    <p>Thank you for applying. Your partner details and delivery area request have been queued for admin verification.</p>
+
+    <div class="details-box">
+      <div class="detail-row">
+        <span class="detail-label">Username</span>
+        <span class="detail-value">{{ applicant.user.username }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Full Name</span>
+        <span class="detail-value">{{ applicant.user.get_full_name|default:applicant.user.username }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Vehicle</span>
+        <span class="detail-value">{{ applicant.vehicle_display }} ({{ applicant.vehicle_number }})</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Serviceable PINs</span>
+        <span class="detail-value">
+          {% for pin in serviceable_pins %}
+            <span class="pin-badge">{{ pin }}</span>
+          {% empty %}
+            {{ applicant.serviceable_pincodes }}
+          {% endfor %}
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Verification Status</span>
+        <span class="detail-value" style="color: #f6be5d;">Pending Admin Review</span>
+      </div>
+    </div>
+
+    <a href="{% url 'delivery_login' %}" class="btn-action">Go to Delivery Sign In</a>
+    <a href="{% url 'home' %}" class="link-secondary">← Back to Storefront</a>
+  </div>
+</body>
+</html>

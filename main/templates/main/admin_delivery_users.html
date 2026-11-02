@@ -1,30 +1,199 @@
 {% extends "main/admin_base.html" %}
 
-{% block title %}Delivery Users{% endblock %}
-{% block page_heading %}Delivery Users{% endblock %}
-{% block page_description %}View registered delivery personnel, manage driver accounts, and onboard new delivery staff.{% endblock %}
+{% block title %}Delivery Users & Partners{% endblock %}
+{% block page_heading %}Delivery Partners{% endblock %}
+{% block page_description %}Manage delivery personnel, verify Aadhaar & driving licence credentials, assign delivery PIN codes, and approve applications.{% endblock %}
 
 {% block admin_content %}
+  <style>
+    .pin-pill {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+      background: rgba(90, 163, 255, 0.12);
+      border: 1px solid rgba(90, 163, 255, 0.25);
+      color: #5aa3ff;
+      margin: 1px 2px;
+    }
+    .status-badge-pending {
+      background: rgba(246, 190, 93, 0.14);
+      color: #f6be5d;
+      border: 1px solid rgba(246, 190, 93, 0.3);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-badge-approved {
+      background: rgba(47, 207, 122, 0.14);
+      color: #2fcf7a;
+      border: 1px solid rgba(47, 207, 122, 0.3);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-badge-rejected {
+      background: rgba(255, 118, 118, 0.14);
+      color: #ff7676;
+      border: 1px solid rgba(255, 118, 118, 0.3);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .vehicle-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--admin-line);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: var(--admin-text-white);
+    }
+    .btn-action-green {
+      background: rgba(47, 207, 122, 0.18);
+      border: 1px solid rgba(47, 207, 122, 0.4);
+      color: #2fcf7a;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-action-green:hover {
+      background: #2fcf7a;
+      color: #052410;
+    }
+    .btn-action-red {
+      background: rgba(255, 118, 118, 0.15);
+      border: 1px solid rgba(255, 118, 118, 0.35);
+      color: #ff7676;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-action-red:hover {
+      background: #ff7676;
+      color: #fff;
+    }
+    .btn-action-blue {
+      background: rgba(90, 163, 255, 0.15);
+      border: 1px solid rgba(90, 163, 255, 0.35);
+      color: #5aa3ff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-action-blue:hover {
+      background: #5aa3ff;
+      color: #0d1114;
+    }
+    .btn-action-delete {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--admin-text-dimmed);
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-action-delete:hover {
+      background: rgba(255, 118, 118, 0.2);
+      border-color: #ff7676;
+      color: #ff7676;
+    }
+    .edit-partner-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .edit-partner-modal.active {
+      display: flex;
+    }
+    .edit-partner-dialog {
+      background: #11161a;
+      border: 1px solid var(--admin-line-strong);
+      border-radius: 16px;
+      width: min(100%, 540px);
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+
   <!-- Stats Section -->
   <section class="stats-grid">
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Total Delivery Users</span>
-        <span class="stat-tag stat-tag-purple">Staff</span>
+        <span class="stat-label">Total Partners</span>
+        <span class="stat-tag stat-tag-blue">All</span>
       </div>
       <div class="stat-value">{{ total_delivery_users_count }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Active Staff</span>
+        <span class="stat-label">Pending Approval</span>
+        <span class="stat-tag stat-tag-orange" {% if pending_delivery_users_count > 0 %}style="animation: pulse 2s infinite;"{% endif %}>
+          {% if pending_delivery_users_count > 0 %}Action Required{% else %}Clear{% endif %}
+        </span>
+      </div>
+      <div class="stat-value" style="{% if pending_delivery_users_count > 0 %}color: var(--admin-orange);{% endif %}">
+        {{ pending_delivery_users_count }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Approved & Active</span>
         <span class="stat-tag stat-tag-green">Authorized</span>
       </div>
-      <div class="stat-value">{{ active_delivery_users_count }}</div>
+      <div class="stat-value">{{ approved_delivery_users_count }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-header">
         <span class="stat-label">Orders Awaiting Delivery</span>
-        <span class="stat-tag stat-tag-orange">Dispatch Queue</span>
+        <span class="stat-tag stat-tag-purple">Dispatch Queue</span>
       </div>
       <div class="stat-value">{{ pending_orders_count }}</div>
     </div>
@@ -43,9 +212,9 @@
               <line x1="19" y1="8" x2="19" y2="14"></line>
               <line x1="22" y1="11" x2="16" y2="11"></line>
             </svg>
-            Add Delivery User
+            Add Delivery Partner
           </h2>
-          <p class="panel-subtitle">Create login credentials for a new delivery team member.</p>
+          <p class="panel-subtitle">Onboard a delivery partner with vehicle & PIN codes.</p>
         </div>
       </div>
 
@@ -80,23 +249,76 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="id_password1">Password</label>
-          {{ delivery_form.password1 }}
-          {% if delivery_form.password1.errors %}
-            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.password1.errors|first }}</span>
+          <label class="form-label" for="id_phone">Mobile Phone Number</label>
+          {{ delivery_form.phone }}
+          {% if delivery_form.phone.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.phone.errors|first }}</span>
           {% endif %}
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="id_aadhar_number">Aadhaar Number</label>
+            {{ delivery_form.aadhar_number }}
+            {% if delivery_form.aadhar_number.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.aadhar_number.errors|first }}</span>
+            {% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="id_driving_license">Driving Licence</label>
+            {{ delivery_form.driving_license }}
+            {% if delivery_form.driving_license.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.driving_license.errors|first }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="id_vehicle_type">Vehicle Type</label>
+            {{ delivery_form.vehicle_type }}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="id_vehicle_number">Vehicle Plate Number</label>
+            {{ delivery_form.vehicle_number }}
+          </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="id_password2">Confirm Password</label>
-          {{ delivery_form.password2 }}
-          {% if delivery_form.password2.errors %}
-            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.password2.errors|first }}</span>
+          <label class="form-label" for="id_serviceable_pincodes">Serviceable PIN Codes</label>
+          {{ delivery_form.serviceable_pincodes }}
+          <span class="form-help">Comma-separated PIN codes (e.g. <code>625018, 625001</code>). Partner will <strong>only</strong> see and pick orders for these codes.</span>
+          {% if delivery_form.serviceable_pincodes.errors %}
+            <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.serviceable_pincodes.errors|first }}</span>
           {% endif %}
         </div>
 
-        <p class="form-help">
-          Delivery personnel can log in at <a href="{% url 'delivery_login' %}" target="_blank" style="color: var(--admin-blue); text-decoration: underline;">/delivery-login/</a> to view assigned orders, customer delivery addresses, and mark items delivered.
+        <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin: 4px 0 10px;">
+          {{ delivery_form.is_approved }}
+          <label class="form-label" for="id_is_approved" style="margin: 0; cursor: pointer;">
+            Approve immediately (Allow instant login)
+          </label>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="id_password1">Password</label>
+            {{ delivery_form.password1 }}
+            {% if delivery_form.password1.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.password1.errors|first }}</span>
+            {% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="id_password2">Confirm Password</label>
+            {{ delivery_form.password2 }}
+            {% if delivery_form.password2.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ delivery_form.password2.errors|first }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <p class="form-help" style="margin-top: 10px;">
+          Public application page: <a href="{% url 'delivery_partner_apply' %}" target="_blank" style="color: var(--admin-blue); text-decoration: underline;">/delivery-partner/apply/</a>
         </p>
 
         <div class="form-actions">
@@ -107,9 +329,9 @@
       </form>
     </section>
 
-    <!-- List: Delivery Users Table -->
+    <!-- List: Delivery Users Table with Verification Controls -->
     <section class="admin-panel">
-      <div class="panel-header">
+      <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
         <div>
           <h2 class="panel-title">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -118,64 +340,209 @@
               <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            Delivery Staff List
+            Delivery Partners Directory
           </h2>
-          <p class="panel-subtitle">All accounts authorized for order fulfillment and delivery dispatch.</p>
+          <p class="panel-subtitle">Review KYC documents, verify vehicles, update delivery zones, and approve partners.</p>
         </div>
+
+        <!-- Search Bar -->
+        <form method="get" action="{% url 'admin_delivery_users' %}" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+          {% if status_filter != 'all' %}
+            <input type="hidden" name="status" value="{{ status_filter }}">
+          {% endif %}
+          <input 
+            type="text" 
+            name="q" 
+            value="{{ search_query }}" 
+            placeholder="Search driver, PIN, vehicle..." 
+            class="form-control" 
+            style="padding: 7px 12px; font-size: 0.8rem; width: 200px;"
+          >
+          <button type="submit" class="btn-mini" style="padding: 7px 12px;">Search</button>
+          {% if search_query %}
+            <a href="?status={{ status_filter }}" class="btn-mini" title="Clear">Clear</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs-bar" style="margin-bottom: 16px;">
+        <a href="?status=all{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+          All Partners
+          <span class="tab-count">{{ total_delivery_users_count }}</span>
+        </a>
+        <a href="?status=pending{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">
+          Pending Review
+          <span class="tab-count" style="{% if pending_delivery_users_count > 0 %}background: var(--admin-orange); color: #000;{% endif %}">{{ pending_delivery_users_count }}</span>
+        </a>
+        <a href="?status=approved{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'approved' %}active{% endif %}">
+          Approved
+          <span class="tab-count">{{ approved_delivery_users_count }}</span>
+        </a>
+        <a href="?status=rejected{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-tab {% if status_filter == 'rejected' %}active{% endif %}">
+          Rejected
+          <span class="tab-count">{{ rejected_delivery_users_count }}</span>
+        </a>
       </div>
 
       <div class="table-responsive-wrapper">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Delivery User</th>
-              <th>Email</th>
-              <th>Joined Date</th>
+              <th>Partner</th>
+              <th>Verification & Contact</th>
+              <th>Vehicle</th>
+              <th>Serviceable PINs</th>
               <th>Status</th>
+              <th style="text-align: right;">Admin Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for profile in delivery_profiles %}
               <tr>
+                <!-- Partner Info -->
                 <td>
                   <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="admin-avatar-circle" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                    <div class="admin-avatar-circle" style="width: 34px; height: 34px; font-size: 0.82rem;">
                       {{ profile.user.username|make_list|first|upper }}
                     </div>
                     <div>
                       <div class="cell-main-title">{{ profile.user.username }}</div>
                       <div class="cell-sub-info">
-                        {% if profile.user.get_full_name %}
-                          {{ profile.user.get_full_name }}
-                        {% else %}
-                          Delivery Driver
-                        {% endif %}
+                        {{ profile.user.get_full_name|default:"Driver Partner" }}
+                      </div>
+                      <div class="cell-sub-info" style="font-size: 0.72rem; color: var(--admin-text-dimmed);">
+                        Joined {{ profile.created_at|date:"M d, Y" }}
                       </div>
                     </div>
                   </div>
                 </td>
+
+                <!-- Contact & Documents -->
                 <td>
-                  <span class="cell-sub-info" style="color: var(--admin-text-white);">
-                    {{ profile.user.email|default:"No email set" }}
-                  </span>
+                  <div style="font-size: 0.82rem;">
+                    {% if profile.phone %}
+                      <div><strong style="color: #fff;">{{ profile.phone }}</strong></div>
+                    {% endif %}
+                    <div class="cell-sub-info">{{ profile.user.email|default:"No email" }}</div>
+                    {% if profile.aadhar_number %}
+                      <div style="margin-top: 4px; font-size: 0.75rem; color: var(--admin-text-muted);">
+                        Aadhaar: <span style="font-family: monospace; color: #fff;">{{ profile.aadhar_number }}</span>
+                      </div>
+                    {% endif %}
+                    {% if profile.driving_license %}
+                      <div style="font-size: 0.75rem; color: var(--admin-text-muted);">
+                        DL: <span style="font-family: monospace; color: #fff;">{{ profile.driving_license }}</span>
+                      </div>
+                    {% endif %}
+                  </div>
                 </td>
+
+                <!-- Vehicle Info -->
                 <td>
-                  <span class="cell-sub-info">
-                    {{ profile.created_at|date:"M d, Y" }}
-                  </span>
-                </td>
-                <td>
-                  {% if profile.user.is_active %}
-                    <span class="status-pill status-active">Active Staff</span>
-                  {% else %}
-                    <span class="status-pill status-failed">Inactive</span>
+                  <div class="vehicle-pill">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="16" height="12" x="1" y="3" rx="2"></rect>
+                      <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                      <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                    </svg>
+                    <span>{{ profile.vehicle_display }}</span>
+                  </div>
+                  {% if profile.vehicle_number %}
+                    <div style="font-size: 0.78rem; font-weight: 600; color: #d1d5db; margin-top: 4px; font-family: monospace;">
+                      {{ profile.vehicle_number }}
+                    </div>
                   {% endif %}
+                </td>
+
+                <!-- Serviceable PIN Codes -->
+                <td>
+                  <div style="max-width: 220px;">
+                    {% with pins=profile.get_serviceable_pincodes_list %}
+                      {% if pins %}
+                        {% for pin in pins %}
+                          <span class="pin-pill">{{ pin }}</span>
+                        {% endfor %}
+                      {% else %}
+                        <span style="font-size: 0.78rem; color: var(--admin-text-dimmed); font-style: italic;">
+                          All PINs (Unrestricted)
+                        </span>
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                </td>
+
+                <!-- Status Badge -->
+                <td>
+                  {% if profile.status == 'approved' and profile.is_approved %}
+                    <span class="status-badge-approved">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Approved
+                    </span>
+                  {% elif profile.status == 'rejected' or not profile.is_approved and profile.status == 'rejected' %}
+                    <span class="status-badge-rejected" title="{{ profile.rejection_reason|default:'Rejected' }}">
+                      Rejected
+                    </span>
+                  {% else %}
+                    <span class="status-badge-pending">
+                      Pending Review
+                    </span>
+                  {% endif %}
+                </td>
+
+                <!-- Actions -->
+                <td style="text-align: right;">
+                  <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                    {% if not profile.is_approved or profile.status != 'approved' %}
+                      <!-- Approve Button -->
+                      <form method="post" action="{% url 'admin_approve_delivery_partner' profile.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn-action-green" title="Approve partner">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          Approve
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    {% if profile.is_approved and profile.status == 'approved' %}
+                      <!-- Reject / Suspend Button -->
+                      <form method="post" action="{% url 'admin_reject_delivery_partner' profile.id %}" onsubmit="return confirm('Suspend or reject delivery partner {{ profile.user.username }}?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn-action-red" title="Suspend partner">
+                          Suspend
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    <!-- Edit PINs / Details Trigger Button -->
+                    <button type="button" class="btn-action-blue" onclick="openEditPartnerModal('{{ profile.id }}', '{{ profile.user.username }}', '{{ profile.serviceable_pincodes|escapejs }}', '{{ profile.vehicle_type }}', '{{ profile.vehicle_number|escapejs }}', '{{ profile.phone|escapejs }}', '{{ profile.aadhar_number|escapejs }}', '{{ profile.driving_license|escapejs }}')">
+                      Edit PINs
+                    </button>
+
+                    <!-- Delete Button -->
+                    <form method="post" action="{% url 'admin_delete_delivery_partner' profile.id %}" onsubmit="return confirm('Permanently delete partner account {{ profile.user.username }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn-action-delete" title="Delete account">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="4" style="text-align: center; padding: 32px; color: var(--admin-text-muted);">
-                  No delivery staff accounts found yet. Use the form on the left to add your first delivery user.
+                <td colspan="6" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                  No delivery partners found matching this filter.
                 </td>
               </tr>
             {% endfor %}
@@ -184,4 +551,80 @@
       </div>
     </section>
   </div>
+
+  <!-- Modal for Editing Partner PIN Codes & Details -->
+  <div class="edit-partner-modal" id="editPartnerModal" onclick="if(event.target===this) closeEditPartnerModal();">
+    <div class="edit-partner-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
+          Edit Delivery Zones & Info: <span id="modalDriverName" style="color: #5aa3ff;"></span>
+        </h3>
+        <button type="button" onclick="closeEditPartnerModal()" style="background: none; border: none; color: #9aa2a9; cursor: pointer; font-size: 1.2rem;">✕</button>
+      </div>
+
+      <form method="post" id="editPartnerForm" action="">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="modalServiceablePincodes">Serviceable PIN Codes</label>
+          <input type="text" name="serviceable_pincodes" id="modalServiceablePincodes" class="form-control" placeholder="e.g. 625018, 625001, 625020">
+          <span class="form-help" style="font-size: 0.75rem; color: #9aa2a9;">Driver can only view & pick orders within these comma-separated PIN codes.</span>
+        </div>
+
+        <div class="form-row-2" style="margin-bottom: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="modalVehicleType">Vehicle Type</label>
+            <select name="vehicle_type" id="modalVehicleType" class="form-control">
+              {% for val, label in vehicle_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modalVehicleNumber">Vehicle Plate Number</label>
+            <input type="text" name="vehicle_number" id="modalVehicleNumber" class="form-control" placeholder="e.g. TN 58 AB 1234">
+          </div>
+        </div>
+
+        <div class="form-row-2" style="margin-bottom: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="modalPhone">Phone</label>
+            <input type="text" name="phone" id="modalPhone" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modalAadhar">Aadhaar Number</label>
+            <input type="text" name="aadhar_number" id="modalAadhar" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" for="modalDrivingLicense">Driving Licence Number</label>
+          <input type="text" name="driving_license" id="modalDrivingLicense" class="form-control">
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeEditPartnerModal()" class="btn-mini" style="padding: 10px 16px;">Cancel</button>
+          <button type="submit" class="btn-primary" style="padding: 10px 20px;">Save Updates</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openEditPartnerModal(id, username, pincodes, vehicleType, vehicleNumber, phone, aadhar, dl) {
+      document.getElementById('modalDriverName').textContent = username;
+      document.getElementById('editPartnerForm').action = '/admin-profile/delivery-users/' + id + '/update-pincodes/';
+      document.getElementById('modalServiceablePincodes').value = pincodes;
+      document.getElementById('modalVehicleType').value = vehicleType;
+      document.getElementById('modalVehicleNumber').value = vehicleNumber;
+      document.getElementById('modalPhone').value = phone;
+      document.getElementById('modalAadhar').value = aadhar;
+      document.getElementById('modalDrivingLicense').value = dl;
+      document.getElementById('editPartnerModal').classList.add('active');
+    }
+    function closeEditPartnerModal() {
+      document.getElementById('editPartnerModal').classList.remove('active');
+    }
+  </script>
 {% endblock %}
