@@ -3270,6 +3270,8 @@ class ProductPincodeAvailabilityTests(TestCase):
         self.assertContains(res, 'id="product-pins-data"')
         self.assertContains(res, "625018")
         self.assertContains(res, "625001")
+        self.assertContains(res, 'maxlength="6"')
+        self.assertContains(res, 'inputmode="numeric"')
 
     def test_cart_template_contains_pincode_validation_elements(self):
         # Add restricted product to cart
@@ -3285,6 +3287,15 @@ class ProductPincodeAvailabilityTests(TestCase):
         self.assertContains(res, 'id="removeConfirmModal"')
         self.assertContains(res, "Add to Wishlist")
         self.assertContains(res, "Remove from Cart")
+        self.assertContains(res, 'maxlength="6"')
+        self.assertContains(res, 'inputmode="numeric"')
+
+    def test_product_detail_contains_6_digit_pincode_check(self):
+        res = self.client.get(reverse("product_detail", kwargs={"product_id": self.product_restricted.id}))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'id="pincodeCheckInput"')
+        self.assertContains(res, 'maxlength="6"')
+        self.assertContains(res, 'inputmode="numeric"')
 
 
 class OrderStatusProgressionTests(TestCase):

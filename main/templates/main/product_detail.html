@@ -66,7 +66,7 @@
                                     {% endif %}
                                 </div>
                                 <div class="input-group">
-                                    <input type="text" id="pincodeCheckInput" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Enter PIN code (e.g. 625018)" maxlength="10" data-product-id="{{ product.id }}">
+                                    <input type="text" id="pincodeCheckInput" class="form-control form-control-sm bg-dark text-light border-secondary" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit PIN" data-product-id="{{ product.id }}">
                                     <button type="button" id="pincodeCheckBtn" class="btn btn-sm btn-outline-light px-3">Check</button>
                                 </div>
                                 <div id="pincodeCheckFeedback" class="small mt-2" style="display: none;"></div>

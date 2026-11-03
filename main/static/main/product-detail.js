@@ -90,12 +90,20 @@ const pincodeBtn = document.getElementById('pincodeCheckBtn');
 const pincodeFeedback = document.getElementById('pincodeCheckFeedback');
 
 if (pincodeInput && pincodeBtn && pincodeFeedback) {
+    pincodeInput.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        if (this.value.length < 6) {
+            pincodeFeedback.style.display = 'none';
+        }
+    });
+
     const doCheck = () => {
-        const pin = pincodeInput.value.trim();
+        const pin = pincodeInput.value.replace(/\D/g, '').slice(0, 6);
+        pincodeInput.value = pin;
         const productId = pincodeInput.dataset.productId;
-        if (!pin) {
+        if (!pin || pin.length < 6) {
             pincodeFeedback.className = 'small mt-2 text-warning';
-            pincodeFeedback.textContent = 'Please enter a PIN code to check.';
+            pincodeFeedback.textContent = 'Please enter a valid 6-digit PIN code.';
             pincodeFeedback.style.display = 'block';
             return;
         }

@@ -1012,7 +1012,8 @@
             </div>
             <div class="col-third">
               <label for="delivery-postal-code">ZIP / postal code</label>
-              <input id="delivery-postal-code" name="postal_code"
+              <input id="delivery-postal-code" name="postal_code" type="text"
+                inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN"
                 value="{% if customer_profile %}{{ customer_profile.postal_code }}{% endif %}"
                 autocomplete="postal-code" required>
               <div id="cartZipFeedback" class="small mt-1" style="display: none;"></div>
@@ -1198,19 +1199,36 @@
 
         function validateCartPincode() {
           if (!cartZipInput || !checkoutTotalBtn) return;
+
+          const rawVal = cartZipInput.value.trim();
+          const cleanPin = rawVal.replace(/\D/g, '').slice(0, 6);
+          if (cartZipInput.value !== cleanPin) {
+            cartZipInput.value = cleanPin;
+          }
+
           if (!cartPinRules || cartPinRules.length === 0) {
+            if (cleanPin.length < 6) {
+              checkoutTotalBtn.disabled = true;
+              checkoutTotalBtn.classList.add('disabled');
+              if (cartNoticeBox) cartNoticeBox.style.display = 'none';
+              if (cartZipFeedback) cartZipFeedback.style.display = 'none';
+              updateItemAvailabilityUI(new Set(), '');
+              return;
+            }
             checkoutTotalBtn.disabled = false;
             checkoutTotalBtn.classList.remove('disabled');
             if (cartNoticeBox) cartNoticeBox.style.display = 'none';
-            if (cartZipFeedback) cartZipFeedback.style.display = 'none';
+            if (cartZipFeedback) {
+              cartZipFeedback.className = 'small mt-1 text-success fw-medium';
+              cartZipFeedback.innerHTML = '✓ Nationwide delivery available';
+              cartZipFeedback.style.display = 'block';
+            }
             updateItemAvailabilityUI(new Set(), '');
             return;
           }
 
-          const rawVal = cartZipInput.value.trim();
-          const cleanPin = rawVal.replace(/\D/g, '');
-
-          if (!rawVal) {
+          // Fetch warning ONLY after all 6 digits are entered
+          if (cleanPin.length < 6) {
             checkoutTotalBtn.disabled = true;
             checkoutTotalBtn.classList.add('disabled');
             if (cartNoticeBox) {
@@ -1226,7 +1244,7 @@
           const failedItems = [];
           const failedItemIds = new Set();
           cartPinRules.forEach(function (rule) {
-            const isOk = (rule.pins || []).indexOf(cleanPin) !== -1 || (rule.pins || []).indexOf(rawVal) !== -1;
+            const isOk = (rule.pins || []).indexOf(cleanPin) !== -1;
             if (!isOk) {
               failedItems.push(rule);
               failedItemIds.add(String(rule.id));
@@ -1234,7 +1252,7 @@
           });
 
           // Visually mark undeliverable items right inside the cart items list
-          updateItemAvailabilityUI(failedItemIds, rawVal);
+          updateItemAvailabilityUI(failedItemIds, cleanPin);
 
           if (failedItems.length > 0) {
             checkoutTotalBtn.disabled = true;
@@ -1244,12 +1262,12 @@
               const itemsDesc = failedItems.map(function (it) {
                 return '• <strong>' + it.name + '</strong> is not deliverable to this PIN';
               }).join('<br>');
-              cartNoticeBox.innerHTML = '<strong>⚠️ Items unavailable for PIN code ' + rawVal + ':</strong><div class="mt-1">' + itemsDesc + '</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please update your delivery ZIP code or adjust your cart.</div>';
+              cartNoticeBox.innerHTML = '<strong>⚠️ Items unavailable for PIN code ' + cleanPin + ':</strong><div class="mt-1">' + itemsDesc + '</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please update your delivery ZIP code or adjust your cart.</div>';
               cartNoticeBox.style.display = 'block';
             }
             if (cartZipFeedback) {
               cartZipFeedback.className = 'small mt-1 text-danger fw-semibold';
-              cartZipFeedback.innerHTML = '✕ Unavailable for PIN ' + rawVal;
+              cartZipFeedback.innerHTML = '✕ Unavailable for PIN ' + cleanPin;
               cartZipFeedback.style.display = 'block';
             }
           } else {
@@ -1260,19 +1278,26 @@
             }
             if (cartZipFeedback) {
               cartZipFeedback.className = 'small mt-1 text-success fw-semibold';
-              cartZipFeedback.innerHTML = '✓ All items deliverable to PIN ' + rawVal;
+              cartZipFeedback.innerHTML = '✓ All items deliverable to PIN ' + cleanPin;
               cartZipFeedback.style.display = 'block';
             }
           }
         }
 
         if (cartZipInput) {
-         cartZipInput.addEventListener('input', validateCartPincode);
-         cartZipInput.addEventListener('change', validateCartPincode);
-       }
-       validateCartPincode();
+          cartZipInput.addEventListener('input', function () {
+            let digits = this.value.replace(/\D/g, '');
+            if (digits.length > 6) {
+              digits = digits.slice(0, 6);
+            }
+            this.value = digits;
+            validateCartPincode();
+          });
+          cartZipInput.addEventListener('change', validateCartPincode);
+        }
+        validateCartPincode();
 
-       window.updateCartCalculations();     });
+        window.updateCartCalculations();     });
 
     function openRemoveConfirmModal(productId, productName, productVolume, productImg) {
       const modal = document.getElementById('removeConfirmModal');

@@ -416,7 +416,7 @@
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <label for="zip">ZIP</label>
-                                        <input id="zip" name="postal_code" type="text" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
+                                        <input id="zip" name="postal_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
                                         <div id="zipAvailabilityFeedback" class="small mt-1" style="display: none;"></div>
                                     </div>
 
@@ -594,28 +594,34 @@
             function validatePincodeDelivery() {
                 if (!zipInput || !continueBtn) return;
 
+                const rawVal = zipInput.value.trim();
+                const cleanPin = rawVal.replace(/\D/g, '').slice(0, 6);
+                if (zipInput.value !== cleanPin) {
+                    zipInput.value = cleanPin;
+                }
+
                 // Nationwide delivery when no specific PIN codes are configured
                 if (!allowedPins || allowedPins.length === 0) {
+                    if (cleanPin.length < 6) {
+                        continueBtn.disabled = true;
+                        continueBtn.classList.add('disabled');
+                        if (noticeBox) noticeBox.style.display = 'none';
+                        if (zipFeedback) zipFeedback.style.display = 'none';
+                        return;
+                    }
                     continueBtn.disabled = false;
                     continueBtn.classList.remove('disabled');
                     if (noticeBox) noticeBox.style.display = 'none';
                     if (zipFeedback) {
-                        const val = zipInput.value.trim();
-                        if (val.length >= 6) {
-                            zipFeedback.className = 'small mt-1 text-success fw-medium';
-                            zipFeedback.innerHTML = '✓ Nationwide delivery available';
-                            zipFeedback.style.display = 'block';
-                        } else {
-                            zipFeedback.style.display = 'none';
-                        }
+                        zipFeedback.className = 'small mt-1 text-success fw-medium';
+                        zipFeedback.innerHTML = '✓ Nationwide delivery available';
+                        zipFeedback.style.display = 'block';
                     }
                     return;
                 }
 
-                const rawVal = zipInput.value.trim();
-                const cleanPin = rawVal.replace(/\D/g, '');
-
-                if (!rawVal) {
+                // Fetch warning ONLY after all 6 digits are entered
+                if (cleanPin.length < 6) {
                     continueBtn.disabled = true;
                     continueBtn.classList.add('disabled');
                     if (noticeBox) {
@@ -627,7 +633,7 @@
                     return;
                 }
 
-                const isAllowed = allowedPins.indexOf(cleanPin) !== -1 || allowedPins.indexOf(rawVal) !== -1;
+                const isAllowed = allowedPins.indexOf(cleanPin) !== -1;
 
                 if (isAllowed) {
                     continueBtn.disabled = false;
@@ -637,7 +643,7 @@
                     }
                     if (zipFeedback) {
                         zipFeedback.className = 'small mt-1 text-success fw-semibold';
-                        zipFeedback.innerHTML = '✓ Deliverable to PIN ' + rawVal;
+                        zipFeedback.innerHTML = '✓ Deliverable to PIN ' + cleanPin;
                         zipFeedback.style.display = 'block';
                     }
                 } else {
@@ -645,19 +651,26 @@
                     continueBtn.classList.add('disabled');
                     if (noticeBox) {
                         noticeBox.className = 'pincode-delivery-alert';
-                        noticeBox.innerHTML = `<strong>⚠️ Delivery unavailable for PIN code ${rawVal}</strong><div class="mt-1 text-white-50" style="font-size: 0.78rem;">'${productName}' is not deliverable to this PIN code. Please enter a deliverable delivery PIN code.</div>`;
+                        noticeBox.innerHTML = `<strong>⚠️ Delivery unavailable for PIN code ${cleanPin}</strong><div class="mt-1 text-white-50" style="font-size: 0.78rem;">'${productName}' is not deliverable to this PIN code. Please enter a deliverable delivery PIN code.</div>`;
                         noticeBox.style.display = 'block';
                     }
                     if (zipFeedback) {
                         zipFeedback.className = 'small mt-1 text-danger fw-semibold';
-                        zipFeedback.innerHTML = '✕ Not deliverable to PIN ' + rawVal;
+                        zipFeedback.innerHTML = '✕ Not deliverable to PIN ' + cleanPin;
                         zipFeedback.style.display = 'block';
                     }
                 }
             }
 
             if (zipInput) {
-                zipInput.addEventListener('input', validatePincodeDelivery);
+                zipInput.addEventListener('input', function () {
+                    let digits = this.value.replace(/\D/g, '');
+                    if (digits.length > 6) {
+                        digits = digits.slice(0, 6);
+                    }
+                    this.value = digits;
+                    validatePincodeDelivery();
+                });
                 zipInput.addEventListener('change', validatePincodeDelivery);
             }
 
