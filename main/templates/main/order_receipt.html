@@ -571,6 +571,12 @@
             {% endif %}
           </strong>
         </div>
+        {% if order.discount_amount > 0 or order.coupon_code %}
+        <div class="receipt-summary-row" style="color: #059669;">
+          <span>Coupon discount ({% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %})</span>
+          <strong style="color: #059669;">-₹{{ order.discount_amount|floatformat:2 }}</strong>
+        </div>
+        {% endif %}
         <div class="receipt-summary-row receipt-summary-total">
           <span>Total paid</span>
           <strong>₹{{ order.total_amount|floatformat:2 }}</strong>

@@ -134,4 +134,29 @@ urlpatterns = [
         views.admin_delete_message,
         name="admin_delete_message",
     ),
+    path(
+        "admin-profile/coupons/",
+        views.admin_coupons,
+        name="admin_coupons",
+    ),
+    path(
+        "admin-profile/coupons/<int:coupon_id>/toggle/",
+        views.admin_toggle_coupon,
+        name="admin_toggle_coupon",
+    ),
+    path(
+        "admin-profile/coupons/<int:coupon_id>/delete/",
+        views.admin_delete_coupon,
+        name="admin_delete_coupon",
+    ),
+    path(
+        "api/apply-coupon/",
+        views.api_apply_coupon,
+        name="api_apply_coupon",
+    ),
+    path(
+        "api/remove-coupon/",
+        views.api_remove_coupon,
+        name="api_remove_coupon",
+    ),
 ]

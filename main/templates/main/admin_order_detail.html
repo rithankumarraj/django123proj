@@ -162,6 +162,14 @@
               <span class="summary-label">Shipping Fee ({% if order.delivery_state %}{{ order.delivery_state }}{% else %}Standard{% endif %})</span>
               <span class="summary-value">{% if order.shipping_fee > 0 %}₹{{ order.shipping_fee|floatformat:2 }}{% else %}FREE{% endif %}</span>
             </div>
+            {% if order.discount_amount > 0 or order.coupon_code %}
+            <div class="order-summary-row" style="color: #2fcf7a;">
+              <span class="summary-label" style="color: #2fcf7a;">
+                Coupon Discount ({% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %})
+              </span>
+              <span class="summary-value" style="color: #2fcf7a; font-weight: 700;">-₹{{ order.discount_amount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
             <div class="order-summary-divider"></div>
             <div class="order-summary-row order-summary-total">
               <span class="summary-total-label">Grand Total</span>

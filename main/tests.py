@@ -12,6 +12,7 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from .adapters import AdminGoogleAccountAdapter
 from .models import (
     ContactMessage,
+    Coupon,
     CustomerAddress,
     CustomerProfile,
     DeliveryProfile,
@@ -3427,6 +3428,174 @@ class OrderStatusProgressionTests(TestCase):
         self.assertContains(res, "Cancelled")
         self.assertContains(res, "Customer Orders")
         self.assertContains(res, "auto-status-select")
+
+
+class CouponSystemTests(TestCase):
+    def setUp(self):
+        self.admin = get_user_model().objects.create_superuser(
+            username="coupon_admin",
+            email="coupon_admin@example.com",
+            password="adminpassword123",
+        )
+        self.user = get_user_model().objects.create_user(
+            username="coupon_user",
+            email="user@example.com",
+            password="userpassword123",
+        )
+        self.cat_cola, _ = ProductCategory.objects.get_or_create(slug="cola", defaults={"name": "Cola"})
+        self.cat_energy, _ = ProductCategory.objects.get_or_create(slug="energy_drink", defaults={"name": "Energy Drink"})
+        self.product = Product.objects.create(
+            name="Super Cola",
+            category="cola",
+            price=Decimal("100.00"),
+            available=True,
+        )
+
+    def test_admin_coupons_requires_staff(self):
+        res = self.client.get(reverse("admin_coupons"))
+        self.assertEqual(res.status_code, 302)
+
+        self.client.force_login(self.user)
+        res = self.client.get(reverse("admin_coupons"))
+        self.assertEqual(res.status_code, 302)
+
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("admin_coupons"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Coupons & Discounts")
+        self.assertContains(res, "Create New Coupon")
+        self.assertContains(res, "All Promotional Coupons")
+        self.assertContains(res, "Orders Applied with Coupons")
+        self.assertContains(res, 'id="searchCouponsInput"')
+        self.assertContains(res, 'id="sortCouponsSelect"')
+        self.assertContains(res, 'id="searchOrdersInput"')
+        self.assertContains(res, 'id="sortOrdersSelect"')
+
+    def test_admin_create_coupon_post(self):
+        self.client.force_login(self.admin)
+        data = {
+            "code": "festive25",
+            "discount_type": "percentage",
+            "discount_value": "25.00",
+            "min_order_amount": "200.00",
+            "usage_limit": "100",
+            "expire_date": "2026-12-31",
+            "applicable_categories": [self.cat_cola.pk],
+            "is_active": "on",
+        }
+        res = self.client.post(reverse("admin_coupons"), data=data)
+        self.assertRedirects(res, reverse("admin_coupons"))
+
+        coupon = Coupon.objects.filter(code="FESTIVE25").first()
+        self.assertIsNotNone(coupon)
+        self.assertEqual(coupon.discount_type, "percentage")
+        self.assertEqual(coupon.discount_value, Decimal("25.00"))
+        self.assertEqual(coupon.min_order_amount, Decimal("200.00"))
+        self.assertEqual(coupon.usage_limit, 100)
+        self.assertTrue(coupon.is_active)
+        self.assertIn(self.cat_cola, coupon.applicable_categories.all())
+
+    def test_admin_toggle_and_delete_coupon(self):
+        self.client.force_login(self.admin)
+        coupon = Coupon.objects.create(
+            code="TOGGLE10",
+            discount_type="fixed",
+            discount_value=Decimal("10.00"),
+            is_active=True,
+        )
+        res = self.client.post(reverse("admin_toggle_coupon", kwargs={"coupon_id": coupon.id}))
+        self.assertRedirects(res, reverse("admin_coupons"))
+        coupon.refresh_from_db()
+        self.assertFalse(coupon.is_active)
+
+        self.client.post(reverse("admin_toggle_coupon", kwargs={"coupon_id": coupon.id}))
+        coupon.refresh_from_db()
+        self.assertTrue(coupon.is_active)
+
+        res_del = self.client.post(reverse("admin_delete_coupon", kwargs={"coupon_id": coupon.id}))
+        self.assertRedirects(res_del, reverse("admin_coupons"))
+        self.assertFalse(Coupon.objects.filter(id=coupon.id).exists())
+
+    def test_coupon_discount_calculation(self):
+        pct_coupon = Coupon.objects.create(
+            code="PCT20",
+            discount_type="percentage",
+            discount_value=Decimal("20.00"),
+            min_order_amount=Decimal("100.00"),
+        )
+        self.assertEqual(pct_coupon.calculate_discount(Decimal("80.00")), Decimal("0.00"))
+        self.assertEqual(pct_coupon.calculate_discount(Decimal("200.00")), Decimal("40.00"))
+
+        fix_coupon = Coupon.objects.create(
+            code="FIX50",
+            discount_type="fixed",
+            discount_value=Decimal("50.00"),
+            min_order_amount=Decimal("0.00"),
+        )
+        self.assertEqual(fix_coupon.calculate_discount(Decimal("30.00")), Decimal("30.00"))
+        self.assertEqual(fix_coupon.calculate_discount(Decimal("150.00")), Decimal("50.00"))
+
+        cat_coupon = Coupon.objects.create(
+            code="COLAONLY",
+            discount_type="percentage",
+            discount_value=Decimal("50.00"),
+        )
+        cat_coupon.applicable_categories.add(self.cat_cola)
+        prod_other = Product.objects.create(name="Juice", category="others", price=Decimal("200.00"), available=True)
+        items_data = [
+            {"product": self.product, "quantity": 1},
+            {"product": prod_other, "quantity": 1},
+        ]
+        discount = cat_coupon.calculate_discount(Decimal("300.00"), order_items_data=items_data)
+        self.assertEqual(discount, Decimal("50.00"))
+
+    def test_orders_applied_with_coupons_rendered_in_table(self):
+        coupon = Coupon.objects.create(
+            code="BIGSALE",
+            discount_type="fixed",
+            discount_value=Decimal("20.00"),
+        )
+        order = Order.objects.create(
+            product=self.product,
+            customer_name="Alice Smith",
+            customer_phone="+91 9123456789",
+            delivery_address="45 Park Lane",
+            delivery_city="Madurai",
+            delivery_state="Tamil Nadu",
+            delivery_postal_code="625001",
+            quantity=1,
+            total_amount=Decimal("80.00"),
+            discount_amount=Decimal("20.00"),
+            coupon=coupon,
+            coupon_code="BIGSALE",
+        )
+
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("admin_coupons"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "BIGSALE")
+        self.assertContains(res, "Alice Smith")
+        self.assertContains(res, f"#{order.id}")
+        self.assertContains(res, "-₹20.00")
+
+    def test_api_apply_coupon(self):
+        Coupon.objects.create(
+            code="API10",
+            discount_type="percentage",
+            discount_value=Decimal("10.00"),
+            min_order_amount=Decimal("50.00"),
+            is_active=True,
+        )
+        res = self.client.get(reverse("api_apply_coupon") + "?code=API10&subtotal=100")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["discount_amount"], 10.0)
+        self.assertEqual(data["code"], "API10")
+
+        res_bad = self.client.get(reverse("api_apply_coupon") + "?code=NOTFOUND&subtotal=100")
+        self.assertEqual(res_bad.status_code, 200)
+        self.assertFalse(res_bad.json()["valid"])
 
 
 

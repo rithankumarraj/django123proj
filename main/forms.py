@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, Us
 from django.core.files.storage import default_storage
 from django.utils.text import slugify
 
-from .models import CustomerAddress, CustomerProfile, DeliveryProfile, INDIAN_STATES, Product, ProductCategory, SiteDetails
+from .models import Coupon, CustomerAddress, CustomerProfile, DeliveryProfile, INDIAN_STATES, Product, ProductCategory, SiteDetails
 
 
 class CustomerAccountForm(forms.ModelForm):
@@ -555,4 +555,113 @@ class ContactDetailsForm(forms.ModelForm):
             "whatsapp_number": forms.TextInput(attrs={"class": "form-control"}),
             "operating_hours": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         }
+
+
+class CouponForm(forms.ModelForm):
+    applicable_categories = forms.ModelMultipleChoiceField(
+        queryset=ProductCategory.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "category-checkbox"}),
+        help_text="Select specific categories or leave unselected for all categories.",
+    )
+
+    class Meta:
+        model = Coupon
+        fields = [
+            "code",
+            "discount_type",
+            "discount_value",
+            "min_order_amount",
+            "usage_limit",
+            "expire_date",
+            "applicable_categories",
+            "is_active",
+        ]
+        labels = {
+            "code": "Coupon Code",
+            "discount_type": "Discount Type",
+            "discount_value": "Discount Value",
+            "min_order_amount": "Minimum Order Amount (₹)",
+            "usage_limit": "Usage Limit",
+            "expire_date": "Expiry Date",
+            "applicable_categories": "Selective Categories",
+            "is_active": "Coupon is Active",
+        }
+        widgets = {
+            "code": forms.TextInput(attrs={
+                "class": "form-control",
+                "id": "id_coupon_code",
+                "placeholder": "e.g. SUMMER20",
+                "style": "text-transform: uppercase; font-family: monospace; font-weight: 700; letter-spacing: 0.05em;",
+                "required": True,
+            }),
+            "discount_type": forms.Select(attrs={
+                "class": "form-control",
+                "id": "id_coupon_discount_type",
+                "required": True,
+            }),
+            "discount_value": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_coupon_discount_value",
+                "step": "0.01",
+                "min": "0.01",
+                "placeholder": "e.g. 20 for 20% or 50 for ₹50",
+                "required": True,
+            }),
+            "min_order_amount": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_coupon_min_order",
+                "step": "0.01",
+                "min": "0",
+                "placeholder": "0.00",
+            }),
+            "usage_limit": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_coupon_usage_limit",
+                "min": "1",
+                "placeholder": "Leave empty for unlimited",
+            }),
+            "expire_date": forms.DateInput(attrs={
+                "class": "form-control",
+                "id": "id_coupon_expire_date",
+                "type": "date",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+                "id": "id_coupon_is_active",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for slug, name in [("cola", "Cola"), ("energy_drink", "Energy Drink"), ("others", "Others")]:
+            ProductCategory.objects.get_or_create(slug=slug, defaults={"name": name})
+        self.fields["applicable_categories"].queryset = ProductCategory.objects.all().order_by("name")
+        if not self.instance.pk and "is_active" in self.fields:
+            self.fields["is_active"].initial = True
+
+    def clean_code(self):
+        code = self.cleaned_data.get("code", "").strip().upper()
+        if not code:
+            raise forms.ValidationError("Coupon code is required.")
+        qs = Coupon.objects.filter(code__iexact=code)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(f"Coupon code '{code}' already exists.")
+        return code
+
+    def clean(self):
+        cleaned_data = super().clean()
+        dtype = cleaned_data.get("discount_type")
+        dval = cleaned_data.get("discount_value")
+        if dtype == "percentage" and dval is not None:
+            if dval > 100:
+                self.add_error("discount_value", "Percentage discount cannot exceed 100%.")
+            if dval <= 0:
+                self.add_error("discount_value", "Discount value must be greater than 0.")
+        elif dtype == "fixed" and dval is not None:
+            if dval <= 0:
+                self.add_error("discount_value", "Discount value must be greater than 0.")
+        return cleaned_data
 

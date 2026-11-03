@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Case, Q, When
+from django.db.models import Case, Q, Sum, When
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -26,6 +26,7 @@ from .forms import (
     AboutDetailsForm,
     AdminLoginForm,
     ContactDetailsForm,
+    CouponForm,
     CustomerAccountForm,
     CustomerAddressForm,
     CustomerProfileForm,
@@ -42,6 +43,7 @@ from .forms import (
 )
 from .models import (
     ContactMessage,
+    Coupon,
     CustomerAddress,
     CustomerProfile,
     DeliveryProfile,
@@ -1167,7 +1169,22 @@ def cart_checkout(request):
     packing_fee = site_details.calculate_packing_fee(total_quantity)
     shipping_fee = site_details.calculate_shipping_fee(details.get("state") or "")
     gst_amount = site_details.calculate_gst(items_subtotal)
-    total_amount = items_subtotal + gst_amount + packing_fee + shipping_fee
+
+    coupon_code = (request.POST.get("coupon_code") or request.session.get("applied_coupon_code") or "").strip().upper()
+    applied_coupon = None
+    discount_amount = Decimal("0.00")
+    if coupon_code:
+        coupon_obj = Coupon.objects.filter(code__iexact=coupon_code).first()
+        if coupon_obj and coupon_obj.is_valid_status:
+            discount_amount = coupon_obj.calculate_discount(
+                items_subtotal,
+                [{"product": it["product"], "quantity": it["quantity"]} for it in items],
+            )
+            if discount_amount > 0:
+                applied_coupon = coupon_obj
+                Coupon.objects.filter(pk=coupon_obj.pk).update(times_used=models.F("times_used") + 1)
+
+    total_amount = max(Decimal("0.00"), items_subtotal - discount_amount) + gst_amount + packing_fee + shipping_fee
     guest_checkout = not request.user.is_authenticated
     with transaction.atomic():
         customer = _checkout_customer(request, details)
@@ -1184,6 +1201,9 @@ def cart_checkout(request):
             packing_fee=packing_fee,
             shipping_fee=shipping_fee,
             gst_amount=gst_amount,
+            discount_amount=discount_amount,
+            coupon=applied_coupon,
+            coupon_code=coupon_code if applied_coupon else "",
             total_amount=total_amount,
         )
         OrderItem.objects.bulk_create(
@@ -1197,6 +1217,7 @@ def cart_checkout(request):
                 for item in items
             ]
         )
+    request.session.pop("applied_coupon_code", None)
     if guest_checkout:
         _sign_in_guest_customer(request, customer)
     request.session[CART_SESSION_KEY] = {}
@@ -1251,7 +1272,22 @@ def checkout(request, product_id):
         gst_amount = site_details.calculate_gst(items_subtotal)
         packing_fee = site_details.calculate_packing_fee(quantity)
         shipping_fee = site_details.calculate_shipping_fee(state)
-        total_price = items_subtotal + gst_amount + packing_fee + shipping_fee
+
+        coupon_code = (request.POST.get("coupon_code") or request.session.get("applied_coupon_code") or "").strip().upper()
+        applied_coupon = None
+        discount_amount = Decimal("0.00")
+        if coupon_code:
+            coupon_obj = Coupon.objects.filter(code__iexact=coupon_code).first()
+            if coupon_obj and coupon_obj.is_valid_status:
+                discount_amount = coupon_obj.calculate_discount(
+                    items_subtotal,
+                    [{"product": product, "quantity": quantity}],
+                )
+                if discount_amount > 0:
+                    applied_coupon = coupon_obj
+                    Coupon.objects.filter(pk=coupon_obj.pk).update(times_used=models.F("times_used") + 1)
+
+        total_price = max(Decimal("0.00"), items_subtotal - discount_amount) + gst_amount + packing_fee + shipping_fee
 
         guest_checkout = not request.user.is_authenticated
         with transaction.atomic():
@@ -1269,6 +1305,9 @@ def checkout(request, product_id):
                 packing_fee=packing_fee,
                 shipping_fee=shipping_fee,
                 gst_amount=gst_amount,
+                discount_amount=discount_amount,
+                coupon=applied_coupon,
+                coupon_code=coupon_code if applied_coupon else "",
                 total_amount=total_price,
             )
             OrderItem.objects.create(
@@ -1277,6 +1316,7 @@ def checkout(request, product_id):
                 quantity=quantity,
                 unit_price=unit_price,
             )
+        request.session.pop("applied_coupon_code", None)
         if guest_checkout:
             _sign_in_guest_customer(request, customer)
         return redirect("payment_page", payment_reference=order.payment_reference)
@@ -2352,5 +2392,128 @@ def admin_delete_message(request, message_id):
     msg.delete()
     messages.success(request, f"Message from '{sender}' was deleted.")
     return redirect(f"{reverse('admin_details')}?tab=messages")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_coupons(request):
+    show_modal = False
+    if request.method == "POST":
+        form = CouponForm(request.POST)
+        if form.is_valid():
+            coupon = form.save()
+            messages.success(request, f"Coupon '{coupon.code}' created successfully!")
+            return redirect("admin_coupons")
+        else:
+            show_modal = True
+            for field, errs in form.errors.items():
+                for e in errs:
+                    messages.error(request, f"{field.replace('_', ' ').capitalize()}: {e}")
+    else:
+        form = CouponForm()
+
+    coupons = Coupon.objects.prefetch_related("applicable_categories").all().order_by("-created_at")
+
+    coupon_orders = (
+        Order.objects.filter(
+            Q(coupon__isnull=False) | ~Q(coupon_code="") | Q(discount_amount__gt=0)
+        )
+        .select_related("coupon", "customer", "product")
+        .order_by("-created_at")
+    )
+
+    total_coupons_count = coupons.count()
+    active_coupons_count = sum(1 for c in coupons if c.is_valid_status)
+    expired_coupons_count = sum(1 for c in coupons if c.is_expired)
+    total_discount_given = coupon_orders.aggregate(total=Sum("discount_amount"))["total"] or Decimal("0.00")
+    coupon_orders_count = coupon_orders.count()
+
+    context = {
+        "active_page": "coupons",
+        "form": form,
+        "show_modal": show_modal,
+        "coupons": coupons,
+        "coupon_orders": coupon_orders,
+        "total_coupons_count": total_coupons_count,
+        "active_coupons_count": active_coupons_count,
+        "expired_coupons_count": expired_coupons_count,
+        "total_discount_given": total_discount_given,
+        "coupon_orders_count": coupon_orders_count,
+        "total_products_count": Product.objects.count(),
+        "total_delivery_users_count": DeliveryProfile.objects.count(),
+        "pending_orders_count": Order.objects.filter(status="pending").count(),
+        "unread_messages_count": ContactMessage.objects.filter(is_read=False).count(),
+    }
+    return render(request, "main/admin_coupons.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_toggle_coupon(request, coupon_id):
+    coupon = get_object_or_404(Coupon, pk=coupon_id)
+    coupon.is_active = not coupon.is_active
+    coupon.save(update_fields=["is_active"])
+    state_str = "activated" if coupon.is_active else "deactivated"
+    messages.success(request, f"Coupon '{coupon.code}' was {state_str}.")
+    return redirect("admin_coupons")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_delete_coupon(request, coupon_id):
+    coupon = get_object_or_404(Coupon, pk=coupon_id)
+    code = coupon.code
+    coupon.delete()
+    messages.success(request, f"Coupon '{code}' was permanently deleted.")
+    return redirect("admin_coupons")
+
+
+def api_apply_coupon(request):
+    code = (request.GET.get("code") or request.POST.get("code") or "").strip().upper()
+    if not code:
+        return JsonResponse({"valid": False, "message": "Please enter a coupon code."})
+    coupon = Coupon.objects.filter(code__iexact=code).first()
+    if not coupon:
+        return JsonResponse({"valid": False, "message": f"Coupon '{code}' does not exist."})
+    if not coupon.is_active:
+        return JsonResponse({"valid": False, "message": f"Coupon '{code}' is currently inactive."})
+    if coupon.is_expired:
+        return JsonResponse({"valid": False, "message": f"Coupon '{code}' has expired on {coupon.expire_date}."})
+    if coupon.is_usage_limit_reached:
+        return JsonResponse({"valid": False, "message": f"Coupon '{code}' usage limit has been reached."})
+
+    subtotal_str = request.GET.get("subtotal") or request.POST.get("subtotal")
+    try:
+        subtotal = Decimal(subtotal_str) if subtotal_str else Decimal("0.00")
+    except Exception:
+        subtotal = Decimal("0.00")
+
+    if subtotal <= 0:
+        items = _cart_items(request)
+        subtotal = sum(Decimal(str(it["product"].price)) * it["quantity"] for it in items)
+
+    if subtotal < coupon.min_order_amount:
+        return JsonResponse({
+            "valid": False,
+            "message": f"Coupon '{code}' requires a minimum order of ₹{coupon.min_order_amount:0.2f} (Current: ₹{subtotal:0.2f}).",
+        })
+
+    discount = coupon.calculate_discount(subtotal)
+    request.session["applied_coupon_code"] = coupon.code
+    return JsonResponse({
+        "valid": True,
+        "code": coupon.code,
+        "discount_type": coupon.discount_type,
+        "discount_value": float(coupon.discount_value),
+        "discount_amount": float(discount),
+        "message": f"✓ Coupon '{coupon.code}' applied! Saved ₹{discount:0.2f}",
+    })
+
+
+def api_remove_coupon(request):
+    request.session.pop("applied_coupon_code", None)
+    return JsonResponse({"valid": True, "message": "Coupon removed."})
 
 

@@ -1,0 +1,1249 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Coupons & Discounts | Admin{% endblock %}
+{% block page_heading %}Coupons & Discounts{% endblock %}
+{% block page_description %}Create promotional discount coupons, configure usage limits and category rules, and track orders with applied coupons.{% endblock %}
+
+{% block topbar_actions %}
+  <button type="button" class="btn-primary" onclick="openCouponModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    <span>Create New Coupon</span>
+  </button>
+{% endblock %}
+
+{% block admin_content %}
+  <style>
+    /* Responsive Stats Grid */
+    .coupons-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+      .coupons-stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 20px;
+      }
+      .coupons-stats-grid .stat-card {
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+        min-width: 0;
+        gap: 4px;
+      }
+      .coupons-stats-grid .stat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .coupons-stats-grid .stat-label {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        white-space: normal;
+      }
+      .coupons-stats-grid .stat-tag {
+        font-size: 0.58rem !important;
+        padding: 1px 6px !important;
+        white-space: nowrap;
+      }
+      .coupons-stats-grid .stat-value {
+        font-size: clamp(1.25rem, 5vw, 1.6rem) !important;
+        line-height: 1.1;
+      }
+    }
+    @media (max-width: 480px) {
+      .coupons-stats-grid {
+        gap: 6px !important;
+      }
+      .coupons-stats-grid .stat-card {
+        padding: 10px 7px !important;
+        border-radius: 12px !important;
+      }
+      .coupons-stats-grid .stat-label {
+        font-size: 0.56rem !important;
+        letter-spacing: 0.02em;
+      }
+      .coupons-stats-grid .stat-tag {
+        font-size: 0.50rem !important;
+        padding: 1px 4px !important;
+      }
+      .coupons-stats-grid .stat-value {
+        font-size: 1.25rem !important;
+      }
+    }
+
+    /* Coupon Code Badges & Tags */
+    .coupon-code-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-weight: 800;
+      font-size: 0.88rem;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(255, 107, 43, 0.12);
+      border: 1px dashed rgba(255, 107, 43, 0.45);
+      color: #ff8a4c;
+      transition: all 0.15s ease;
+    }
+    .coupon-code-badge:hover {
+      background: rgba(255, 107, 43, 0.2);
+      border-color: #ff8a4c;
+    }
+    .coupon-copy-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      transition: color 0.15s ease;
+    }
+    .coupon-copy-btn:hover {
+      color: #fff;
+    }
+
+    /* Category Tag */
+    .cat-chip {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      margin: 1px 2px;
+    }
+    .cat-all-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 6px;
+      background: rgba(90, 163, 255, 0.12);
+      border: 1px solid rgba(90, 163, 255, 0.25);
+      color: #5aa3ff;
+    }
+
+    /* Discount Value Badges */
+    .discount-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+    .discount-pill-percentage {
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #c084fc;
+    }
+    .discount-pill-fixed {
+      background: rgba(47, 207, 122, 0.15);
+      border: 1px solid rgba(47, 207, 122, 0.35);
+      color: #2fcf7a;
+    }
+
+    /* Modal Overlay */
+    .admin-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-modal-overlay.active {
+      display: flex;
+    }
+    .admin-modal-dialog {
+      background: #11161a;
+      border: 1px solid var(--admin-line-strong);
+      border-radius: 18px;
+      width: min(100%, 680px);
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+    }
+    .admin-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--admin-line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .admin-modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .admin-modal-close {
+      background: transparent;
+      border: none;
+      color: var(--admin-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease;
+    }
+    .admin-modal-close:hover {
+      color: #fff;
+    }
+    .admin-modal-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .admin-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--admin-line);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      background: rgba(0,0,0,0.15);
+    }
+
+    /* Separate Table Search & Sort Controls */
+    .table-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--admin-line);
+      border-radius: 12px;
+    }
+    .search-sort-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .control-input-search {
+      background: #0d1114;
+      border: 1px solid var(--admin-line);
+      color: #fff;
+      font-size: 0.82rem;
+      padding: 7px 12px;
+      border-radius: 8px;
+      width: 240px;
+      transition: border-color 0.15s ease;
+    }
+    .control-input-search:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .control-select-sort {
+      background: #0d1114;
+      border: 1px solid var(--admin-line);
+      color: #fff;
+      font-size: 0.82rem;
+      padding: 7px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .filter-chips-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-chip-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--admin-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .filter-chip-btn:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .filter-chip-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Sortable Header indicator */
+    th.sortable-th {
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s ease;
+    }
+    th.sortable-th:hover {
+      color: #fff;
+    }
+    th.sortable-th .sort-icon {
+      font-size: 0.72rem;
+      opacity: 0.5;
+      margin-left: 4px;
+    }
+    th.sortable-th.sorted-asc .sort-icon {
+      opacity: 1;
+      color: var(--primary);
+    }
+    th.sortable-th.sorted-desc .sort-icon {
+      opacity: 1;
+      color: var(--primary);
+    }
+
+    /* Category checkboxes in modal */
+    .category-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+      max-height: 140px;
+      overflow-y: auto;
+      padding: 8px;
+      background: #0d1114;
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+    }
+    .category-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background 0.1s ease;
+    }
+    .category-checkbox-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .category-checkbox-item input[type="checkbox"] {
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    /* Progress mini bar for usage */
+    .usage-progress-bar {
+      width: 70px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .usage-progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+    }
+
+    /* Status Pills */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+    .status-pill-active {
+      background: rgba(47, 207, 122, 0.15);
+      color: #2fcf7a;
+      border: 1px solid rgba(47, 207, 122, 0.35);
+    }
+    .status-pill-expired {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .status-pill-inactive {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-action-ghost {
+      background: transparent;
+      border: 1px solid var(--admin-line);
+      color: var(--admin-muted);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-action-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+    .btn-action-delete {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-action-delete:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+  </style>
+
+  <!-- Top Stats Banner -->
+  <section class="stats-grid coupons-stats-grid stats-grid-3">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Total Coupons</span>
+        <span class="stat-tag stat-tag-blue">Directory</span>
+      </div>
+      <div class="stat-value" id="statTotalCoupons">{{ total_coupons_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Active & Valid</span>
+        <span class="stat-tag stat-tag-green">Live</span>
+      </div>
+      <div class="stat-value" id="statActiveCoupons">{{ active_coupons_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Total Discount Given</span>
+        <span class="stat-tag stat-tag-amber">Saved by Users</span>
+      </div>
+      <div class="stat-value" style="font-size: clamp(1.15rem, 4.5vw, 1.45rem);">₹{{ total_discount_given|floatformat:2 }}</div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- TABLE 1: ALL COUPONS DIRECTORY            -->
+  <!-- ========================================== -->
+  <section class="admin-panel mb-5" style="width: 100%;">
+    <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+      <div>
+        <h2 class="panel-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path>
+            <path d="M13 5v2"></path>
+            <path d="M13 17v2"></path>
+            <path d="M13 11v2"></path>
+          </svg>
+          All Promotional Coupons
+          <span class="badge ms-2" style="background: rgba(255,255,255,0.08); font-size: 0.75rem;" id="couponsTableCount">
+            {{ coupons|length }}
+          </span>
+        </h2>
+        <p class="panel-subtitle">Manage coupon codes, set discount percentage or fixed value, define minimum orders, and assign selective categories.</p>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="openCouponModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Create New Coupon</span>
+      </button>
+    </div>
+
+    <!-- Separate Search & Sort Controls for Coupons Table -->
+    <div class="table-controls-bar">
+      <div class="search-sort-group">
+        <input 
+          type="text" 
+          id="searchCouponsInput" 
+          class="control-input-search" 
+          placeholder="Search coupon code, category..."
+          aria-label="Search coupons"
+        >
+        <select id="sortCouponsSelect" class="control-select-sort" aria-label="Sort coupons">
+          <option value="newest">Sort: Newest First</option>
+          <option value="oldest">Sort: Oldest First</option>
+          <option value="code_asc">Sort: Code (A-Z)</option>
+          <option value="code_desc">Sort: Code (Z-A)</option>
+          <option value="discount_desc">Sort: Discount (High to Low)</option>
+          <option value="discount_asc">Sort: Discount (Low to High)</option>
+          <option value="min_order_desc">Sort: Min Order (High to Low)</option>
+          <option value="usage_desc">Sort: Usage Count</option>
+          <option value="expiry_asc">Sort: Expiry Date (Soonest)</option>
+        </select>
+      </div>
+
+      <div class="filter-chips-group">
+        <button type="button" class="filter-chip-btn active" data-coupon-filter="all">All ({{ coupons|length }})</button>
+        <button type="button" class="filter-chip-btn" data-coupon-filter="active">Active ({{ active_coupons_count }})</button>
+        <button type="button" class="filter-chip-btn" data-coupon-filter="expired">Expired ({{ expired_coupons_count }})</button>
+        <button type="button" class="filter-chip-btn" data-coupon-filter="inactive">Inactive</button>
+      </div>
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="admin-table" id="couponsTable">
+        <thead>
+          <tr>
+            <th class="sortable-th" data-sort-key="code">Coupon Code <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="discount">Discount <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="min_order">Min. Order <span class="sort-icon">⇅</span></th>
+            <th>Selective Categories</th>
+            <th class="sortable-th" data-sort-key="usage">Usage Limit <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="expiry">Expire Date <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="status">Status <span class="sort-icon">⇅</span></th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="couponsTableBody">
+          {% for coupon in coupons %}
+            <tr class="coupon-row" 
+                data-code="{{ coupon.code }}"
+                data-discount="{{ coupon.discount_value }}"
+                data-discount-type="{{ coupon.discount_type }}"
+                data-min-order="{{ coupon.min_order_amount }}"
+                data-usage="{{ coupon.times_used }}"
+                data-usage-limit="{{ coupon.usage_limit|default:999999 }}"
+                data-expiry="{{ coupon.expire_date|date:'Y-m-d'|default:'9999-12-31' }}"
+                data-created="{{ coupon.created_at|date:'U' }}"
+                data-status="{% if not coupon.is_active %}inactive{% elif coupon.is_expired %}expired{% else %}active{% endif %}"
+                data-categories="{% for c in coupon.applicable_categories.all %}{{ c.name|lower }} {% endfor %}">
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="coupon-code-badge">{{ coupon.code }}</span>
+                  <button type="button" class="coupon-copy-btn" title="Copy code" onclick="copyCouponCode('{{ coupon.code|escapejs }}', this)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+              <td>
+                {% if coupon.discount_type == 'percentage' %}
+                  <span class="discount-pill discount-pill-percentage">
+                    {{ coupon.discount_value|floatformat:0 }}% OFF
+                  </span>
+                {% else %}
+                  <span class="discount-pill discount-pill-fixed">
+                    ₹{{ coupon.discount_value|floatformat:2 }} OFF
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if coupon.min_order_amount > 0 %}
+                  <strong>₹{{ coupon.min_order_amount|floatformat:2 }}</strong>
+                {% else %}
+                  <span class="text-white-50" style="font-size: 0.8rem;">No minimum</span>
+                {% endif %}
+              </td>
+              <td>
+                {% with cats=coupon.applicable_categories.all %}
+                  {% if cats %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                      {% for cat in cats %}
+                        <span class="cat-chip">{{ cat.name }}</span>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <span class="cat-all-chip">All Categories</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.85rem;">
+                    {{ coupon.times_used }} / {% if coupon.usage_limit %}{{ coupon.usage_limit }}{% else %}∞{% endif %}
+                  </div>
+                  {% if coupon.usage_limit %}
+                    <div class="usage-progress-bar">
+                      <div class="usage-progress-fill" style="width: {% widthratio coupon.times_used coupon.usage_limit 100 %}%;"></div>
+                    </div>
+                  {% else %}
+                    <span class="text-white-50" style="font-size: 0.72rem;">Unlimited</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                {% if coupon.expire_date %}
+                  <div style="font-size: 0.82rem; font-weight: 600;">
+                    {{ coupon.expire_date|date:"M d, Y" }}
+                  </div>
+                  {% if coupon.is_expired %}
+                    <span class="text-danger" style="font-size: 0.7rem; font-weight: 700;">Expired</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-white-50" style="font-size: 0.8rem;">No expiry date</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not coupon.is_active %}
+                  <span class="status-pill status-pill-inactive">Inactive</span>
+                {% elif coupon.is_expired %}
+                  <span class="status-pill status-pill-expired">Expired</span>
+                {% elif coupon.is_usage_limit_reached %}
+                  <span class="status-pill status-pill-expired">Limit Reached</span>
+                {% else %}
+                  <span class="status-pill status-pill-active">Active</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                  <form method="post" action="{% url 'admin_toggle_coupon' coupon.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-action-ghost" title="Toggle active status">
+                      {% if coupon.is_active %}Disable{% else %}Enable{% endif %}
+                    </button>
+                  </form>
+                  <form method="post" action="{% url 'admin_delete_coupon' coupon.id %}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to delete coupon {{ coupon.code }}? This cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-action-delete" title="Delete coupon">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr id="emptyCouponsRow">
+              <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--admin-muted);">
+                <div style="font-size: 1.8rem; margin-bottom: 8px;">🎟️</div>
+                <div style="font-weight: 700; color: #fff; font-size: 1.05rem;">No coupons created yet</div>
+                <p style="margin-top: 4px; font-size: 0.85rem;">Click the "Create New Coupon" button to introduce discount codes for your customers.</p>
+              </td>
+            </tr>
+          {% endfor %}
+          <tr id="noCouponsMatchRow" style="display: none;">
+            <td colspan="8" style="text-align: center; padding: 30px 20px; color: var(--admin-muted);">
+              No coupons matching your search criteria.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- TABLE 2: ORDERS APPLIED WITH COUPONS      -->
+  <!-- ========================================== -->
+  <section class="admin-panel" style="width: 100%;">
+    <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+      <div>
+        <h2 class="panel-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+            <path d="M3 6h18"></path>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+          Orders Applied with Coupons
+          <span class="badge ms-2" style="background: rgba(47,207,122,0.15); color: #2fcf7a; font-size: 0.75rem;" id="ordersTableCount">
+            {{ coupon_orders|length }}
+          </span>
+        </h2>
+        <p class="panel-subtitle">Review all completed customer purchases where discount codes were claimed, including saved amounts and order progress.</p>
+      </div>
+    </div>
+
+    <!-- Separate Search & Sort Controls for Orders Table -->
+    <div class="table-controls-bar">
+      <div class="search-sort-group">
+        <input 
+          type="text" 
+          id="searchOrdersInput" 
+          class="control-input-search" 
+          placeholder="Search order #, customer, coupon..."
+          aria-label="Search orders"
+        >
+        <select id="sortOrdersSelect" class="control-select-sort" aria-label="Sort orders">
+          <option value="newest">Sort: Newest Orders First</option>
+          <option value="oldest">Sort: Oldest First</option>
+          <option value="discount_desc">Sort: Discount Saved (High to Low)</option>
+          <option value="discount_asc">Sort: Discount Saved (Low to High)</option>
+          <option value="total_desc">Sort: Order Total (High to Low)</option>
+          <option value="total_asc">Sort: Order Total (Low to High)</option>
+          <option value="order_num_asc">Sort: Order #</option>
+        </select>
+      </div>
+
+      <div class="filter-chips-group">
+        <button type="button" class="filter-chip-btn active" data-order-filter="all">All Orders</button>
+        <button type="button" class="filter-chip-btn" data-order-filter="delivered">Delivered</button>
+        <button type="button" class="filter-chip-btn" data-order-filter="shipped">Shipped</button>
+        <button type="button" class="filter-chip-btn" data-order-filter="packed">Packed</button>
+        <button type="button" class="filter-chip-btn" data-order-filter="pending">Pending</button>
+        <button type="button" class="filter-chip-btn" data-order-filter="cancelled">Cancelled</button>
+      </div>
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="admin-table" id="couponOrdersTable">
+        <thead>
+          <tr>
+            <th class="sortable-th" data-sort-key="order_num">Order # <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="customer">Customer <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="coupon_code">Coupon Code <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="discount_val">Discount Saved <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="total_amount">Final Total Paid <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="order_date">Date & Time <span class="sort-icon">⇅</span></th>
+            <th class="sortable-th" data-sort-key="order_status">Order Status <span class="sort-icon">⇅</span></th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="ordersTableBody">
+          {% for order in coupon_orders %}
+            <tr class="order-row"
+                data-order-num="{{ order.id }}"
+                data-customer="{{ order.customer_name|lower }} {{ order.customer_phone }}"
+                data-coupon-code="{% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %}"
+                data-discount-val="{{ order.discount_amount }}"
+                data-total-amount="{{ order.total_amount }}"
+                data-order-date="{{ order.created_at|date:'U' }}"
+                data-order-status="{{ order.status }}">
+              <td>
+                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; color: #5aa3ff; text-decoration: none;">
+                  #{{ order.id }}
+                </a>
+              </td>
+              <td>
+                <div>
+                  <div class="cell-main-title">{{ order.customer_name }}</div>
+                  <div class="cell-sub-info">{{ order.customer_phone|default:"Phone not provided" }}</div>
+                </div>
+              </td>
+              <td>
+                <span class="coupon-code-badge">
+                  {% if order.coupon %}
+                    {{ order.coupon.code }}
+                  {% else %}
+                    {{ order.coupon_code|default:"COUPON" }}
+                  {% endif %}
+                </span>
+              </td>
+              <td>
+                <span style="color: #2fcf7a; font-weight: 800; font-size: 0.92rem;">
+                  -₹{{ order.discount_amount|floatformat:2 }}
+                </span>
+              </td>
+              <td>
+                <strong style="color: #fff; font-size: 0.95rem;">
+                  ₹{{ order.total_amount|floatformat:2 }}
+                </strong>
+              </td>
+              <td>
+                <div style="font-size: 0.82rem; font-weight: 600;">
+                  {{ order.created_at|date:"M d, Y" }}
+                </div>
+                <div style="font-size: 0.72rem; color: rgba(255,255,255,0.45);">
+                  {{ order.created_at|date:"h:i A" }}
+                </div>
+              </td>
+              <td>
+                {% if order.status == 'delivered' %}
+                  <span class="status-pill status-pill-active">Delivered</span>
+                {% elif order.status == 'shipped' %}
+                  <span class="status-pill" style="background: rgba(90, 163, 255, 0.15); color: #5aa3ff; border: 1px solid rgba(90, 163, 255, 0.35);">Shipped</span>
+                {% elif order.status == 'out_for_delivery' %}
+                  <span class="status-pill" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);">Out for Delivery</span>
+                {% elif order.status == 'packed' %}
+                  <span class="status-pill" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35);">Packed</span>
+                {% elif order.status == 'cancelled' %}
+                  <span class="status-pill status-pill-expired">Cancelled</span>
+                {% else %}
+                  <span class="status-pill status-pill-inactive">{{ order.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <a href="{% url 'admin_order_detail' order.id %}" class="btn-action-ghost" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                  View
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr id="emptyOrdersRow">
+              <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--admin-muted);">
+                <div style="font-size: 1.8rem; margin-bottom: 8px;">🛒</div>
+                <div style="font-weight: 700; color: #fff; font-size: 1.05rem;">No coupon orders yet</div>
+                <p style="margin-top: 4px; font-size: 0.85rem;">When customers complete checkouts using promotional coupon codes, their orders will appear here.</p>
+              </td>
+            </tr>
+          {% endfor %}
+          <tr id="noOrdersMatchRow" style="display: none;">
+            <td colspan="8" style="text-align: center; padding: 30px 20px; color: var(--admin-muted);">
+              No applied coupon orders matching your search criteria.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CREATE NEW COUPON                   -->
+  <!-- ========================================== -->
+  <div class="admin-modal-overlay {% if show_modal %}active{% endif %}" id="couponModal" onclick="if(event.target===this) closeCouponModal();" role="dialog" aria-modal="true" aria-labelledby="couponModalTitle">
+    <div class="admin-modal-dialog">
+      <div class="admin-modal-header">
+        <div>
+          <h3 class="admin-modal-title" id="couponModalTitle">Create New Coupon</h3>
+          <p style="font-size: 0.8rem; color: var(--admin-muted); margin: 4px 0 0;">Configure promotional discount rules, limits, expiry date, and categories.</p>
+        </div>
+        <button type="button" class="admin-modal-close" onclick="closeCouponModal()" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form method="post" action="{% url 'admin_coupons' %}" id="createCouponForm">
+        {% csrf_token %}
+        <div class="admin-modal-body">
+
+          <!-- 1. Coupon Code -->
+          <div class="form-group">
+            <label for="id_coupon_code" class="form-label" style="font-weight: 700;">
+              Coupon Code <span class="text-danger">*</span>
+            </label>
+            {{ form.code }}
+            <div class="form-text text-white-50" style="font-size: 0.76rem; margin-top: 4px;">
+              Enter a unique code like <strong>SUMMER20</strong> or <strong>FLAT100</strong> (auto-converted to uppercase).
+            </div>
+            {% if form.code.errors %}
+              <div class="text-danger small mt-1">{{ form.code.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- 2. Discount Type & Value Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label for="id_coupon_discount_type" class="form-label" style="font-weight: 700;">
+                Discount Type <span class="text-danger">*</span>
+              </label>
+              {{ form.discount_type }}
+              {% if form.discount_type.errors %}
+                <div class="text-danger small mt-1">{{ form.discount_type.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="form-group">
+              <label for="id_coupon_discount_value" class="form-label" style="font-weight: 700;">
+                Discount Value <span class="text-danger">*</span> <span id="discountValueHelper" class="text-primary">(%)</span>
+              </label>
+              {{ form.discount_value }}
+              {% if form.discount_value.errors %}
+                <div class="text-danger small mt-1">{{ form.discount_value.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- 3. Minimum Order Amount & Usage Limit -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label for="id_coupon_min_order" class="form-label" style="font-weight: 700;">
+                Minimum Order Amount (₹)
+              </label>
+              {{ form.min_order_amount }}
+              <div class="form-text text-white-50" style="font-size: 0.75rem; margin-top: 4px;">
+                Enter 0 or leave empty for no minimum.
+              </div>
+              {% if form.min_order_amount.errors %}
+                <div class="text-danger small mt-1">{{ form.min_order_amount.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="form-group">
+              <label for="id_coupon_usage_limit" class="form-label" style="font-weight: 700;">
+                Usage Limit
+              </label>
+              {{ form.usage_limit }}
+              <div class="form-text text-white-50" style="font-size: 0.75rem; margin-top: 4px;">
+                Total times code can be redeemed (empty = unlimited).
+              </div>
+              {% if form.usage_limit.errors %}
+                <div class="text-danger small mt-1">{{ form.usage_limit.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- 4. Expire Date as Date Input -->
+          <div class="form-group">
+            <label for="id_coupon_expire_date" class="form-label" style="font-weight: 700;">
+              Expire Date <span class="text-white-50" style="font-weight: 400; font-size: 0.8rem;">(Date input)</span>
+            </label>
+            {{ form.expire_date }}
+            <div class="form-text text-white-50" style="font-size: 0.75rem; margin-top: 4px;">
+              Coupons automatically expire at midnight on this date. Leave blank for no expiration.
+            </div>
+            {% if form.expire_date.errors %}
+              <div class="text-danger small mt-1">{{ form.expire_date.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- 5. Selective Categories -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label" style="font-weight: 700; margin: 0;">
+                Selective Categories
+              </label>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-mini" onclick="selectAllCategories(true)" style="font-size: 0.7rem; padding: 2px 8px;">Select All</button>
+                <button type="button" class="btn-mini" onclick="selectAllCategories(false)" style="font-size: 0.7rem; padding: 2px 8px;">Clear All</button>
+              </div>
+            </div>
+            <div class="form-text text-white-50" style="font-size: 0.75rem; margin-top: 4px; margin-bottom: 6px;">
+              Select specific product categories eligible for this discount, or leave empty to apply across <strong>all categories</strong>.
+            </div>
+            
+            <div class="category-selection-grid">
+              {% for choice in form.applicable_categories %}
+                <label class="category-checkbox-item">
+                  {{ choice.tag }}
+                  <span>{{ choice.choice_label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            {% if form.applicable_categories.errors %}
+              <div class="text-danger small mt-1">{{ form.applicable_categories.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- 6. Active Status Checkbox -->
+          <div class="form-check" style="display: flex; align-items: center; gap: 10px; padding: 0;">
+            {{ form.is_active }}
+            <label for="id_coupon_is_active" class="form-check-label" style="font-weight: 700; cursor: pointer; margin: 0;">
+              Activate coupon immediately upon creation
+            </label>
+          </div>
+
+        </div>
+
+        <div class="admin-modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeCouponModal()">Cancel</button>
+          <button type="submit" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+            <span>Create Coupon</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT: DYNAMIC REAL-TIME SORT, SEARCH, AND MODAL BEHAVIOR -->
+  <script>
+    // --- MODAL CONTROLS ---
+    function openCouponModal() {
+      const modal = document.getElementById('couponModal');
+      if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        const codeInput = document.getElementById('id_coupon_code');
+        if (codeInput) codeInput.focus();
+      }
+    }
+
+    function closeCouponModal() {
+      const modal = document.getElementById('couponModal');
+      if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeCouponModal();
+    });
+
+    // Helper to toggle categories
+    function selectAllCategories(select) {
+      document.querySelectorAll('.category-selection-grid input[type="checkbox"]').forEach(cb => {
+        cb.checked = select;
+      });
+    }
+
+    // Auto-uppercase coupon code input
+    const codeInput = document.getElementById('id_coupon_code');
+    if (codeInput) {
+      codeInput.addEventListener('input', function () {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+      });
+    }
+
+    // Dynamic helper for discount type
+    const discountTypeSelect = document.getElementById('id_coupon_discount_type');
+    const discountHelper = document.getElementById('discountValueHelper');
+    function updateDiscountHelper() {
+      if (!discountTypeSelect || !discountHelper) return;
+      if (discountTypeSelect.value === 'percentage') {
+        discountHelper.textContent = '(%)';
+      } else {
+        discountHelper.textContent = '(₹ Amount)';
+      }
+    }
+    if (discountTypeSelect) {
+      discountTypeSelect.addEventListener('change', updateDiscountHelper);
+      updateDiscountHelper();
+    }
+
+    // Copy to clipboard helper
+    function copyCouponCode(text, btn) {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span style="color:#2fcf7a; font-size:0.75rem;">✓ Copied</span>';
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+        }, 1500);
+      });
+    }
+
+    // --- TABLE 1: ALL COUPONS SEARCH & SORT ---
+    (function initCouponsTable() {
+      const searchInput = document.getElementById('searchCouponsInput');
+      const sortSelect = document.getElementById('sortCouponsSelect');
+      const tbody = document.getElementById('couponsTableBody');
+      const countBadge = document.getElementById('couponsTableCount');
+      const noMatchRow = document.getElementById('noCouponsMatchRow');
+      const filterBtns = document.querySelectorAll('[data-coupon-filter]');
+      let currentFilter = 'all';
+
+      if (!tbody) return;
+
+      function getRows() {
+        return Array.from(tbody.querySelectorAll('.coupon-row'));
+      }
+
+      function filterAndSortCoupons() {
+        const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        const sortMode = sortSelect ? sortSelect.value : 'newest';
+        const rows = getRows();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+          const code = (row.dataset.code || '').toLowerCase();
+          const cats = (row.dataset.categories || '').toLowerCase();
+          const status = (row.dataset.status || '').toLowerCase();
+
+          const matchesQuery = !query || code.includes(query) || cats.includes(query) || status.includes(query);
+          const matchesFilter = (currentFilter === 'all') || (status === currentFilter);
+
+          if (matchesQuery && matchesFilter) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (countBadge) countBadge.textContent = visibleCount;
+        if (noMatchRow) {
+          noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
+
+        // Sort rows
+        rows.sort((a, b) => {
+          switch (sortMode) {
+            case 'oldest':
+              return Number(a.dataset.created) - Number(b.dataset.created);
+            case 'code_asc':
+              return a.dataset.code.localeCompare(b.dataset.code);
+            case 'code_desc':
+              return b.dataset.code.localeCompare(a.dataset.code);
+            case 'discount_desc':
+              return Number(b.dataset.discount) - Number(a.dataset.discount);
+            case 'discount_asc':
+              return Number(a.dataset.discount) - Number(b.dataset.discount);
+            case 'min_order_desc':
+              return Number(b.dataset.minOrder) - Number(a.dataset.minOrder);
+            case 'usage_desc':
+              return Number(b.dataset.usage) - Number(a.dataset.usage);
+            case 'expiry_asc':
+              return a.dataset.expiry.localeCompare(b.dataset.expiry);
+            case 'newest':
+            default:
+              return Number(b.dataset.created) - Number(a.dataset.created);
+          }
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+      }
+
+      if (searchInput) searchInput.addEventListener('input', filterAndSortCoupons);
+      if (sortSelect) sortSelect.addEventListener('change', filterAndSortCoupons);
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', function () {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          currentFilter = this.dataset.couponFilter;
+          filterAndSortCoupons();
+        });
+      });
+
+      // Clickable header sorting
+      document.querySelectorAll('#couponsTable th.sortable-th').forEach(th => {
+        th.addEventListener('click', function () {
+          const key = this.dataset.sortKey;
+          const isAsc = this.classList.contains('sorted-asc');
+          document.querySelectorAll('#couponsTable th.sortable-th').forEach(h => {
+            h.classList.remove('sorted-asc', 'sorted-desc');
+          });
+
+          if (isAsc) {
+            this.classList.add('sorted-desc');
+            if (key === 'code') sortSelect.value = 'code_desc';
+            else if (key === 'discount') sortSelect.value = 'discount_asc';
+            else if (key === 'expiry') sortSelect.value = 'newest';
+            else sortSelect.value = 'oldest';
+          } else {
+            this.classList.add('sorted-asc');
+            if (key === 'code') sortSelect.value = 'code_asc';
+            else if (key === 'discount') sortSelect.value = 'discount_desc';
+            else if (key === 'expiry') sortSelect.value = 'expiry_asc';
+            else if (key === 'usage') sortSelect.value = 'usage_desc';
+            else if (key === 'min_order') sortSelect.value = 'min_order_desc';
+            else sortSelect.value = 'newest';
+          }
+          filterAndSortCoupons();
+        });
+      });
+    })();
+
+    // --- TABLE 2: ORDERS APPLIED WITH COUPONS SEARCH & SORT ---
+    (function initOrdersTable() {
+      const searchInput = document.getElementById('searchOrdersInput');
+      const sortSelect = document.getElementById('sortOrdersSelect');
+      const tbody = document.getElementById('ordersTableBody');
+      const countBadge = document.getElementById('ordersTableCount');
+      const noMatchRow = document.getElementById('noOrdersMatchRow');
+      const filterBtns = document.querySelectorAll('[data-order-filter]');
+      let currentFilter = 'all';
+
+      if (!tbody) return;
+
+      function getRows() {
+        return Array.from(tbody.querySelectorAll('.order-row'));
+      }
+
+      function filterAndSortOrders() {
+        const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        const sortMode = sortSelect ? sortSelect.value : 'newest';
+        const rows = getRows();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+          const orderNum = (row.dataset.orderNum || '').toLowerCase();
+          const customer = (row.dataset.customer || '').toLowerCase();
+          const couponCode = (row.dataset.couponCode || '').toLowerCase();
+          const status = (row.dataset.orderStatus || '').toLowerCase();
+
+          const matchesQuery = !query || orderNum.includes(query) || customer.includes(query) || couponCode.includes(query) || status.includes(query);
+          const matchesFilter = (currentFilter === 'all') || (status === currentFilter);
+
+          if (matchesQuery && matchesFilter) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (countBadge) countBadge.textContent = visibleCount;
+        if (noMatchRow) {
+          noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+        }
+
+        // Sort rows
+        rows.sort((a, b) => {
+          switch (sortMode) {
+            case 'oldest':
+              return Number(a.dataset.orderDate) - Number(b.dataset.orderDate);
+            case 'discount_desc':
+              return Number(b.dataset.discountVal) - Number(a.dataset.discountVal);
+            case 'discount_asc':
+              return Number(a.dataset.discountVal) - Number(b.dataset.discountVal);
+            case 'total_desc':
+              return Number(b.dataset.totalAmount) - Number(a.dataset.totalAmount);
+            case 'total_asc':
+              return Number(a.dataset.totalAmount) - Number(b.dataset.totalAmount);
+            case 'order_num_asc':
+              return Number(a.dataset.orderNum) - Number(b.dataset.orderNum);
+            case 'newest':
+            default:
+              return Number(b.dataset.orderDate) - Number(a.dataset.orderDate);
+          }
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+      }
+
+      if (searchInput) searchInput.addEventListener('input', filterAndSortOrders);
+      if (sortSelect) sortSelect.addEventListener('change', filterAndSortOrders);
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', function () {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          currentFilter = this.dataset.orderFilter;
+          filterAndSortOrders();
+        });
+      });
+
+      // Clickable header sorting
+      document.querySelectorAll('#couponOrdersTable th.sortable-th').forEach(th => {
+        th.addEventListener('click', function () {
+          const key = this.dataset.sortKey;
+          const isAsc = this.classList.contains('sorted-asc');
+          document.querySelectorAll('#couponOrdersTable th.sortable-th').forEach(h => {
+            h.classList.remove('sorted-asc', 'sorted-desc');
+          });
+
+          if (isAsc) {
+            this.classList.add('sorted-desc');
+            if (key === 'discount_val') sortSelect.value = 'discount_asc';
+            else if (key === 'total_amount') sortSelect.value = 'total_asc';
+            else sortSelect.value = 'oldest';
+          } else {
+            this.classList.add('sorted-asc');
+            if (key === 'discount_val') sortSelect.value = 'discount_desc';
+            else if (key === 'total_amount') sortSelect.value = 'total_desc';
+            else if (key === 'order_num') sortSelect.value = 'order_num_asc';
+            else sortSelect.value = 'newest';
+          }
+          filterAndSortOrders();
+        });
+      });
+    })();
+  </script>
+{% endblock %}

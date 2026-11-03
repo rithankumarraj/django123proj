@@ -1,6 +1,8 @@
 from decimal import Decimal
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 import uuid
 
 
@@ -254,6 +256,119 @@ class CustomerAddress(models.Model):
         return f"{self.user.get_username()} - {self.address}"
 
 
+class Coupon(models.Model):
+    DISCOUNT_TYPE_CHOICES = [
+        ("percentage", "Percentage (%)"),
+        ("fixed", "Fixed Amount (₹)"),
+    ]
+
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default="percentage")
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
+    min_order_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    usage_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum total uses across all orders. Leave blank for unlimited.",
+    )
+    expire_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Expiry date for coupon.",
+    )
+    applicable_categories = models.ManyToManyField(
+        ProductCategory,
+        blank=True,
+        related_name="coupons",
+        help_text="Selective categories this coupon applies to. Leave empty for all categories.",
+    )
+    times_used = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.code} ({self.get_discount_type_display()} - {self.discount_value})"
+
+    def clean(self):
+        if self.code:
+            self.code = self.code.strip().upper()
+        if self.discount_type == "percentage" and self.discount_value is not None:
+            if self.discount_value > 100:
+                raise ValidationError({"discount_value": "Percentage discount cannot exceed 100%."})
+            if self.discount_value <= 0:
+                raise ValidationError({"discount_value": "Discount value must be greater than 0."})
+        elif self.discount_type == "fixed" and self.discount_value is not None:
+            if self.discount_value <= 0:
+                raise ValidationError({"discount_value": "Discount value must be greater than 0."})
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        if not self.expire_date:
+            return False
+        return self.expire_date < timezone.localdate()
+
+    @property
+    def is_usage_limit_reached(self):
+        if self.usage_limit is not None and self.usage_limit > 0:
+            return self.times_used >= self.usage_limit
+        return False
+
+    @property
+    def is_valid_status(self):
+        return self.is_active and not self.is_expired and not self.is_usage_limit_reached
+
+    @property
+    def discount_display(self):
+        if self.discount_type == "percentage":
+            val = int(self.discount_value) if self.discount_value == int(self.discount_value) else self.discount_value
+            return f"{val}% OFF"
+        val = int(self.discount_value) if self.discount_value == int(self.discount_value) else self.discount_value
+        return f"₹{val} OFF"
+
+    @property
+    def categories_display(self):
+        cats = list(self.applicable_categories.all())
+        if not cats:
+            return "All Categories"
+        return ", ".join(c.name for c in cats)
+
+    def calculate_discount(self, items_subtotal, order_items_data=None):
+        if items_subtotal < self.min_order_amount:
+            return Decimal("0.00")
+
+        target_subtotal = items_subtotal
+        cats = list(self.applicable_categories.all())
+        if cats and order_items_data:
+            cat_slugs = {c.slug.lower() for c in cats}
+            cat_names = {c.name.lower() for c in cats}
+            eligible_subtotal = Decimal("0.00")
+            for it in order_items_data:
+                prod = it.get("product")
+                prod_cat = getattr(prod, "category", "") or ""
+                if prod_cat.lower() in cat_slugs or prod_cat.lower() in cat_names:
+                    qty = it.get("quantity", 1)
+                    price = getattr(prod, "price", Decimal("0.00"))
+                    eligible_subtotal += Decimal(str(price)) * int(qty)
+            target_subtotal = eligible_subtotal
+            if target_subtotal <= 0:
+                return Decimal("0.00")
+
+        if self.discount_type == "percentage":
+            discount = (target_subtotal * (self.discount_value / Decimal("100"))).quantize(Decimal("0.01"))
+        else:
+            discount = min(target_subtotal, self.discount_value)
+
+        return max(Decimal("0.00"), discount)
+
+
 class Order(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Payment pending"),
@@ -300,6 +415,15 @@ class Order(models.Model):
     shipping_fee = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
     packing_fee = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
     gst_amount = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    coupon = models.ForeignKey(
+        Coupon,
+        related_name="orders",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    coupon_code = models.CharField(max_length=50, blank=True, default="")
     payment_reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     payment_event_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -307,7 +431,7 @@ class Order(models.Model):
 
     @property
     def items_subtotal(self):
-        sub = self.total_amount - self.shipping_fee - self.packing_fee - self.gst_amount
+        sub = self.total_amount + self.discount_amount - self.shipping_fee - self.packing_fee - self.gst_amount
         return sub if sub > 0 else self.total_amount
 
     def save(self, *args, **kwargs):
