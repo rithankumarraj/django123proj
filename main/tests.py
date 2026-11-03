@@ -1460,6 +1460,22 @@ class CartTests(TestCase):
         self.assertNotContains(cart_page, "Cart Cola")
         self.assertContains(cart_page, "Cart Lime")
 
+    def test_cart_item_can_be_moved_to_wishlist(self):
+        self.add_item(self.cola, "1")
+        self.add_item(self.lime, "2")
+
+        response = self.client.post(
+            reverse("update_cart"),
+            {"action": "move_to_wishlist", "product_id": str(self.cola.id)},
+            follow=True,
+        )
+        self.assertRedirects(response, reverse("cart"))
+        self.assertNotIn(str(self.cola.id), self.client.session.get("cart", {}))
+        self.assertIn(str(self.cola.id), self.client.session.get("wishlist", []))
+        self.assertNotContains(response, f'id="quantity-{self.cola.id}"')
+        self.assertContains(response, f'id="quantity-{self.lime.id}"')
+        self.assertContains(response, "Cart Cola added to your wishlist.")
+
     def test_ajax_cart_quantity_update_returns_live_totals(self):
         self.add_item(self.cola, "1")
         self.add_item(self.lime, "2")
@@ -3261,6 +3277,12 @@ class ProductPincodeAvailabilityTests(TestCase):
         self.assertContains(res, 'id="cartPincodeNotice"')
         self.assertContains(res, 'id="cart-pin-rules-data"')
         self.assertContains(res, "625018")
+        self.assertContains(res, f'data-cart-item-id="{self.product_restricted.id}"')
+        self.assertContains(res, f'id="cart-item-pin-badge-{self.product_restricted.id}"')
+        self.assertContains(res, f'id="cart-item-pin-notice-{self.product_restricted.id}"')
+        self.assertContains(res, 'id="removeConfirmModal"')
+        self.assertContains(res, "Add to Wishlist")
+        self.assertContains(res, "Remove from Cart")
 
 
 class OrderStatusProgressionTests(TestCase):

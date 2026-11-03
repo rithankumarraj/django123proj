@@ -740,7 +740,31 @@ def update_cart(request):
 
     if action == "remove":
         product_id = request.POST.get("product_id", "")
+        product = Product.objects.filter(id=product_id).first()
         cart.pop(str(product_id), None)
+        request.session[CART_SESSION_KEY] = cart
+        request.session.modified = True
+        name = product.name if product else "Item"
+        messages.success(request, f"{name} removed from your cart.")
+        return redirect("cart")
+    elif action == "move_to_wishlist":
+        product_id = request.POST.get("product_id", "")
+        product = Product.objects.filter(id=product_id).first()
+        cart.pop(str(product_id), None)
+        request.session[CART_SESSION_KEY] = cart
+        request.session.modified = True
+
+        wishlist = request.session.get(WISHLIST_SESSION_KEY, [])
+        if not isinstance(wishlist, list):
+            wishlist = []
+        if str(product_id) not in [str(x) for x in wishlist]:
+            wishlist.append(str(product_id))
+        request.session[WISHLIST_SESSION_KEY] = wishlist
+        request.session.modified = True
+
+        name = product.name if product else "Item"
+        messages.success(request, f"{name} added to your wishlist.")
+        return redirect("cart")
     elif action == "update":
         for raw_id in list(cart):
             try:
@@ -817,6 +841,7 @@ def cart_page(request):
 
     cart_pin_rules = [
         {
+            "id": it["product"].id,
             "name": it["product"].name,
             "pins": it["product"].get_available_pincodes_list(),
         }

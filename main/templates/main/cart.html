@@ -161,6 +161,180 @@
       background: rgba(255, 100, 100, 0.1);
     }
 
+    .cart-item {
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .cart-item.is-undeliverable {
+      border: 1px solid rgba(255, 75, 75, 0.45) !important;
+      background: rgba(255, 60, 60, 0.05) !important;
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .cart-item-unavail-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255, 75, 75, 0.16);
+      border: 1px solid rgba(255, 75, 75, 0.4);
+      color: #ff7676;
+    }
+
+    .cart-item-unavail-text {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #ff9494;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    /* Remove Confirmation Modal */
+    .cart-remove-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+      animation: modalOverlayFade 0.2s ease-out;
+    }
+
+    .cart-remove-modal-card {
+      background: #14181b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      width: min(100%, 440px);
+      padding: 24px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalOverlayFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalPopIn {
+      from { opacity: 0; transform: scale(0.95) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-icon-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255, 75, 75, 0.12);
+      border: 1px solid rgba(255, 75, 75, 0.25);
+      color: #ff7676;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-close-modal {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-close-modal:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-product-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-actions-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-modal-action {
+      width: 100%;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 10px 16px;
+    }
+
+    .btn-modal-wishlist {
+      background: rgba(255, 255, 255, 0.95);
+      color: #0b0e10;
+      border: 1px solid #ffffff;
+    }
+
+    .btn-modal-wishlist:hover {
+      background: #ffffff;
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-modal-remove {
+      background: rgba(255, 75, 75, 0.12);
+      color: #ff8888;
+      border: 1px solid rgba(255, 75, 75, 0.3);
+    }
+
+    .btn-modal-remove:hover {
+      background: rgba(255, 75, 75, 0.22);
+      color: #ffa4a4;
+      border-color: rgba(255, 75, 75, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-modal-cancel {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      min-height: 38px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-top: 2px;
+    }
+
+    .btn-modal-cancel:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
     .cart-action-button {
       display: inline-flex;
       align-items: center;
@@ -668,12 +842,20 @@
             {% csrf_token %}
             <input type="hidden" name="action" value="update">
             {% for item in items %}
-            <article class="cart-item">
+            <article class="cart-item" data-cart-item-id="{{ item.product.id }}">
               <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}">
               <div>
-                <h2>{{ item.product.name }}</h2>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <h2 style="margin: 0; font-size: 1.15rem; font-weight: 700;">{{ item.product.name }}</h2>
+                  <span class="cart-item-unavail-badge" id="cart-item-pin-badge-{{ item.product.id }}" style="display: none;">
+                    ⚠️ Unavailable for this PIN
+                  </span>
+                </div>
                 <div class="cart-muted">{{ item.product.volume }} · ₹{{ item.product.price }} each</div>
                 <div class="cart-item-price" data-line-total>₹{{ item.line_total|floatformat:2 }}</div>
+                <div class="cart-item-unavail-text" id="cart-item-pin-notice-{{ item.product.id }}" style="display: none;">
+                  ✕ Not deliverable to PIN <span class="cart-pin-target"></span>. Please update delivery PIN or remove this item.
+                </div>
               </div>
               <div class="cart-item-actions">
                 <label class="visually-hidden" for="quantity-{{ item.product.id }}">Quantity for {{ item.product.name }}</label>
@@ -684,7 +866,8 @@
                   <button class="cart-quantity-step" type="button" data-quantity-step="1"
                     aria-label="Increase quantity for {{ item.product.name }}">+</button>
                 </span>
-                <button class="cart-remove" type="submit" form="remove-{{ item.product.id }}">Remove</button>
+                <button class="cart-remove" type="button"
+                  onclick="openRemoveConfirmModal('{{ item.product.id }}', '{{ item.product.name|escapejs }}', '{{ item.product.volume|escapejs }}', '{{ item.product.image_url|escapejs }}')">Remove</button>
               </div>
             </article>
             {% endfor %}
@@ -992,77 +1175,206 @@
        const cartZipFeedback = document.getElementById('cartZipFeedback');
        const cartNoticeBox = document.getElementById('cartPincodeNotice');
 
-       function validateCartPincode() {
-         if (!cartZipInput || !checkoutTotalBtn) return;
-         if (!cartPinRules || cartPinRules.length === 0) {
-           checkoutTotalBtn.disabled = false;
-           checkoutTotalBtn.classList.remove('disabled');
-           if (cartNoticeBox) cartNoticeBox.style.display = 'none';
-           if (cartZipFeedback) cartZipFeedback.style.display = 'none';
-           return;
-         }
+       function updateItemAvailabilityUI(failedItemIds, pinVal) {
+          document.querySelectorAll('.cart-item[data-cart-item-id]').forEach(function (article) {
+            const pId = article.dataset.cartItemId;
+            const badge = document.getElementById('cart-item-pin-badge-' + pId);
+            const notice = document.getElementById('cart-item-pin-notice-' + pId);
+            const targets = article.querySelectorAll('.cart-pin-target');
+            if (failedItemIds && failedItemIds.has(String(pId))) {
+              article.classList.add('is-undeliverable');
+              if (badge) badge.style.display = 'inline-flex';
+              if (notice) {
+                targets.forEach(function (t) { t.textContent = pinVal; });
+                notice.style.display = 'block';
+              }
+            } else {
+              article.classList.remove('is-undeliverable');
+              if (badge) badge.style.display = 'none';
+              if (notice) notice.style.display = 'none';
+            }
+          });
+        }
 
-         const rawVal = cartZipInput.value.trim();
-         const cleanPin = rawVal.replace(/\D/g, '');
+        function validateCartPincode() {
+          if (!cartZipInput || !checkoutTotalBtn) return;
+          if (!cartPinRules || cartPinRules.length === 0) {
+            checkoutTotalBtn.disabled = false;
+            checkoutTotalBtn.classList.remove('disabled');
+            if (cartNoticeBox) cartNoticeBox.style.display = 'none';
+            if (cartZipFeedback) cartZipFeedback.style.display = 'none';
+            updateItemAvailabilityUI(new Set(), '');
+            return;
+          }
 
-         if (!rawVal) {
-           checkoutTotalBtn.disabled = true;
-           checkoutTotalBtn.classList.add('disabled');
-           if (cartNoticeBox) {
-             cartNoticeBox.style.display = 'none';
-           }
-           if (cartZipFeedback) {
-             cartZipFeedback.style.display = 'none';
-           }
-           return;
-         }
+          const rawVal = cartZipInput.value.trim();
+          const cleanPin = rawVal.replace(/\D/g, '');
 
-         const failedItems = [];
-         cartPinRules.forEach(function (rule) {
-           const isOk = (rule.pins || []).indexOf(cleanPin) !== -1 || (rule.pins || []).indexOf(rawVal) !== -1;
-           if (!isOk) {
-             failedItems.push(rule);
-           }
-         });
+          if (!rawVal) {
+            checkoutTotalBtn.disabled = true;
+            checkoutTotalBtn.classList.add('disabled');
+            if (cartNoticeBox) {
+              cartNoticeBox.style.display = 'none';
+            }
+            if (cartZipFeedback) {
+              cartZipFeedback.style.display = 'none';
+            }
+            updateItemAvailabilityUI(new Set(), '');
+            return;
+          }
 
-         if (failedItems.length > 0) {
-           checkoutTotalBtn.disabled = true;
-           checkoutTotalBtn.classList.add('disabled');
-           if (cartNoticeBox) {
-             cartNoticeBox.className = 'pincode-delivery-alert';
-             const itemsDesc = failedItems.map(function (it) {
-               return '• <strong>' + it.name + '</strong> is not deliverable to this PIN';
-             }).join('<br>');
-             cartNoticeBox.innerHTML = '<strong>⚠️ Items unavailable for PIN code ' + rawVal + ':</strong><div class="mt-1">' + itemsDesc + '</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please update your delivery ZIP code or adjust your cart.</div>';
-             cartNoticeBox.style.display = 'block';
-           }
-           if (cartZipFeedback) {
-             cartZipFeedback.className = 'small mt-1 text-danger fw-semibold';
-             cartZipFeedback.innerHTML = '✕ Unavailable for PIN ' + rawVal;
-             cartZipFeedback.style.display = 'block';
-           }
-         } else {
-           checkoutTotalBtn.disabled = false;
-           checkoutTotalBtn.classList.remove('disabled');
-           if (cartNoticeBox) {
-             cartNoticeBox.style.display = 'none';
-           }
-           if (cartZipFeedback) {
-             cartZipFeedback.className = 'small mt-1 text-success fw-semibold';
-             cartZipFeedback.innerHTML = '✓ All items deliverable to PIN ' + rawVal;
-             cartZipFeedback.style.display = 'block';
-           }
-         }
-       }
+          const failedItems = [];
+          const failedItemIds = new Set();
+          cartPinRules.forEach(function (rule) {
+            const isOk = (rule.pins || []).indexOf(cleanPin) !== -1 || (rule.pins || []).indexOf(rawVal) !== -1;
+            if (!isOk) {
+              failedItems.push(rule);
+              failedItemIds.add(String(rule.id));
+            }
+          });
 
-       if (cartZipInput) {
+          // Visually mark undeliverable items right inside the cart items list
+          updateItemAvailabilityUI(failedItemIds, rawVal);
+
+          if (failedItems.length > 0) {
+            checkoutTotalBtn.disabled = true;
+            checkoutTotalBtn.classList.add('disabled');
+            if (cartNoticeBox) {
+              cartNoticeBox.className = 'pincode-delivery-alert';
+              const itemsDesc = failedItems.map(function (it) {
+                return '• <strong>' + it.name + '</strong> is not deliverable to this PIN';
+              }).join('<br>');
+              cartNoticeBox.innerHTML = '<strong>⚠️ Items unavailable for PIN code ' + rawVal + ':</strong><div class="mt-1">' + itemsDesc + '</div><div class="mt-2 text-white-50" style="font-size: 0.78rem;">Please update your delivery ZIP code or adjust your cart.</div>';
+              cartNoticeBox.style.display = 'block';
+            }
+            if (cartZipFeedback) {
+              cartZipFeedback.className = 'small mt-1 text-danger fw-semibold';
+              cartZipFeedback.innerHTML = '✕ Unavailable for PIN ' + rawVal;
+              cartZipFeedback.style.display = 'block';
+            }
+          } else {
+            checkoutTotalBtn.disabled = false;
+            checkoutTotalBtn.classList.remove('disabled');
+            if (cartNoticeBox) {
+              cartNoticeBox.style.display = 'none';
+            }
+            if (cartZipFeedback) {
+              cartZipFeedback.className = 'small mt-1 text-success fw-semibold';
+              cartZipFeedback.innerHTML = '✓ All items deliverable to PIN ' + rawVal;
+              cartZipFeedback.style.display = 'block';
+            }
+          }
+        }
+
+        if (cartZipInput) {
          cartZipInput.addEventListener('input', validateCartPincode);
          cartZipInput.addEventListener('change', validateCartPincode);
        }
        validateCartPincode();
 
        window.updateCartCalculations();     });
+
+    function openRemoveConfirmModal(productId, productName, productVolume, productImg) {
+      const modal = document.getElementById('removeConfirmModal');
+      if (!modal) return;
+      const nameEl = document.getElementById('removeModalProductName');
+      const volEl = document.getElementById('removeModalProductVol');
+      const imgEl = document.getElementById('removeModalProductImg');
+      if (nameEl) nameEl.textContent = productName || 'Drink';
+      if (volEl) volEl.textContent = productVolume || '';
+      if (imgEl) {
+        imgEl.src = productImg || '';
+        imgEl.alt = productName || 'Product';
+      }
+      const wishInput = document.getElementById('removeModalWishlistId');
+      const delInput = document.getElementById('removeModalDeleteId');
+      if (wishInput) wishInput.value = productId;
+      if (delInput) delInput.value = productId;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeRemoveModal() {
+      const modal = document.getElementById('removeConfirmModal');
+      if (!modal) return;
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        closeRemoveModal();
+      }
+    });
+    window.openRemoveConfirmModal = openRemoveConfirmModal;
+    window.closeRemoveModal = closeRemoveModal;
+
   </script>
+  <!-- Modal: Remove / Add to Wishlist Confirmation -->
+  <div class="cart-remove-modal-overlay" id="removeConfirmModal" onclick="if(event.target===this) closeRemoveModal();" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="removeModalTitle">
+    <div class="cart-remove-modal-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="modal-icon-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </div>
+          <h3 id="removeModalTitle" style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #fff;">Remove item from cart?</h3>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeRemoveModal()" aria-label="Close modal">✕</button>
+      </div>
+
+      <!-- Product preview snippet -->
+      <div class="modal-product-box">
+        <img id="removeModalProductImg" src="" alt="Product" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: rgba(255,255,255,0.03);">
+        <div>
+          <div id="removeModalProductName" style="font-weight: 700; font-size: 0.98rem; color: #fff;"></div>
+          <div id="removeModalProductVol" style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.55);"></div>
+        </div>
+      </div>
+
+      <p style="margin: 16px 0 20px; font-size: 0.88rem; color: rgba(255, 255, 255, 0.72); line-height: 1.5;">
+        Would you like to move this drink to your <strong>Wishlist</strong> so you can buy it later, or remove it from your cart?
+      </p>
+
+      <div class="modal-actions-stack">
+        <!-- 1. Add to Wishlist Button -->
+        <form method="post" action="{% url 'update_cart' %}" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="move_to_wishlist">
+          <input type="hidden" name="product_id" id="removeModalWishlistId" value="">
+          <button type="submit" class="btn-modal-action btn-modal-wishlist">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            Add to Wishlist
+          </button>
+        </form>
+
+        <!-- 2. Remove from Cart Button -->
+        <form method="post" action="{% url 'update_cart' %}" style="margin: 0;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="remove">
+          <input type="hidden" name="product_id" id="removeModalDeleteId" value="">
+          <button type="submit" class="btn-modal-action btn-modal-remove">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            Remove from Cart
+          </button>
+        </form>
+
+        <!-- 3. Cancel / Keep in Cart Button -->
+        <button type="button" class="btn-modal-cancel" onclick="closeRemoveModal()">
+          Cancel (keep in cart)
+        </button>
+      </div>
+    </div>
+  </div>
+
   {{ cart_pin_rules|json_script:"cart-pin-rules-data" }}
 </body>
 
