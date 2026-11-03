@@ -1170,10 +1170,14 @@ def cart_checkout(request):
     shipping_fee = site_details.calculate_shipping_fee(details.get("state") or "")
     gst_amount = site_details.calculate_gst(items_subtotal)
 
+    payment_method = (request.POST.get("payment_method") or "online").strip().lower()
+    if payment_method not in ["online", "cod"]:
+        payment_method = "online"
+
     coupon_code = (request.POST.get("coupon_code") or request.session.get("applied_coupon_code") or "").strip().upper()
     applied_coupon = None
     discount_amount = Decimal("0.00")
-    if coupon_code:
+    if payment_method == "online" and coupon_code:
         coupon_obj = Coupon.objects.filter(code__iexact=coupon_code).first()
         if coupon_obj and coupon_obj.is_valid_status:
             discount_amount = coupon_obj.calculate_discount(
@@ -1204,6 +1208,7 @@ def cart_checkout(request):
             discount_amount=discount_amount,
             coupon=applied_coupon,
             coupon_code=coupon_code if applied_coupon else "",
+            payment_method=payment_method,
             total_amount=total_amount,
         )
         OrderItem.objects.bulk_create(
@@ -1273,10 +1278,14 @@ def checkout(request, product_id):
         packing_fee = site_details.calculate_packing_fee(quantity)
         shipping_fee = site_details.calculate_shipping_fee(state)
 
+        payment_method = (request.POST.get("payment_method") or "online").strip().lower()
+        if payment_method not in ["online", "cod"]:
+            payment_method = "online"
+
         coupon_code = (request.POST.get("coupon_code") or request.session.get("applied_coupon_code") or "").strip().upper()
         applied_coupon = None
         discount_amount = Decimal("0.00")
-        if coupon_code:
+        if payment_method == "online" and coupon_code:
             coupon_obj = Coupon.objects.filter(code__iexact=coupon_code).first()
             if coupon_obj and coupon_obj.is_valid_status:
                 discount_amount = coupon_obj.calculate_discount(
@@ -1308,6 +1317,7 @@ def checkout(request, product_id):
                 discount_amount=discount_amount,
                 coupon=applied_coupon,
                 coupon_code=coupon_code if applied_coupon else "",
+                payment_method=payment_method,
                 total_amount=total_price,
             )
             OrderItem.objects.create(
@@ -2471,6 +2481,10 @@ def admin_delete_coupon(request, coupon_id):
 
 
 def api_apply_coupon(request):
+    pm = (request.GET.get("payment_method") or request.POST.get("payment_method") or "online").strip().lower()
+    if pm == "cod":
+        return JsonResponse({"valid": False, "message": "Coupon codes are valid exclusively for online payments."})
+
     code = (request.GET.get("code") or request.POST.get("code") or "").strip().upper()
     if not code:
         return JsonResponse({"valid": False, "message": "Please enter a coupon code."})

@@ -444,7 +444,46 @@
                                 </div>
                             </div>
 
-                            <div class="order-summary">
+                            <!-- Payment Method Selection -->
+                            <div class="payment-method-container mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.08);">
+                                <label class="d-block small text-uppercase text-secondary fw-bold mb-2" style="letter-spacing: 0.05em; font-size: 0.72rem;">
+                                    Payment Method
+                                </label>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <label class="payment-option-card" id="chkPmOnlineLabel" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.22); cursor: pointer; transition: all 0.15s ease;">
+                                        <input type="radio" name="payment_method" value="online" id="chkPmOnline" checked style="margin-top: 3px; accent-color: #ff6b2b;">
+                                        <div>
+                                            <div style="font-size: 0.86rem; font-weight: 700; color: #fff;">💳 Online Payment (UPI, Cards, NetBanking)</div>
+                                            <div style="font-size: 0.73rem; color: rgba(255,255,255,0.55); margin-top: 2px;">
+                                                Pay online to apply exclusive discount coupons
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <label class="payment-option-card" id="chkPmCodLabel" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.15s ease;">
+                                        <input type="radio" name="payment_method" value="cod" id="chkPmCod" style="margin-top: 3px; accent-color: #ff6b2b;">
+                                        <div>
+                                            <div style="font-size: 0.86rem; font-weight: 700; color: #fff;">💵 Cash on Delivery (COD)</div>
+                                            <div style="font-size: 0.73rem; color: rgba(255,255,255,0.55); margin-top: 2px;">
+                                                Pay in cash upon delivery (coupons not applicable)
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Coupon Code Box (Shown ONLY if Online Payment is selected) -->
+                            <div id="chkCouponBox" class="coupon-input-wrap mt-3 pt-3" style="border-top: 1px dashed rgba(255,255,255,0.15);">
+                                <label for="chkCouponInput" class="small fw-semibold text-white-50 mb-1 d-block" style="font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;">
+                                    Have a coupon code?
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="chkCouponInput" name="coupon_code" class="form-control bg-dark text-light border-secondary" placeholder="e.g. SUMMER20" style="text-transform: uppercase; font-family: monospace; font-weight: 700; font-size: 0.82rem;">
+                                    <button type="button" id="chkApplyCouponBtn" class="btn btn-outline-light px-3 fw-bold" style="font-size: 0.78rem;">Apply</button>
+                                </div>
+                                <div id="chkCouponFeedback" class="small mt-1" style="display: none;"></div>
+                            </div>
+
+                            <div class="order-summary mt-3">
                                 <div class="summary-row">
                                     <span>Quantity</span>
                                     <strong>{{ quantity }}</strong>
@@ -468,6 +507,10 @@
                                 <div class="summary-row">
                                     <span>Shipping fee<span id="shippingStateNotice">{% if customer_address_form.state %} ({{ customer_address_form.state }}){% endif %}</span></span>
                                     <strong id="shippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
+                                </div>
+                                <div class="summary-row" id="chkDiscountRow" style="display: none; color: #4ade80;">
+                                    <span>Coupon discount (<span id="chkCouponBadge"></span>)</span>
+                                    <strong id="chkDiscountDisplay">-₹0.00</strong>
                                 </div>
                                 <div class="summary-row total-row">
                                     <span>Total</span>
@@ -555,8 +598,110 @@
                 if (gstFeeDisplay) {
                     gstFeeDisplay.textContent = '₹' + gstAmount.toFixed(2);
                 }
-                const grandTotal = subtotal + gstAmount + packingFee + fee;
+                const isOnline = pmOnlineRadio ? pmOnlineRadio.checked : true;
+                const activeDiscount = isOnline ? currentDiscount : 0.0;
+                const grandTotal = Math.max(0, subtotal - activeDiscount) + gstAmount + packingFee + fee;
                 grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
+                if (continueBtn) {
+                    if (isOnline) {
+                        continueBtn.textContent = 'Continue to payment';
+                    } else {
+                        continueBtn.textContent = 'Place order (Cash on Delivery)';
+                    }
+                }
+            }
+
+            // Coupon & Payment Method Logic
+            let currentDiscount = 0.0;
+            const pmOnlineRadio = document.getElementById('chkPmOnline');
+            const pmCodRadio = document.getElementById('chkPmCod');
+            const pmOnlineLabel = document.getElementById('chkPmOnlineLabel');
+            const pmCodLabel = document.getElementById('chkPmCodLabel');
+            const couponBox = document.getElementById('chkCouponBox');
+            const couponInput = document.getElementById('chkCouponInput');
+            const couponBtn = document.getElementById('chkApplyCouponBtn');
+            const couponFeedback = document.getElementById('chkCouponFeedback');
+            const discountRow = document.getElementById('chkDiscountRow');
+            const discountDisplay = document.getElementById('chkDiscountDisplay');
+            const couponBadge = document.getElementById('chkCouponBadge');
+
+            function handlePaymentMethodToggle() {
+                const isOnline = pmOnlineRadio && pmOnlineRadio.checked;
+                if (isOnline) {
+                    if (pmOnlineLabel) {
+                        pmOnlineLabel.style.background = 'rgba(255,255,255,0.05)';
+                        pmOnlineLabel.style.borderColor = 'rgba(255,255,255,0.22)';
+                    }
+                    if (pmCodLabel) {
+                        pmCodLabel.style.background = 'rgba(255,255,255,0.02)';
+                        pmCodLabel.style.borderColor = 'rgba(255,255,255,0.08)';
+                    }
+                    // Ask coupon code ONLY IF online payment
+                    if (couponBox) couponBox.style.display = 'block';
+                    if (currentDiscount > 0 && discountRow) discountRow.style.display = 'flex';
+                } else {
+                    if (pmCodLabel) {
+                        pmCodLabel.style.background = 'rgba(255,255,255,0.05)';
+                        pmCodLabel.style.borderColor = 'rgba(255,255,255,0.22)';
+                    }
+                    if (pmOnlineLabel) {
+                        pmOnlineLabel.style.background = 'rgba(255,255,255,0.02)';
+                        pmOnlineLabel.style.borderColor = 'rgba(255,255,255,0.08)';
+                    }
+                    // Hide coupon code for COD
+                    if (couponBox) couponBox.style.display = 'none';
+                    if (discountRow) discountRow.style.display = 'none';
+                    if (couponFeedback) couponFeedback.style.display = 'none';
+                }
+                updateShippingFee();
+            }
+
+            if (pmOnlineRadio && pmCodRadio) {
+                pmOnlineRadio.addEventListener('change', handlePaymentMethodToggle);
+                pmCodRadio.addEventListener('change', handlePaymentMethodToggle);
+                handlePaymentMethodToggle();
+            }
+
+            if (couponBtn && couponInput) {
+                couponBtn.addEventListener('click', function () {
+                    const code = couponInput.value.trim().toUpperCase();
+                    if (!code) {
+                        couponFeedback.className = 'small mt-1 text-warning';
+                        couponFeedback.textContent = 'Please enter a coupon code.';
+                        couponFeedback.style.display = 'block';
+                        return;
+                    }
+                    couponBtn.disabled = true;
+                    couponBtn.textContent = '...';
+                    fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&subtotal=' + subtotal + '&payment_method=online')
+                        .then(res => res.json())
+                        .then(data => {
+                            couponFeedback.style.display = 'block';
+                            if (data.valid) {
+                                currentDiscount = parseFloat(data.discount_amount) || 0.0;
+                                couponFeedback.className = 'small mt-1 text-success fw-semibold';
+                                couponFeedback.textContent = data.message;
+                                if (couponBadge) couponBadge.textContent = data.code;
+                                if (discountDisplay) discountDisplay.textContent = '-₹' + currentDiscount.toFixed(2);
+                                if (discountRow) discountRow.style.display = 'flex';
+                            } else {
+                                currentDiscount = 0.0;
+                                couponFeedback.className = 'small mt-1 text-danger fw-semibold';
+                                couponFeedback.textContent = data.message;
+                                if (discountRow) discountRow.style.display = 'none';
+                            }
+                            updateShippingFee();
+                        })
+                        .catch(() => {
+                            couponFeedback.className = 'small mt-1 text-warning';
+                            couponFeedback.textContent = 'Could not verify coupon right now.';
+                            couponFeedback.style.display = 'block';
+                        })
+                        .finally(() => {
+                            couponBtn.disabled = false;
+                            couponBtn.textContent = 'Apply';
+                        });
+                });
             }
 
             if (stateSelect) {

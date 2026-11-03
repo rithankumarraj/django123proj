@@ -376,6 +376,11 @@ class Order(models.Model):
         ("failed", "Payment failed"),
     ]
 
+    PAYMENT_METHOD_CHOICES = [
+        ("online", "Online Payment"),
+        ("cod", "Cash on Delivery"),
+    ]
+
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("packed", "Packed"),
@@ -410,6 +415,9 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     payment_status = models.CharField(
         max_length=12, choices=PAYMENT_STATUS_CHOICES, default="pending"
+    )
+    payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="online"
     )
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_fee = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))

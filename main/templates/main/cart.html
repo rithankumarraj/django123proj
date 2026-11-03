@@ -1041,6 +1041,45 @@
               data-cart-summary-count>{{ cart_count }} can{{ cart_count|pluralize }}</span>
           </div>
 
+          <!-- Payment Method Selection -->
+          <div class="payment-method-container mb-3 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <label class="d-block small text-uppercase text-secondary fw-bold mb-2" style="letter-spacing: 0.05em; font-size: 0.72rem;">
+              Payment Method
+            </label>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label class="payment-option-card" id="cartPmOnlineLabel" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.22); cursor: pointer; transition: all 0.15s ease;">
+                <input type="radio" name="payment_method" form="cart-checkout" value="online" id="cartPmOnline" checked style="margin-top: 3px; accent-color: #ff6b2b;">
+                <div>
+                  <div style="font-size: 0.86rem; font-weight: 700; color: #fff;">💳 Online Payment (UPI, Cards, NetBanking)</div>
+                  <div style="font-size: 0.73rem; color: rgba(255,255,255,0.55); margin-top: 2px;">
+                    Pay online to apply exclusive discount coupons
+                  </div>
+                </div>
+              </label>
+              <label class="payment-option-card" id="cartPmCodLabel" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.15s ease;">
+                <input type="radio" name="payment_method" form="cart-checkout" value="cod" id="cartPmCod" style="margin-top: 3px; accent-color: #ff6b2b;">
+                <div>
+                  <div style="font-size: 0.86rem; font-weight: 700; color: #fff;">💵 Cash on Delivery (COD)</div>
+                  <div style="font-size: 0.73rem; color: rgba(255,255,255,0.55); margin-top: 2px;">
+                    Pay in cash upon delivery (coupons not applicable)
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Coupon Code Box (Shown ONLY if Online Payment is selected) -->
+          <div id="cartCouponBox" class="coupon-input-wrap mb-3 pb-2" style="border-bottom: 1px dashed rgba(255,255,255,0.15);">
+            <label for="cartCouponInput" class="small fw-semibold text-white-50 mb-1 d-block" style="font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;">
+              Have a coupon code?
+            </label>
+            <div class="input-group input-group-sm">
+              <input type="text" id="cartCouponInput" name="coupon_code" form="cart-checkout" class="form-control bg-dark text-light border-secondary" placeholder="e.g. SUMMER20" style="text-transform: uppercase; font-family: monospace; font-weight: 700; font-size: 0.82rem;">
+              <button type="button" id="cartApplyCouponBtn" class="btn btn-outline-light px-3 fw-bold" style="font-size: 0.78rem;">Apply</button>
+            </div>
+            <div id="cartCouponFeedback" class="small mt-1" style="display: none;"></div>
+          </div>
+
           <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
             <div class="summary-row">
               <span>Items subtotal</span>
@@ -1068,6 +1107,10 @@
               <strong id="cartShippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
             </div>
 
+            <div class="summary-row" id="cartDiscountRow" style="display: none; color: #4ade80;">
+              <span>Coupon discount (<span id="cartCouponBadge"></span>)</span>
+              <strong id="cartDiscountDisplay">-₹0.00</strong>
+            </div>
             <div class="summary-row total-row">
               <span>Total</span>
               <strong id="cartGrandTotalDisplay">₹{{ total_with_shipping|floatformat:2 }}</strong>
@@ -1147,7 +1190,9 @@
              shippingNotice.textContent = '';
            }
          }
-         const grandTotal = subtotal + gstAmount + packingFee + shippingFee;
+         const isOnline = cartPmOnlineRadio ? cartPmOnlineRadio.checked : true;
+         const activeDiscount = isOnline ? cartCurrentDiscount : 0.0;
+         const grandTotal = Math.max(0, subtotal - activeDiscount + gstAmount + packingFee + shippingFee);
          if (subtotalDisplay) subtotalDisplay.textContent = '₹' + subtotal.toFixed(2);
          const gstDisplay = document.getElementById('cartGstDisplay');
          if (gstDisplay) gstDisplay.textContent = '₹' + gstAmount.toFixed(2);
@@ -1155,9 +1200,108 @@
          if (cartTotalEl) cartTotalEl.textContent = '₹' + subtotal.toFixed(2);
          if (packingFeeDisplay) {           packingFeeDisplay.textContent = packingFee > 0 ? '₹' + packingFee.toFixed(2) : '₹0.00';         }         if (packingNotice) {           if (packingFee > 0) {             packingNotice.textContent = '₹' + packingFee.toFixed(0);           } else {             packingNotice.textContent = 'Free (First ' + packingFreeCans + ' cans)';           }         }
          if (shippingFeeDisplay) shippingFeeDisplay.textContent = '₹' + shippingFee.toFixed(2);         if (grandTotalDisplay) grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
-         if (checkoutTotalBtn) {           checkoutTotalBtn.textContent = 'Continue to payment · ₹' + grandTotal.toFixed(2);         }
+         if (checkoutTotalBtn) {
+           if (isOnline) {
+             checkoutTotalBtn.textContent = 'Continue to payment · ₹' + grandTotal.toFixed(2);
+           } else {
+             checkoutTotalBtn.textContent = 'Place order (Cash on Delivery) · ₹' + grandTotal.toFixed(2);
+           }
+         }
          document.querySelectorAll('[data-cart-count]').forEach(function (el) {           el.textContent = itemCount + ' item' + (itemCount === 1 ? '' : 's');         });
          if (summaryCount) {           summaryCount.textContent = itemCount + ' can' + (itemCount === 1 ? '' : 's');         }       };
+
+      // Cart Coupon & Payment Method Logic
+      let cartCurrentDiscount = 0.0;
+      const cartPmOnlineRadio = document.getElementById('cartPmOnline');
+      const cartPmCodRadio = document.getElementById('cartPmCod');
+      const cartPmOnlineLabel = document.getElementById('cartPmOnlineLabel');
+      const cartPmCodLabel = document.getElementById('cartPmCodLabel');
+      const cartCouponBox = document.getElementById('cartCouponBox');
+      const cartCouponInput = document.getElementById('cartCouponInput');
+      const cartCouponBtn = document.getElementById('cartApplyCouponBtn');
+      const cartCouponFeedback = document.getElementById('cartCouponFeedback');
+      const cartDiscountRow = document.getElementById('cartDiscountRow');
+      const cartDiscountDisplay = document.getElementById('cartDiscountDisplay');
+      const cartCouponBadge = document.getElementById('cartCouponBadge');
+
+      function handleCartPaymentMethodToggle() {
+        const isOnline = cartPmOnlineRadio && cartPmOnlineRadio.checked;
+        if (isOnline) {
+          if (cartPmOnlineLabel) {
+            cartPmOnlineLabel.style.background = 'rgba(255,255,255,0.05)';
+            cartPmOnlineLabel.style.borderColor = 'rgba(255,255,255,0.22)';
+          }
+          if (cartPmCodLabel) {
+            cartPmCodLabel.style.background = 'rgba(255,255,255,0.02)';
+            cartPmCodLabel.style.borderColor = 'rgba(255,255,255,0.08)';
+          }
+          // Ask coupon code ONLY IF online payment
+          if (cartCouponBox) cartCouponBox.style.display = 'block';
+          if (cartCurrentDiscount > 0 && cartDiscountRow) cartDiscountRow.style.display = 'flex';
+        } else {
+          if (cartPmCodLabel) {
+            cartPmCodLabel.style.background = 'rgba(255,255,255,0.05)';
+            cartPmCodLabel.style.borderColor = 'rgba(255,255,255,0.22)';
+          }
+          if (cartPmOnlineLabel) {
+            cartPmOnlineLabel.style.background = 'rgba(255,255,255,0.02)';
+            cartPmOnlineLabel.style.borderColor = 'rgba(255,255,255,0.08)';
+          }
+          // Hide coupon code for COD
+          if (cartCouponBox) cartCouponBox.style.display = 'none';
+          if (cartDiscountRow) cartDiscountRow.style.display = 'none';
+          if (cartCouponFeedback) cartCouponFeedback.style.display = 'none';
+        }
+        if (window.updateCartCalculations) window.updateCartCalculations();
+      }
+
+      if (cartPmOnlineRadio && cartPmCodRadio) {
+        cartPmOnlineRadio.addEventListener('change', handleCartPaymentMethodToggle);
+        cartPmCodRadio.addEventListener('change', handleCartPaymentMethodToggle);
+        handleCartPaymentMethodToggle();
+      }
+
+      if (cartCouponBtn && cartCouponInput) {
+        cartCouponBtn.addEventListener('click', function () {
+          const code = cartCouponInput.value.trim().toUpperCase();
+          if (!code) {
+            cartCouponFeedback.className = 'small mt-1 text-warning';
+            cartCouponFeedback.textContent = 'Please enter a coupon code.';
+            cartCouponFeedback.style.display = 'block';
+            return;
+          }
+          cartCouponBtn.disabled = true;
+          cartCouponBtn.textContent = '...';
+          fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&payment_method=online')
+            .then(res => res.json())
+            .then(data => {
+              cartCouponFeedback.style.display = 'block';
+              if (data.valid) {
+                cartCurrentDiscount = parseFloat(data.discount_amount) || 0.0;
+                cartCouponFeedback.className = 'small mt-1 text-success fw-semibold';
+                cartCouponFeedback.textContent = data.message;
+                if (cartCouponBadge) cartCouponBadge.textContent = data.code;
+                if (cartDiscountDisplay) cartDiscountDisplay.textContent = '-₹' + cartCurrentDiscount.toFixed(2);
+                if (cartDiscountRow) cartDiscountRow.style.display = 'flex';
+              } else {
+                cartCurrentDiscount = 0.0;
+                cartCouponFeedback.className = 'small mt-1 text-danger fw-semibold';
+                cartCouponFeedback.textContent = data.message;
+                if (cartDiscountRow) cartDiscountRow.style.display = 'none';
+              }
+              if (window.updateCartCalculations) window.updateCartCalculations();
+            })
+            .catch(() => {
+              cartCouponFeedback.className = 'small mt-1 text-warning';
+              cartCouponFeedback.textContent = 'Could not verify coupon right now.';
+              cartCouponFeedback.style.display = 'block';
+            })
+            .finally(() => {
+              cartCouponBtn.disabled = false;
+              cartCouponBtn.textContent = 'Apply';
+            });
+        });
+      }
        if (stateSelect) {         stateSelect.addEventListener('change', window.updateCartCalculations);       }
        document.addEventListener('input', function (e) {         if (e.target.matches('.cart-quantity')) {           window.updateCartCalculations();         }       });
        if (checkoutTotalBtn && checkoutForm) {         checkoutTotalBtn.addEventListener('click', function (e) {           if (checkoutForm.reportValidity && !checkoutForm.reportValidity()) {             return;           }           if (checkoutForm.requestSubmit) {             checkoutForm.requestSubmit();           } else {             checkoutForm.submit();           }         });       }

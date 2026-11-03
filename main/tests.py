@@ -3597,6 +3597,93 @@ class CouponSystemTests(TestCase):
         self.assertEqual(res_bad.status_code, 200)
         self.assertFalse(res_bad.json()["valid"])
 
+    def test_checkout_and_cart_display_payment_method_and_coupon_box(self):
+        # Checkout page
+        res_chk = self.client.get(f"/checkout/{self.product.id}/?qty=1")
+        self.assertEqual(res_chk.status_code, 200)
+        self.assertContains(res_chk, 'id="chkPmOnline"')
+        self.assertContains(res_chk, 'id="chkPmCod"')
+        self.assertContains(res_chk, 'id="chkCouponBox"')
+        self.assertContains(res_chk, 'id="chkCouponInput"')
+        self.assertContains(res_chk, 'id="chkApplyCouponBtn"')
+
+        # Cart page
+        self.client.post(reverse("add_to_cart", kwargs={"product_id": self.product.id}), data={"quantity": 1})
+        res_cart = self.client.get(reverse("cart"))
+        self.assertEqual(res_cart.status_code, 200)
+        self.assertContains(res_cart, 'id="cartPmOnline"')
+        self.assertContains(res_cart, 'id="cartPmCod"')
+        self.assertContains(res_cart, 'id="cartCouponBox"')
+        self.assertContains(res_cart, 'id="cartCouponInput"')
+        self.assertContains(res_cart, 'id="cartApplyCouponBtn"')
+
+    def test_coupon_applied_only_for_online_payment_not_cod(self):
+        coupon = Coupon.objects.create(
+            code="ONLINE20",
+            discount_type="fixed",
+            discount_value=Decimal("20.00"),
+            is_active=True,
+        )
+
+        # 1. COD checkout: Coupon should NOT be applied
+        res_cod = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            data={
+                "first_name": "Cod",
+                "last_name": "Tester",
+                "email": "cod@example.com",
+                "phone": "+91 9842100001",
+                "address": "12 Street",
+                "city": "Madurai",
+                "state": "Tamil Nadu",
+                "postal_code": "625001",
+                "payment_method": "cod",
+                "coupon_code": "ONLINE20",
+            },
+        )
+        self.assertEqual(res_cod.status_code, 302)
+        order_cod = Order.objects.filter(customer_phone="+91 9842100001").first()
+        self.assertIsNotNone(order_cod)
+        self.assertEqual(order_cod.payment_method, "cod")
+        self.assertEqual(order_cod.discount_amount, Decimal("0.00"))
+        self.assertIsNone(order_cod.coupon)
+
+        # 2. Online checkout: Coupon SHOULD be applied
+        res_online = self.client.post(
+            f"/checkout/{self.product.id}/?qty=1",
+            data={
+                "first_name": "Online",
+                "last_name": "Tester",
+                "email": "online@example.com",
+                "phone": "+91 9842100002",
+                "address": "12 Street",
+                "city": "Madurai",
+                "state": "Tamil Nadu",
+                "postal_code": "625001",
+                "payment_method": "online",
+                "coupon_code": "ONLINE20",
+            },
+        )
+        self.assertEqual(res_online.status_code, 302)
+        order_online = Order.objects.filter(customer_phone="+91 9842100002").first()
+        self.assertIsNotNone(order_online)
+        self.assertEqual(order_online.payment_method, "online")
+        self.assertEqual(order_online.discount_amount, Decimal("20.00"))
+        self.assertEqual(order_online.coupon, coupon)
+
+    def test_api_apply_coupon_rejects_cod(self):
+        Coupon.objects.create(
+            code="ONLYONLINE",
+            discount_type="fixed",
+            discount_value=Decimal("15.00"),
+            is_active=True,
+        )
+        res = self.client.get(reverse("api_apply_coupon") + "?code=ONLYONLINE&subtotal=100&payment_method=cod")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertFalse(data["valid"])
+        self.assertIn("online payments", data["message"].lower())
+
 
 
 
