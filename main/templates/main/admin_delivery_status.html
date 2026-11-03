@@ -174,6 +174,11 @@
                 <div class="cell-sub-info" style="font-weight: 700; color: #fff; margin-top: 3px;">
                   ₹{{ order.total_amount }}
                 </div>
+                {% if order.discount_amount > 0 or order.coupon_code %}
+                  <div class="cell-sub-info" style="color: #2fcf7a; font-weight: 600; margin-top: 2px; font-size: 0.72rem;">
+                    Coupon: -₹{{ order.discount_amount|floatformat:2 }}
+                  </div>
+                {% endif %}
               </td>
 
               <td>
@@ -457,10 +462,27 @@
                 <span class="summary-label">GST (18%)</span>
                 <span class="summary-value">₹{{ order.gst_amount|floatformat:2 }}</span>
               </div>
+              {% if order.packing_fee > 0 %}
+              <div class="order-summary-row">
+                <span class="summary-label">Packing Fee</span>
+                <span class="summary-value">₹{{ order.packing_fee|floatformat:2 }}</span>
+              </div>
+              {% endif %}
               <div class="order-summary-row">
                 <span class="summary-label">Shipping / Delivery Fee ({% if order.delivery_state %}{{ order.delivery_state }}{% else %}Standard{% endif %})</span>
                 <span class="summary-value">{% if order.shipping_fee > 0 %}₹{{ order.shipping_fee|floatformat:2 }}{% else %}FREE{% endif %}</span>
               </div>
+              {% if order.discount_amount > 0 or order.coupon_code %}
+              <div class="order-summary-row" style="color: #2fcf7a;">
+                <span class="summary-label" style="color: #2fcf7a; display: inline-flex; align-items: center; gap: 6px;">
+                  <span>Coupon Discount</span>
+                  <span style="font-size: 0.72rem; padding: 1px 6px; border-radius: 4px; background: rgba(47, 207, 122, 0.15); border: 1px dashed rgba(47, 207, 122, 0.5); color: #2fcf7a; font-weight: 700;">
+                    {% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code|default:"APPLIED" }}{% endif %}
+                  </span>
+                </span>
+                <span class="summary-value" style="color: #2fcf7a; font-weight: 800;">-₹{{ order.discount_amount|floatformat:2 }}</span>
+              </div>
+              {% endif %}
               <div class="order-summary-divider"></div>
               <div class="order-summary-row order-summary-total">
                 <span class="summary-total-label">Grand Total</span>
@@ -551,6 +573,27 @@
                     </span>
                   </span>
                 </div>
+                <div class="modal-info-item">
+                  <span class="modal-info-label">Payment Method</span>
+                  <span class="modal-info-val" style="font-weight: 700;">
+                    {% if order.payment_method == 'cod' %}
+                      <span style="color: #f59e0b;">Cash on Delivery (COD)</span>
+                    {% else %}
+                      <span style="color: #38bdf8;">Online Payment</span>
+                    {% endif %}
+                  </span>
+                </div>
+                {% if order.discount_amount > 0 or order.coupon_code %}
+                <div class="modal-info-item">
+                  <span class="modal-info-label">Coupon Applied</span>
+                  <span class="modal-info-val" style="color: #2fcf7a; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="padding: 1px 7px; border-radius: 4px; background: rgba(47, 207, 122, 0.15); border: 1px dashed rgba(47, 207, 122, 0.5);">
+                      {% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %}
+                    </span>
+                    <span>(-₹{{ order.discount_amount|floatformat:2 }})</span>
+                  </span>
+                </div>
+                {% endif %}
                 <div class="modal-info-item">
                   <span class="modal-info-label">Payment Reference UUID</span>
                   <span class="modal-info-val modal-code-val">{{ order.payment_reference }}</span>

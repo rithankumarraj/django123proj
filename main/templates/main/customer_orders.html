@@ -354,7 +354,9 @@
                 <span class="order-muted">Order total</span>
                 <strong class="order-total">₹{{ order.total_amount|floatformat:2 }}</strong>
                 {% if order.discount_amount > 0 %}
-                  <div style="font-size: 0.72rem; color: #22c55e; font-weight: 700;">Saved ₹{{ order.discount_amount|floatformat:2 }}</div>
+                  <div style="font-size: 0.72rem; color: #22c55e; font-weight: 700;">
+                    Coupon ({% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %}): Saved ₹{{ order.discount_amount|floatformat:2 }}
+                  </div>
                 {% endif %}
                 <div class="order-actions-group">
                   <a class="back-link" href="{% url 'payment_page' order.payment_reference %}">View order</a>

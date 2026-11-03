@@ -359,6 +359,27 @@
               </span>
             </div>
             <div class="modal-info-item">
+              <span class="modal-info-label">Payment Method</span>
+              <span class="modal-info-val" style="font-weight: 700;">
+                {% if order.payment_method == 'cod' %}
+                  <span style="color: #f59e0b;">Cash on Delivery (COD)</span>
+                {% else %}
+                  <span style="color: #38bdf8;">Online Payment</span>
+                {% endif %}
+              </span>
+            </div>
+            {% if order.discount_amount > 0 or order.coupon_code %}
+            <div class="modal-info-item">
+              <span class="modal-info-label">Coupon Applied</span>
+              <span class="modal-info-val" style="color: #2fcf7a; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="padding: 1px 7px; border-radius: 4px; background: rgba(47, 207, 122, 0.15); border: 1px dashed rgba(47, 207, 122, 0.5);">
+                  {% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %}
+                </span>
+                <span>(-₹{{ order.discount_amount|floatformat:2 }})</span>
+              </span>
+            </div>
+            {% endif %}
+            <div class="modal-info-item">
               <span class="modal-info-label">Payment Reference UUID</span>
               <span class="modal-info-val modal-code-val">{{ order.payment_reference }}</span>
             </div>

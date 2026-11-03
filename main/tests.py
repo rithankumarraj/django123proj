@@ -3684,6 +3684,56 @@ class CouponSystemTests(TestCase):
         self.assertFalse(data["valid"])
         self.assertIn("online payments", data["message"].lower())
 
+    def test_admin_delivery_status_renders_coupon_info_and_subtracted_price(self):
+        coupon = Coupon.objects.create(
+            code="COLA10",
+            discount_type="fixed",
+            discount_value=Decimal("9.00"),
+            is_active=True,
+        )
+        order = Order.objects.create(
+            product=self.product,
+            quantity=1,
+            customer_name="Test Customer",
+            customer_phone="+91 9842100099",
+            delivery_address="1st Street",
+            delivery_city="Chennai",
+            delivery_state="Tamil Nadu",
+            delivery_postal_code="600001",
+            total_amount=Decimal("147.20"),
+            gst_amount=Decimal("16.20"),
+            shipping_fee=Decimal("50.00"),
+            packing_fee=Decimal("0.00"),
+            discount_amount=Decimal("9.00"),
+            coupon=coupon,
+            coupon_code="COLA10",
+            payment_method="online",
+            payment_status="paid",
+            status="pending",
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            quantity=1,
+            unit_price=Decimal("90.00"),
+        )
+
+        self.client.force_login(self.admin)
+        res = self.client.get(reverse("admin_delivery_status"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Coupon Discount")
+        self.assertContains(res, "COLA10")
+        self.assertContains(res, "-₹9.00")
+        self.assertContains(res, "₹147.20")
+        self.assertContains(res, "Coupon Applied")
+
+        # Also check admin order detail
+        res_detail = self.client.get(reverse("admin_order_detail", kwargs={"order_id": order.id}))
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertContains(res_detail, "Coupon Discount (COLA10)")
+        self.assertContains(res_detail, "-₹9.00")
+        self.assertContains(res_detail, "Coupon Applied")
+
 
 
 
