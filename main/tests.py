@@ -2265,6 +2265,8 @@ class AdminMultipageTests(TestCase):
         res = self.client.get(reverse("admin_products"))
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "Sparkling Fizz")
+        self.assertContains(res, "products-stats-grid")
+        self.assertContains(res, "stats-grid-3")
 
         # Add new product
         post_res = self.client.post(

@@ -81,10 +81,69 @@
       padding: 28px;
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
     }
+
+    /* 3 in a row layout for products stats grid on all screens, especially mobile */
+    .products-stats-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    @media (max-width: 768px) {
+      .products-stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 20px;
+      }
+      .products-stats-grid .stat-card {
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+        min-width: 0;
+        gap: 4px;
+      }
+      .products-stats-grid .stat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .products-stats-grid .stat-label {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        white-space: normal;
+      }
+      .products-stats-grid .stat-tag {
+        font-size: 0.58rem !important;
+        padding: 1px 6px !important;
+        white-space: nowrap;
+      }
+      .products-stats-grid .stat-value {
+        font-size: clamp(1.25rem, 5vw, 1.6rem) !important;
+        line-height: 1.1;
+      }
+    }
+    @media (max-width: 480px) {
+      .products-stats-grid {
+        gap: 6px !important;
+      }
+      .products-stats-grid .stat-card {
+        padding: 10px 7px !important;
+        border-radius: 12px !important;
+      }
+      .products-stats-grid .stat-label {
+        font-size: 0.56rem !important;
+        letter-spacing: 0.02em;
+      }
+      .products-stats-grid .stat-tag {
+        font-size: 0.50rem !important;
+        padding: 1px 4px !important;
+      }
+      .products-stats-grid .stat-value {
+        font-size: 1.25rem !important;
+      }
+    }
   </style>
 
   <!-- Stats Section -->
-  <section class="stats-grid">
+  <section class="stats-grid products-stats-grid stats-grid-3">
     <div class="stat-card">
       <div class="stat-header">
         <span class="stat-label">Total Products</span>
