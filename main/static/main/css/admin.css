@@ -1194,72 +1194,118 @@ input[type="number"]::-webkit-outer-spin-button:hover,
     font-size: 0.73rem;
   }
 
+  .stats-grid,
   .stats-grid-3,
-  .products-stats-grid {
+  .products-stats-grid,
+  .coupons-stats-grid,
+  .orders-stats-grid,
+  .partners-stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 8px;
+    gap: 8px !important;
     margin-bottom: 20px;
   }
+  .stats-grid .stat-card,
   .stats-grid-3 .stat-card,
-  .products-stats-grid .stat-card {
+  .products-stats-grid .stat-card,
+  .coupons-stats-grid .stat-card,
+  .orders-stats-grid .stat-card,
+  .partners-stats-grid .stat-card {
     padding: 12px 10px;
     border-radius: 14px;
     min-width: 0;
     gap: 4px;
   }
+  .stats-grid .stat-header,
   .stats-grid-3 .stat-header,
-  .products-stats-grid .stat-header {
+  .products-stats-grid .stat-header,
+  .coupons-stats-grid .stat-header,
+  .orders-stats-grid .stat-header,
+  .partners-stats-grid .stat-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
+  .stats-grid .stat-label,
   .stats-grid-3 .stat-label,
-  .products-stats-grid .stat-label {
+  .products-stats-grid .stat-label,
+  .coupons-stats-grid .stat-label,
+  .orders-stats-grid .stat-label,
+  .partners-stats-grid .stat-label {
     font-size: 0.62rem;
     letter-spacing: 0.04em;
     line-height: 1.2;
     white-space: normal;
   }
+  .stats-grid .stat-tag,
   .stats-grid-3 .stat-tag,
-  .products-stats-grid .stat-tag {
+  .products-stats-grid .stat-tag,
+  .coupons-stats-grid .stat-tag,
+  .orders-stats-grid .stat-tag,
+  .partners-stats-grid .stat-tag {
     font-size: 0.58rem;
     padding: 1px 6px;
     white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .stats-grid .stat-value,
   .stats-grid-3 .stat-value,
-  .products-stats-grid .stat-value {
+  .products-stats-grid .stat-value,
+  .coupons-stats-grid .stat-value,
+  .orders-stats-grid .stat-value,
+  .partners-stats-grid .stat-value {
     font-size: clamp(1.25rem, 5vw, 1.6rem);
     line-height: 1.1;
   }
 }
 
 @media (max-width: 500px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .stats-grid,
   .stats-grid-3,
-  .products-stats-grid {
+  .products-stats-grid,
+  .coupons-stats-grid,
+  .orders-stats-grid,
+  .partners-stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 6px !important;
   }
+  .stats-grid .stat-card,
   .stats-grid-3 .stat-card,
-  .products-stats-grid .stat-card {
+  .products-stats-grid .stat-card,
+  .coupons-stats-grid .stat-card,
+  .orders-stats-grid .stat-card,
+  .partners-stats-grid .stat-card {
     padding: 10px 7px !important;
     border-radius: 12px !important;
   }
+  .stats-grid .stat-label,
   .stats-grid-3 .stat-label,
-  .products-stats-grid .stat-label {
+  .products-stats-grid .stat-label,
+  .coupons-stats-grid .stat-label,
+  .orders-stats-grid .stat-label,
+  .partners-stats-grid .stat-label {
     font-size: 0.56rem !important;
     letter-spacing: 0.02em;
   }
+  .stats-grid .stat-tag,
   .stats-grid-3 .stat-tag,
-  .products-stats-grid .stat-tag {
+  .products-stats-grid .stat-tag,
+  .coupons-stats-grid .stat-tag,
+  .orders-stats-grid .stat-tag,
+  .partners-stats-grid .stat-tag {
     font-size: 0.50rem !important;
     padding: 1px 4px !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .stats-grid .stat-value,
   .stats-grid-3 .stat-value,
-  .products-stats-grid .stat-value {
+  .products-stats-grid .stat-value,
+  .coupons-stats-grid .stat-value,
+  .orders-stats-grid .stat-value,
+  .partners-stats-grid .stat-value {
     font-size: 1.25rem !important;
   }
 

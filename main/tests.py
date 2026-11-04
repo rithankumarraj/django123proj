@@ -3428,6 +3428,29 @@ class OrderStatusProgressionTests(TestCase):
         self.assertContains(res, "Cancelled")
         self.assertContains(res, "Customer Orders")
         self.assertContains(res, "auto-status-select")
+        self.assertContains(res, "orders-stats-grid")
+        self.assertContains(res, "stats-grid-3")
+
+    def test_mobile_stats_grid_segmentation_and_monochrome_bottom_nav(self):
+        self.client.force_login(self.admin)
+        res_users = self.client.get(reverse("admin_delivery_users"))
+        self.assertEqual(res_users.status_code, 200)
+        self.assertContains(res_users, "partners-stats-grid")
+        self.assertContains(res_users, "stats-grid-3")
+
+        res_orders = self.client.get(reverse("admin_delivery_status"))
+        self.assertEqual(res_orders.status_code, 200)
+        self.assertContains(res_orders, "orders-stats-grid")
+        self.assertContains(res_orders, "stats-grid-3")
+
+        # Check mobile bottom nav on storefront
+        res_home = self.client.get(reverse("home"))
+        self.assertEqual(res_home.status_code, 200)
+        self.assertContains(res_home, "mobile-bottom-nav")
+        self.assertContains(res_home, "mobile-bottom-nav-item")
+        self.assertContains(res_home, "data-nav=\"home\"")
+        self.assertContains(res_home, "data-nav=\"categories\"")
+
 
 
 class CouponSystemTests(TestCase):
