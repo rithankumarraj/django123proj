@@ -3859,9 +3859,17 @@ class CashfreePaymentGatewayTests(TestCase):
         url = reverse("payment_page", kwargs={"payment_reference": self.order.payment_reference})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Pay ₹156.20 with Cashfree")
+        self.assertContains(response, "Confirm demo payment")
         self.assertContains(response, "sdk.cashfree.com/js/v3/cashfree.js")
-        self.assertContains(response, "cashfreeModalPayBtn")
+        self.assertContains(response, "confirmDemoPaymentBtn")
+
+    def test_cashfree_init_session_endpoint(self):
+        url = reverse("cashfree_init_session", kwargs={"payment_reference": self.order.payment_reference})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertEqual(data["session_id"], "session_test_mock_123")
 
     @patch("main.views.get_cashfree_order")
     def test_cashfree_payment_return_success(self, mock_get_order):

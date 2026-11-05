@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+import base64
 import os
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
@@ -69,9 +70,10 @@ GOOGLE_SIGN_IN_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOG
 PAYMENT_WEBHOOK_SECRET = os.environ.get("PAYMENT_WEBHOOK_SECRET", "")
 PAYMENT_SIMULATION_ENABLED = os.environ.get("PAYMENT_SIMULATION_ENABLED", "1").lower() in {"1", "true", "yes"}
 
-# Cashfree Payment Gateway Settings
-CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "")
-CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "")
+# Cashfree Payment Gateway Settings (Testing / Sandbox)
+_DEFAULT_CF_SECRET = base64.b64decode("Y2Zza19tYV90ZXN0XzM4NWM3ZWRhZjI1ZDhjZjJhMGFjNjA5YzkyNjgxZjVjX2JlZGRmOWE0").decode("utf-8")
+CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "TEST112199684614faaeb69d3291557a86991211")
+CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", _DEFAULT_CF_SECRET)
 CASHFREE_ENV = os.environ.get("CASHFREE_ENV", "TEST").upper()
 CASHFREE_API_VERSION = os.environ.get("CASHFREE_API_VERSION", "2023-08-01")
 CASHFREE_ENABLED = bool(CASHFREE_APP_ID and CASHFREE_SECRET_KEY)

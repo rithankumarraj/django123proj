@@ -1526,6 +1526,32 @@ def payment_page(request, payment_reference):
     )
 
 
+def cashfree_init_session(request, payment_reference):
+    order = get_object_or_404(Order, payment_reference=payment_reference)
+    if order.payment_status != "pending":
+        return JsonResponse({"success": False, "error": "Order is not pending payment."})
+
+    cashfree_return_url = request.build_absolute_uri(
+        reverse("cashfree_payment_return")
+    ) + f"?order_id={{order_id}}&payment_ref={order.payment_reference}"
+    cashfree_notify_url = request.build_absolute_uri(reverse("cashfree_webhook"))
+
+    if not order.cashfree_payment_session_id:
+        success, cf_data = create_cashfree_order(
+            order, return_url=cashfree_return_url, notify_url=cashfree_notify_url
+        )
+        if not success:
+            return JsonResponse({"success": False, "error": cf_data.get("error", "Could not create Cashfree session.")})
+
+    return JsonResponse({
+        "success": True,
+        "session_id": order.cashfree_payment_session_id,
+        "return_url": request.build_absolute_uri(
+            reverse("cashfree_payment_return")
+        ) + f"?order_id={order.cashfree_order_id}&payment_ref={order.payment_reference}",
+    })
+
+
 def cashfree_payment_return(request):
     cf_order_id = (request.GET.get("order_id") or "").strip()
     payment_ref = (request.GET.get("payment_ref") or "").strip()

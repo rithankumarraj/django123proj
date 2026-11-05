@@ -910,8 +910,23 @@
 
             validatePincodeDelivery();
 
+            var applyBtn = document.getElementById('chkApplyCouponBtn');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', applyCheckoutCoupon);
+            }
+            var couponInp = document.getElementById('chkCouponInput');
+            if (couponInp) {
+                couponInp.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyCheckoutCoupon();
+                    }
+                });
+            }
+
             var initCoupon = "{{ applied_coupon_code|default:''|escapejs }}";
-            if (initCoupon && isOnline) {
+            var isOnlineNow = pmOnlineRadio ? pmOnlineRadio.checked : true;
+            if (initCoupon && isOnlineNow) {
                 applyCheckoutCoupon();
             }
         }

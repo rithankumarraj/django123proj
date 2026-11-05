@@ -46,6 +46,7 @@ urlpatterns = [
     path("cart/checkout/", views.cart_checkout, name="cart_checkout"),
     path("checkout/<int:product_id>/", views.checkout, name="checkout"),
     path("payment/<uuid:payment_reference>/", views.payment_page, name="payment_page"),
+    path("payment/cashfree/init/<uuid:payment_reference>/", views.cashfree_init_session, name="cashfree_init_session"),
     path("payment/cashfree/return/", views.cashfree_payment_return, name="cashfree_payment_return"),
     path("webhooks/payment/", views.payment_webhook, name="payment_webhook"),
     path("webhooks/cashfree/", views.cashfree_webhook, name="cashfree_webhook"),
