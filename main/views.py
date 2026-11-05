@@ -878,6 +878,7 @@ def cart_page(request):
                 "phone": raw_phone,
                 "state": initial_state,
             },
+            "applied_coupon_code": request.session.get("applied_coupon_code", ""),
         },
     )
 
@@ -1401,6 +1402,7 @@ def checkout(request, product_id):
                 "postal_code": request.POST.get("postal_code", initial_zip),
             },
             "saved_addresses": saved_addresses,
+            "applied_coupon_code": request.session.get("applied_coupon_code", ""),
         },
     )
 

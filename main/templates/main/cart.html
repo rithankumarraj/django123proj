@@ -1074,10 +1074,10 @@
               Have a coupon code?
             </label>
             <div class="input-group input-group-sm">
-              <input type="text" id="cartCouponInput" name="coupon_code" form="cart-checkout" class="form-control bg-dark text-light border-secondary" placeholder="e.g. SUMMER20" style="text-transform: uppercase; font-family: monospace; font-weight: 700; font-size: 0.82rem;">
-              <button type="button" id="cartApplyCouponBtn" class="btn btn-outline-light px-3 fw-bold" style="font-size: 0.78rem;">Apply</button>
+              <input type="text" id="cartCouponInput" name="coupon_code" form="cart-checkout" value="{{ applied_coupon_code|default:'' }}" class="form-control bg-dark text-light border-secondary" placeholder="e.g. SUMMER20" style="text-transform: uppercase; font-family: monospace; font-weight: 700; font-size: 0.82rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();applyCartCoupon();}">
+              <button type="button" id="cartApplyCouponBtn" onclick="applyCartCoupon()" class="btn btn-outline-light px-3 fw-bold" style="font-size: 0.78rem;">Apply</button>
             </div>
-            <div id="cartCouponFeedback" class="small mt-1" style="display: none;"></div>
+            <div id="cartCouponFeedback" style="display: none; margin-top: 8px;"></div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
@@ -1107,17 +1107,17 @@
               <strong id="cartShippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
             </div>
 
-            <div class="summary-row" id="cartOriginalTotalRow" style="display: none; color: rgba(255,255,255,0.65);">
-              <span>Original Total</span>
-              <span id="cartOriginalTotalDisplay" style="text-decoration: line-through; font-weight: 600;">₹{{ total_with_shipping|floatformat:2 }}</span>
+            <div class="summary-row" id="cartOriginalTotalRow" style="display: none; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+              <span style="font-weight: 600; color: rgba(255,255,255,0.75);">Grand Total</span>
+              <strong id="cartOriginalTotalDisplay" style="color: rgba(255,255,255,0.85); font-weight: 700;">₹{{ total_with_shipping|floatformat:2 }}</strong>
             </div>
             <div class="summary-row" id="cartDiscountRow" style="display: none; color: #4ade80;">
-              <span>Offer Discount (<span id="cartCouponBadge" style="font-family: monospace; letter-spacing: 0.04em;"></span>)</span>
-              <strong id="cartDiscountDisplay" style="color: #4ade80;">-₹0.00</strong>
+              <span style="font-weight: 600;">Discount Amount (<span id="cartCouponBadge" style="font-family: monospace; font-weight: 700;"></span>)</span>
+              <strong id="cartDiscountDisplay" style="color: #4ade80; font-weight: 700;">-₹0.00</strong>
             </div>
             <div class="summary-row total-row">
-              <span id="cartTotalLabel">Total</span>
-              <strong id="cartGrandTotalDisplay">₹{{ total_with_shipping|floatformat:2 }}</strong>
+              <span id="cartTotalLabel" style="font-weight: 800;">Total</span>
+              <strong id="cartGrandTotalDisplay" style="font-size: 1.25rem;">₹{{ total_with_shipping|floatformat:2 }}</strong>
             </div>
           </div>
 
@@ -1170,7 +1170,7 @@
   <script src="{% static 'main/cart.js' %}?v=instant-cart-3" defer></script>
   <script src="{% static 'main/address.js' %}" defer></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    function initCartPage() {
       const stateSelect = document.getElementById('delivery-state');
       const shippingFeeDisplay = document.getElementById('cartShippingFeeDisplay');
       const grandTotalDisplay = document.getElementById('cartGrandTotalDisplay');
@@ -1351,122 +1351,98 @@
         if (window.updateCartCalculations) window.updateCartCalculations();
       }
 
-      function showCartCouponSuccess(msg) {
-        if (!cartCouponFeedback) return;
-        cartCouponFeedback.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(47, 207, 122, 0.4); background: rgba(47, 207, 122, 0.12); color: #4ade80; font-weight: 600;';
-        cartCouponFeedback.innerHTML = '<div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><span>' + msg + '</span></div><button type="button" id="cartRemoveCouponBtn" style="background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 0.75rem; text-decoration: underline; padding: 0;">Remove</button>';
-        const removeBtn = document.getElementById('cartRemoveCouponBtn');
-        if (removeBtn) {
-          removeBtn.addEventListener('click', removeCartCoupon);
-        }
+      function showCartCouponSuccess(msg, code, discount) {
+        var fb = document.getElementById('cartCouponFeedback');
+        if (!fb) return;
+        fb.style.cssText = 'display: flex !important; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(47, 207, 122, 0.4); background: rgba(47, 207, 122, 0.12); color: #4ade80; font-weight: 600;';
+        fb.innerHTML = '<div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><span>' + (msg || ('Coupon ' + code + ' applied!')) + '</span></div><button type="button" onclick="removeCartCoupon()" style="background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 0.75rem; text-decoration: underline; padding: 0;">Remove</button>';
       }
 
       function showCartCouponError(msg) {
-        if (!cartCouponFeedback) return;
-        cartCouponFeedback.style.cssText = 'display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.12); color: #fca5a5; font-weight: 600;';
-        cartCouponFeedback.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + msg + '</span>';
+        var fb = document.getElementById('cartCouponFeedback');
+        if (!fb) return;
+        fb.style.cssText = 'display: flex !important; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.16); color: #fca5a5; font-weight: 600;';
+        fb.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + (msg || 'Invalid coupon code.') + '</span>';
       }
 
       function removeCartCoupon() {
         fetch('/api/remove-coupon/')
-          .then(res => res.json())
-          .finally(() => {
+          .then(function (res) { return res.json(); })
+          .catch(function () {})
+          .finally(function () {
             cartCurrentDiscount = 0.0;
-            if (cartCouponInput) cartCouponInput.value = '';
-            cartCouponFeedback.style.cssText = 'display: block; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.04); color: rgba(255, 255, 255, 0.7);';
-            cartCouponFeedback.textContent = 'Coupon removed.';
+            var inp = document.getElementById('cartCouponInput');
+            if (inp) inp.value = '';
+            var fb = document.getElementById('cartCouponFeedback');
+            if (fb) {
+              fb.style.cssText = 'display: block !important; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.04); color: rgba(255, 255, 255, 0.7);';
+              fb.textContent = 'Coupon removed.';
+            }
             if (window.updateCartCalculations) window.updateCartCalculations();
           });
       }
+
+      function applyCartCoupon() {
+        var inp = document.getElementById('cartCouponInput');
+        var btn = document.getElementById('cartApplyCouponBtn');
+        if (!inp) return;
+        var code = inp.value.trim().toUpperCase();
+        if (!code) {
+          showCartCouponError('Please enter a coupon code.');
+          return;
+        }
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = '...';
+        }
+        var subtotal = getCartSubtotal();
+        fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&subtotal=' + subtotal + '&payment_method=online')
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            var badge = document.getElementById('cartCouponBadge');
+            if (data.valid) {
+              cartCurrentDiscount = parseFloat(data.discount_amount) || 0.0;
+              if (badge) badge.textContent = data.code;
+              showCartCouponSuccess(data.message, data.code, cartCurrentDiscount);
+            } else {
+              cartCurrentDiscount = 0.0;
+              if (badge) badge.textContent = '';
+              showCartCouponError(data.message);
+            }
+            if (window.updateCartCalculations) window.updateCartCalculations();
+          })
+          .catch(function (err) {
+            console.error('Cart coupon error:', err);
+            showCartCouponError('Could not verify coupon right now. Please try again.');
+          })
+          .finally(function () {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Apply';
+            }
+          });
+      }
+
+      window.applyCartCoupon = applyCartCoupon;
+      window.removeCartCoupon = removeCartCoupon;
 
       if (cartCouponInput && cartCouponBtn) {
         cartCouponInput.addEventListener('keydown', function (e) {
           if (e.key === 'Enter') {
             e.preventDefault();
-            cartCouponBtn.click();
+            applyCartCoupon();
           }
         });
       }
 
       if (cartCouponBtn && cartCouponInput) {
-        cartCouponBtn.addEventListener('click', function () {
-          const code = cartCouponInput.value.trim().toUpperCase();
-          if (!code) {
-            showCartCouponError('Please enter a coupon code.');
-            return;
-          }
-          cartCouponBtn.disabled = true;
-          cartCouponBtn.textContent = '...';
-          const subtotal = getCartSubtotal();
-          fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&subtotal=' + subtotal + '&payment_method=online')
-            .then(res => res.json())
-            .then(data => {
-              if (data.valid) {
-                cartCurrentDiscount = parseFloat(data.discount_amount) || 0.0;
-                if (cartCouponBadge) cartCouponBadge.textContent = data.code;
-                showCartCouponSuccess(data.message);
-              } else {
-                cartCurrentDiscount = 0.0;
-                showCartCouponError(data.message);
-              }
-              if (window.updateCartCalculations) window.updateCartCalculations();
-            })
-            .catch(() => {
-              showCartCouponError('Could not verify coupon right now. Please try again.');
-            })
-            .finally(() => {
-              cartCouponBtn.disabled = false;
-              cartCouponBtn.textContent = 'Apply';
-            });
-        });
+        cartCouponBtn.addEventListener('click', applyCartCoupon);
       }
 
       if (cartPmOnlineRadio && cartPmCodRadio) {
         cartPmOnlineRadio.addEventListener('change', handleCartPaymentMethodToggle);
         cartPmCodRadio.addEventListener('change', handleCartPaymentMethodToggle);
         handleCartPaymentMethodToggle();
-      }
-
-      if (cartCouponBtn && cartCouponInput) {
-        cartCouponBtn.addEventListener('click', function () {
-          const code = cartCouponInput.value.trim().toUpperCase();
-          if (!code) {
-            cartCouponFeedback.className = 'small mt-1 text-warning';
-            cartCouponFeedback.textContent = 'Please enter a coupon code.';
-            cartCouponFeedback.style.display = 'block';
-            return;
-          }
-          cartCouponBtn.disabled = true;
-          cartCouponBtn.textContent = '...';
-          fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&payment_method=online')
-            .then(res => res.json())
-            .then(data => {
-              cartCouponFeedback.style.display = 'block';
-              if (data.valid) {
-                cartCurrentDiscount = parseFloat(data.discount_amount) || 0.0;
-                cartCouponFeedback.className = 'small mt-1 text-success fw-semibold';
-                cartCouponFeedback.textContent = data.message;
-                if (cartCouponBadge) cartCouponBadge.textContent = data.code;
-                if (cartDiscountDisplay) cartDiscountDisplay.textContent = '-₹' + cartCurrentDiscount.toFixed(2);
-                if (cartDiscountRow) cartDiscountRow.style.display = 'flex';
-              } else {
-                cartCurrentDiscount = 0.0;
-                cartCouponFeedback.className = 'small mt-1 text-danger fw-semibold';
-                cartCouponFeedback.textContent = data.message;
-                if (cartDiscountRow) cartDiscountRow.style.display = 'none';
-              }
-              if (window.updateCartCalculations) window.updateCartCalculations();
-            })
-            .catch(() => {
-              cartCouponFeedback.className = 'small mt-1 text-warning';
-              cartCouponFeedback.textContent = 'Could not verify coupon right now.';
-              cartCouponFeedback.style.display = 'block';
-            })
-            .finally(() => {
-              cartCouponBtn.disabled = false;
-              cartCouponBtn.textContent = 'Apply';
-            });
-        });
       }
        if (stateSelect) {         stateSelect.addEventListener('change', window.updateCartCalculations);       }
        document.addEventListener('input', function (e) {         if (e.target.matches('.cart-quantity')) {           window.updateCartCalculations();         }       });
@@ -1607,7 +1583,18 @@
         }
         validateCartPincode();
 
-        window.updateCartCalculations();     });
+        window.updateCartCalculations();
+        var initCartCoupon = "{{ applied_coupon_code|default:''|escapejs }}";
+        if (initCartCoupon && cartPmOnlineRadio && cartPmOnlineRadio.checked) {
+          applyCartCoupon();
+        }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCartPage);
+    } else {
+      initCartPage();
+    }
 
     function openRemoveConfirmModal(productId, productName, productVolume, productImg) {
       const modal = document.getElementById('removeConfirmModal');
