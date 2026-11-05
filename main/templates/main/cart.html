@@ -1107,12 +1107,16 @@
               <strong id="cartShippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
             </div>
 
+            <div class="summary-row" id="cartOriginalTotalRow" style="display: none; color: rgba(255,255,255,0.65);">
+              <span>Original Total</span>
+              <span id="cartOriginalTotalDisplay" style="text-decoration: line-through; font-weight: 600;">₹{{ total_with_shipping|floatformat:2 }}</span>
+            </div>
             <div class="summary-row" id="cartDiscountRow" style="display: none; color: #4ade80;">
-              <span>Coupon discount (<span id="cartCouponBadge"></span>)</span>
-              <strong id="cartDiscountDisplay">-₹0.00</strong>
+              <span>Offer Discount (<span id="cartCouponBadge" style="font-family: monospace; letter-spacing: 0.04em;"></span>)</span>
+              <strong id="cartDiscountDisplay" style="color: #4ade80;">-₹0.00</strong>
             </div>
             <div class="summary-row total-row">
-              <span>Total</span>
+              <span id="cartTotalLabel">Total</span>
               <strong id="cartGrandTotalDisplay">₹{{ total_with_shipping|floatformat:2 }}</strong>
             </div>
           </div>
@@ -1165,53 +1169,26 @@
 
   <script src="{% static 'main/cart.js' %}?v=instant-cart-3" defer></script>
   <script src="{% static 'main/address.js' %}" defer></script>
-  <script>     document.addEventListener('DOMContentLoaded', function () {       const stateSelect = document.getElementById('delivery-state');       const shippingFeeDisplay = document.getElementById('cartShippingFeeDisplay');       const grandTotalDisplay = document.getElementById('cartGrandTotalDisplay');       const shippingNotice = document.getElementById('cartShippingNotice');       const checkoutTotalBtn = document.querySelector('[data-cart-checkout-total]');       const phoneInput = document.getElementById('delivery-phone');       const subtotalDisplay = document.getElementById('cartSubtotalDisplay');       const packingFeeDisplay = document.getElementById('cartPackingFeeDisplay');       const packingNotice = document.getElementById('cartPackingNotice');       const summaryCount = document.querySelector('[data-cart-summary-count]');       const checkoutForm = document.getElementById('cart-checkout');
-       const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";       const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;       const otherFee = parseFloat("{{ shipping_fee_other|default:'100.00' }}") || 100.0;       const packingFreeCans = parseInt("{{ packing_free_cans|default:'6' }}", 10) || 6;       const packingCostPerBatch = parseFloat("{{ packing_cost_per_batch|default:'20.00' }}") || 20.0;       const packingBatchSize = parseInt("{{ packing_batch_size|default:'6' }}", 10) || 6;
-       const localStateList = localStatesRaw         .split(',')         .map(function (s) { return s.trim().toLowerCase(); })         .filter(function (s) { return s.length > 0; });
-       function getCartItemCount() {         let count = 0;         document.querySelectorAll('.cart-quantity').forEach(function (el) {           const val = parseInt(el.value, 10);           if (!isNaN(val) && val > 0) count += val;         });         return count;       }
-       function calculatePackingFee(qty) {         if (qty <= packingFreeCans) return 0.0;         const extra = qty - packingFreeCans;         const batches = Math.ceil(extra / packingBatchSize);         return batches * packingCostPerBatch;       }
-       function getCartSubtotal() {         let total = 0.0;         document.querySelectorAll('.cart-item').forEach(function (item) {           const input = item.querySelector('.cart-quantity');           if (!input) return;           const qty = parseInt(input.value, 10) || 0;           const price = parseFloat(input.dataset.unitPrice) || 0.0;           total += qty * price;         });         return total;       }
-       window.updateCartCalculations = function () {
-         const itemCount = getCartItemCount();
-         const subtotal = getCartSubtotal();
-         const gstAmount = Math.round(subtotal * 18.0) / 100;
-         const packingFee = calculatePackingFee(itemCount);
-         const selectedState = stateSelect ? (stateSelect.value || '').trim() : '';
-         let shippingFee = otherFee;
-         if (selectedState) {
-           const isLocal = localStateList.indexOf(selectedState.toLowerCase()) !== -1;
-           shippingFee = isLocal ? localFee : otherFee;
-           if (shippingNotice) {
-             shippingNotice.textContent = '(' + selectedState + ')';
-           }
-         } else {
-           shippingFee = otherFee;
-           if (shippingNotice) {
-             shippingNotice.textContent = '';
-           }
-         }
-         const isOnline = cartPmOnlineRadio ? cartPmOnlineRadio.checked : true;
-         const activeDiscount = isOnline ? cartCurrentDiscount : 0.0;
-         const grandTotal = Math.max(0, subtotal - activeDiscount + gstAmount + packingFee + shippingFee);
-         if (subtotalDisplay) subtotalDisplay.textContent = '₹' + subtotal.toFixed(2);
-         const gstDisplay = document.getElementById('cartGstDisplay');
-         if (gstDisplay) gstDisplay.textContent = '₹' + gstAmount.toFixed(2);
-         const cartTotalEl = document.querySelector('[data-cart-total]');
-         if (cartTotalEl) cartTotalEl.textContent = '₹' + subtotal.toFixed(2);
-         if (packingFeeDisplay) {           packingFeeDisplay.textContent = packingFee > 0 ? '₹' + packingFee.toFixed(2) : '₹0.00';         }         if (packingNotice) {           if (packingFee > 0) {             packingNotice.textContent = '₹' + packingFee.toFixed(0);           } else {             packingNotice.textContent = 'Free (First ' + packingFreeCans + ' cans)';           }         }
-         if (shippingFeeDisplay) shippingFeeDisplay.textContent = '₹' + shippingFee.toFixed(2);         if (grandTotalDisplay) grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
-         if (checkoutTotalBtn) {
-           if (isOnline) {
-             checkoutTotalBtn.textContent = 'Continue to payment · ₹' + grandTotal.toFixed(2);
-           } else {
-             checkoutTotalBtn.textContent = 'Place order (Cash on Delivery) · ₹' + grandTotal.toFixed(2);
-           }
-         }
-         document.querySelectorAll('[data-cart-count]').forEach(function (el) {           el.textContent = itemCount + ' item' + (itemCount === 1 ? '' : 's');         });
-         if (summaryCount) {           summaryCount.textContent = itemCount + ' can' + (itemCount === 1 ? '' : 's');         }       };
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const stateSelect = document.getElementById('delivery-state');
+      const shippingFeeDisplay = document.getElementById('cartShippingFeeDisplay');
+      const grandTotalDisplay = document.getElementById('cartGrandTotalDisplay');
+      const shippingNotice = document.getElementById('cartShippingNotice');
+      const checkoutTotalBtn = document.querySelector('[data-cart-checkout-total]');
+      const phoneInput = document.getElementById('delivery-phone');
+      const subtotalDisplay = document.getElementById('cartSubtotalDisplay');
+      const packingFeeDisplay = document.getElementById('cartPackingFeeDisplay');
+      const packingNotice = document.getElementById('cartPackingNotice');
+      const summaryCount = document.querySelector('[data-cart-summary-count]');
+      const checkoutForm = document.getElementById('cart-checkout');
 
-      // Cart Coupon & Payment Method Logic
-      let cartCurrentDiscount = 0.0;
+      const cartOriginalTotalRow = document.getElementById('cartOriginalTotalRow');
+      const cartOriginalTotalDisplay = document.getElementById('cartOriginalTotalDisplay');
+      const cartTotalLabel = document.getElementById('cartTotalLabel');
+      const cartDiscountRow = document.getElementById('cartDiscountRow');
+      const cartDiscountDisplay = document.getElementById('cartDiscountDisplay');
+      const cartCouponBadge = document.getElementById('cartCouponBadge');
       const cartPmOnlineRadio = document.getElementById('cartPmOnline');
       const cartPmCodRadio = document.getElementById('cartPmCod');
       const cartPmOnlineLabel = document.getElementById('cartPmOnlineLabel');
@@ -1220,9 +1197,129 @@
       const cartCouponInput = document.getElementById('cartCouponInput');
       const cartCouponBtn = document.getElementById('cartApplyCouponBtn');
       const cartCouponFeedback = document.getElementById('cartCouponFeedback');
-      const cartDiscountRow = document.getElementById('cartDiscountRow');
-      const cartDiscountDisplay = document.getElementById('cartDiscountDisplay');
-      const cartCouponBadge = document.getElementById('cartCouponBadge');
+
+      let cartCurrentDiscount = 0.0;
+
+      const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";
+      const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;
+      const otherFee = parseFloat("{{ shipping_fee_other|default:'100.00' }}") || 100.0;
+      const packingFreeCans = parseInt("{{ packing_free_cans|default:'6' }}", 10) || 6;
+      const packingCostPerBatch = parseFloat("{{ packing_cost_per_batch|default:'20.00' }}") || 20.0;
+      const packingBatchSize = parseInt("{{ packing_batch_size|default:'6' }}", 10) || 6;
+
+      const localStateList = localStatesRaw
+        .split(',')
+        .map(function (s) { return s.trim().toLowerCase(); })
+        .filter(function (s) { return s.length > 0; });
+
+      function getCartItemCount() {
+        let count = 0;
+        document.querySelectorAll('.cart-quantity').forEach(function (el) {
+          const val = parseInt(el.value, 10);
+          if (!isNaN(val) && val > 0) count += val;
+        });
+        return count;
+      }
+
+      function calculatePackingFee(qty) {
+        if (qty <= packingFreeCans) return 0.0;
+        const extra = qty - packingFreeCans;
+        const batches = Math.ceil(extra / packingBatchSize);
+        return batches * packingCostPerBatch;
+      }
+
+      function getCartSubtotal() {
+        let total = 0.0;
+        document.querySelectorAll('.cart-item').forEach(function (item) {
+          const input = item.querySelector('.cart-quantity');
+          if (!input) return;
+          const qty = parseInt(input.value, 10) || 0;
+          const price = parseFloat(input.dataset.unitPrice) || 0.0;
+          total += qty * price;
+        });
+        return total;
+      }
+
+      window.updateCartCalculations = function () {
+        const itemCount = getCartItemCount();
+        const subtotal = getCartSubtotal();
+        const gstAmount = Math.round(subtotal * 18.0) / 100;
+        const packingFee = calculatePackingFee(itemCount);
+        const selectedState = stateSelect ? (stateSelect.value || '').trim() : '';
+        let shippingFee = otherFee;
+        if (selectedState) {
+          const isLocal = localStateList.indexOf(selectedState.toLowerCase()) !== -1;
+          shippingFee = isLocal ? localFee : otherFee;
+          if (shippingNotice) {
+            shippingNotice.textContent = '(' + selectedState + ')';
+          }
+        } else {
+          shippingFee = otherFee;
+          if (shippingNotice) {
+            shippingNotice.textContent = '';
+          }
+        }
+
+        const isOnline = cartPmOnlineRadio ? cartPmOnlineRadio.checked : true;
+        const activeDiscount = (isOnline && cartCurrentDiscount > 0) ? cartCurrentDiscount : 0.0;
+        const rawGrandTotal = subtotal + gstAmount + packingFee + shippingFee;
+        const grandTotal = Math.max(0, rawGrandTotal - activeDiscount);
+
+        if (subtotalDisplay) subtotalDisplay.textContent = '₹' + subtotal.toFixed(2);
+        const gstDisplay = document.getElementById('cartGstDisplay');
+        if (gstDisplay) gstDisplay.textContent = '₹' + gstAmount.toFixed(2);
+        const cartTotalEl = document.querySelector('[data-cart-total]');
+        if (cartTotalEl) cartTotalEl.textContent = '₹' + subtotal.toFixed(2);
+        if (packingFeeDisplay) {
+          packingFeeDisplay.textContent = packingFee > 0 ? '₹' + packingFee.toFixed(2) : '₹0.00';
+        }
+        if (packingNotice) {
+          if (packingFee > 0) {
+            packingNotice.textContent = '₹' + packingFee.toFixed(0);
+          } else {
+            packingNotice.textContent = 'Free (First ' + packingFreeCans + ' cans)';
+          }
+        }
+        if (shippingFeeDisplay) shippingFeeDisplay.textContent = '₹' + shippingFee.toFixed(2);
+
+        if (activeDiscount > 0) {
+          if (cartOriginalTotalRow) {
+            cartOriginalTotalRow.style.display = 'flex';
+            if (cartOriginalTotalDisplay) cartOriginalTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);
+          }
+          if (cartDiscountRow) {
+            cartDiscountRow.style.display = 'flex';
+            if (cartDiscountDisplay) cartDiscountDisplay.textContent = '-₹' + activeDiscount.toFixed(2);
+          }
+          if (cartTotalLabel) cartTotalLabel.textContent = 'Discounted Total';
+          if (grandTotalDisplay) {
+            grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
+            grandTotalDisplay.style.color = '#4ade80';
+          }
+        } else {
+          if (cartOriginalTotalRow) cartOriginalTotalRow.style.display = 'none';
+          if (cartDiscountRow) cartDiscountRow.style.display = 'none';
+          if (cartTotalLabel) cartTotalLabel.textContent = 'Total';
+          if (grandTotalDisplay) {
+            grandTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);
+            grandTotalDisplay.style.color = '#fff';
+          }
+        }
+
+        if (checkoutTotalBtn) {
+          if (isOnline) {
+            checkoutTotalBtn.textContent = 'Continue to payment · ₹' + grandTotal.toFixed(2);
+          } else {
+            checkoutTotalBtn.textContent = 'Place order (Cash on Delivery) · ₹' + rawGrandTotal.toFixed(2);
+          }
+        }
+        document.querySelectorAll('[data-cart-count]').forEach(function (el) {
+          el.textContent = itemCount + ' item' + (itemCount === 1 ? '' : 's');
+        });
+        if (summaryCount) {
+          summaryCount.textContent = itemCount + ' can' + (itemCount === 1 ? '' : 's');
+        }
+      };
 
       function handleCartPaymentMethodToggle() {
         const isOnline = cartPmOnlineRadio && cartPmOnlineRadio.checked;
@@ -1235,7 +1332,6 @@
             cartPmCodLabel.style.background = 'rgba(255,255,255,0.02)';
             cartPmCodLabel.style.borderColor = 'rgba(255,255,255,0.08)';
           }
-          // Ask coupon code ONLY IF online payment
           if (cartCouponBox) cartCouponBox.style.display = 'block';
           if (cartCurrentDiscount > 0 && cartDiscountRow) cartDiscountRow.style.display = 'flex';
         } else {
@@ -1247,12 +1343,82 @@
             cartPmOnlineLabel.style.background = 'rgba(255,255,255,0.02)';
             cartPmOnlineLabel.style.borderColor = 'rgba(255,255,255,0.08)';
           }
-          // Hide coupon code for COD
           if (cartCouponBox) cartCouponBox.style.display = 'none';
           if (cartDiscountRow) cartDiscountRow.style.display = 'none';
+          if (cartOriginalTotalRow) cartOriginalTotalRow.style.display = 'none';
           if (cartCouponFeedback) cartCouponFeedback.style.display = 'none';
         }
         if (window.updateCartCalculations) window.updateCartCalculations();
+      }
+
+      function showCartCouponSuccess(msg) {
+        if (!cartCouponFeedback) return;
+        cartCouponFeedback.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(47, 207, 122, 0.4); background: rgba(47, 207, 122, 0.12); color: #4ade80; font-weight: 600;';
+        cartCouponFeedback.innerHTML = '<div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><span>' + msg + '</span></div><button type="button" id="cartRemoveCouponBtn" style="background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 0.75rem; text-decoration: underline; padding: 0;">Remove</button>';
+        const removeBtn = document.getElementById('cartRemoveCouponBtn');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', removeCartCoupon);
+        }
+      }
+
+      function showCartCouponError(msg) {
+        if (!cartCouponFeedback) return;
+        cartCouponFeedback.style.cssText = 'display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.12); color: #fca5a5; font-weight: 600;';
+        cartCouponFeedback.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + msg + '</span>';
+      }
+
+      function removeCartCoupon() {
+        fetch('/api/remove-coupon/')
+          .then(res => res.json())
+          .finally(() => {
+            cartCurrentDiscount = 0.0;
+            if (cartCouponInput) cartCouponInput.value = '';
+            cartCouponFeedback.style.cssText = 'display: block; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.04); color: rgba(255, 255, 255, 0.7);';
+            cartCouponFeedback.textContent = 'Coupon removed.';
+            if (window.updateCartCalculations) window.updateCartCalculations();
+          });
+      }
+
+      if (cartCouponInput && cartCouponBtn) {
+        cartCouponInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            cartCouponBtn.click();
+          }
+        });
+      }
+
+      if (cartCouponBtn && cartCouponInput) {
+        cartCouponBtn.addEventListener('click', function () {
+          const code = cartCouponInput.value.trim().toUpperCase();
+          if (!code) {
+            showCartCouponError('Please enter a coupon code.');
+            return;
+          }
+          cartCouponBtn.disabled = true;
+          cartCouponBtn.textContent = '...';
+          const subtotal = getCartSubtotal();
+          fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&subtotal=' + subtotal + '&payment_method=online')
+            .then(res => res.json())
+            .then(data => {
+              if (data.valid) {
+                cartCurrentDiscount = parseFloat(data.discount_amount) || 0.0;
+                if (cartCouponBadge) cartCouponBadge.textContent = data.code;
+                showCartCouponSuccess(data.message);
+              } else {
+                cartCurrentDiscount = 0.0;
+                showCartCouponError(data.message);
+              }
+              if (window.updateCartCalculations) window.updateCartCalculations();
+            })
+            .catch(() => {
+              showCartCouponError('Could not verify coupon right now. Please try again.');
+            })
+            .finally(() => {
+              cartCouponBtn.disabled = false;
+              cartCouponBtn.textContent = 'Apply';
+            });
+        });
       }
 
       if (cartPmOnlineRadio && cartPmCodRadio) {

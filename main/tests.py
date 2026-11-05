@@ -3757,6 +3757,70 @@ class CouponSystemTests(TestCase):
         self.assertContains(res_detail, "-₹9.00")
         self.assertContains(res_detail, "Coupon Applied")
 
+    def test_coupon_api_error_responses_and_single_product_validation(self):
+        """Test that invalid coupons return detailed error messages and valid coupons calculate discounts properly."""
+        # 1. Non-existent coupon (like POOJA2026)
+        res = self.client.get(reverse("api_apply_coupon") + "?code=POOJA2026&subtotal=90.00&payment_method=online")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertFalse(data["valid"])
+        self.assertIn("Coupon 'POOJA2026' does not exist", data["message"])
+
+        # 2. COD payment method rejected
+        res = self.client.get(reverse("api_apply_coupon") + "?code=DIWALI26&subtotal=90.00&payment_method=cod")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertFalse(data["valid"])
+        self.assertIn("online payments", data["message"])
+
+        # 3. Create DIWALI26 coupon (10% off)
+        coupon = Coupon.objects.create(
+            code="DIWALI26",
+            discount_type="percentage",
+            discount_value=Decimal("10.00"),
+            min_order_amount=Decimal("50.00"),
+            is_active=True,
+        )
+
+        # 4. Valid coupon with single product checkout
+        res = self.client.get(
+            reverse("api_apply_coupon")
+            + f"?code=DIWALI26&subtotal=90.00&payment_method=online&product_id={self.product.id}&quantity=1"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["discount_amount"], 9.0)
+        self.assertIn("Coupon 'DIWALI26' applied! Saved ₹9.00", data["message"])
+
+        # 5. Remove coupon API
+        res_rm = self.client.get(reverse("api_remove_coupon"))
+        self.assertEqual(res_rm.status_code, 200)
+        self.assertTrue(res_rm.json()["valid"])
+
+    def test_checkout_and_cart_templates_discount_summary_elements(self):
+        """Verify checkout and cart templates have elements for original total, discount breakdown, and discounted total."""
+        res_chk = self.client.get(reverse("checkout", kwargs={"product_id": self.product.id}))
+        self.assertEqual(res_chk.status_code, 200)
+        self.assertContains(res_chk, 'id="chkOriginalTotalRow"')
+        self.assertContains(res_chk, 'id="chkDiscountRow"')
+        self.assertContains(res_chk, 'id="chkTotalLabel"')
+        self.assertContains(res_chk, 'id="chkCouponInput"')
+        self.assertContains(res_chk, 'id="chkApplyCouponBtn"')
+
+        # Cart template (populate cart in session first so items are shown)
+        session = self.client.session
+        session["cart"] = {str(self.product.id): 1}
+        session.save()
+        res_cart = self.client.get(reverse("cart"))
+        self.assertEqual(res_cart.status_code, 200)
+        self.assertContains(res_cart, 'id="cartOriginalTotalRow"')
+        self.assertContains(res_cart, 'id="cartDiscountRow"')
+        self.assertContains(res_cart, 'id="cartTotalLabel"')
+        self.assertContains(res_cart, 'id="cartCouponInput"')
+        self.assertContains(res_cart, 'id="cartApplyCouponBtn"')
+
+
 
 
 

@@ -422,7 +422,7 @@ class ProductForm(forms.ModelForm):
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
             "volume": forms.TextInput(attrs={"class": "form-control"}),
             "image": forms.TextInput(attrs={"class": "form-control", "id": "id_image_path", "placeholder": "main/images/cola.png"}),
-            "available_pincodes": forms.TextInput(attrs={"class": "form-control", "id": "id_available_pincodes", "placeholder": "e.g. 625018, 625001 (leave empty for all PIN codes)"}),
+            "available_pincodes": forms.Textarea(attrs={"class": "form-control", "id": "id_available_pincodes", "rows": 3, "placeholder": "e.g. 625018, 625001 (leave empty for all PIN codes, or enter 200+ PINs)"}),
             "available": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 

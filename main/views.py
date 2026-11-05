@@ -2483,19 +2483,25 @@ def admin_delete_coupon(request, coupon_id):
 def api_apply_coupon(request):
     pm = (request.GET.get("payment_method") or request.POST.get("payment_method") or "online").strip().lower()
     if pm == "cod":
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({"valid": False, "message": "Coupon codes are valid exclusively for online payments."})
 
     code = (request.GET.get("code") or request.POST.get("code") or "").strip().upper()
     if not code:
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({"valid": False, "message": "Please enter a coupon code."})
     coupon = Coupon.objects.filter(code__iexact=code).first()
     if not coupon:
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({"valid": False, "message": f"Coupon '{code}' does not exist."})
     if not coupon.is_active:
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({"valid": False, "message": f"Coupon '{code}' is currently inactive."})
     if coupon.is_expired:
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({"valid": False, "message": f"Coupon '{code}' has expired on {coupon.expire_date}."})
     if coupon.is_usage_limit_reached:
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({"valid": False, "message": f"Coupon '{code}' usage limit has been reached."})
 
     subtotal_str = request.GET.get("subtotal") or request.POST.get("subtotal")
@@ -2504,17 +2510,42 @@ def api_apply_coupon(request):
     except Exception:
         subtotal = Decimal("0.00")
 
-    if subtotal <= 0:
+    product_id = request.GET.get("product_id") or request.POST.get("product_id")
+    quantity_str = request.GET.get("quantity") or request.POST.get("quantity") or "1"
+    order_items_data = None
+    if product_id:
+        from .models import Product
+        single_prod = Product.objects.filter(pk=product_id).first()
+        if single_prod:
+            try:
+                qty = max(1, int(quantity_str))
+            except ValueError:
+                qty = 1
+            if subtotal <= 0:
+                subtotal = Decimal(str(single_prod.price)) * qty
+            order_items_data = [{"product": single_prod, "quantity": qty}]
+    else:
         items = _cart_items(request)
-        subtotal = sum(Decimal(str(it["product"].price)) * it["quantity"] for it in items)
+        if subtotal <= 0:
+            subtotal = sum(Decimal(str(it["product"].price)) * it["quantity"] for it in items)
+        if items:
+            order_items_data = [{"product": it["product"], "quantity": it["quantity"]} for it in items]
 
     if subtotal < coupon.min_order_amount:
+        request.session.pop("applied_coupon_code", None)
         return JsonResponse({
             "valid": False,
             "message": f"Coupon '{code}' requires a minimum order of ₹{coupon.min_order_amount:0.2f} (Current: ₹{subtotal:0.2f}).",
         })
 
-    discount = coupon.calculate_discount(subtotal)
+    discount = coupon.calculate_discount(subtotal, order_items_data=order_items_data)
+    if discount <= Decimal("0.00"):
+        request.session.pop("applied_coupon_code", None)
+        return JsonResponse({
+            "valid": False,
+            "message": f"Coupon '{code}' is not applicable to the products in your order.",
+        })
+
     request.session["applied_coupon_code"] = coupon.code
     return JsonResponse({
         "valid": True,
@@ -2528,6 +2559,6 @@ def api_apply_coupon(request):
 
 def api_remove_coupon(request):
     request.session.pop("applied_coupon_code", None)
-    return JsonResponse({"valid": True, "message": "Coupon removed."})
+    return JsonResponse({"valid": True, "message": "Coupon removed successfully."})
 
 

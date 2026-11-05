@@ -39,6 +39,19 @@
       font-size: 0.75rem;
       font-weight: 700;
     }
+    .pin-count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: rgba(90, 163, 255, 0.12);
+      border: 1px solid rgba(90, 163, 255, 0.3);
+      color: #5aa3ff;
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+    }
     .btn-action-blue {
       background: rgba(90, 163, 255, 0.15);
       border: 1px solid rgba(90, 163, 255, 0.35);
@@ -226,11 +239,22 @@
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   {% with pins=product.get_available_pincodes_list %}
                     {% if pins %}
-                      {% for pin in pins %}
-                        <span class="pin-pill">{{ pin }}</span>
-                      {% endfor %}
+                      <span class="pin-count-badge" title="{{ pins|length }} delivery PIN codes assigned">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        {{ pins|length }} PIN{% if pins|length != 1 %}s{% endif %}
+                      </span>
+                      <button type="button" class="btn-action-blue" onclick="openProductPincodesModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.available_pincodes|escapejs }}')" title="View and edit delivery PIN codes">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        View PINs
+                      </button>
                     {% else %}
-                      <span class="pin-all-badge">
+                      <span class="pin-all-badge" title="Deliverable to any Indian postal PIN code">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <circle cx="12" cy="12" r="10"></circle>
                           <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -238,11 +262,15 @@
                         </svg>
                         All PINs (Nationwide)
                       </span>
+                      <button type="button" class="btn-action-blue" onclick="openProductPincodesModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.available_pincodes|escapejs }}')" title="Restrict delivery to specific PIN codes">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit PINs
+                      </button>
                     {% endif %}
                   {% endwith %}
-                  <button type="button" class="btn-action-blue" onclick="openProductPincodesModal('{{ product.id }}', '{{ product.name|escapejs }}', '{{ product.available_pincodes|escapejs }}')">
-                    Edit PINs
-                  </button>
                 </div>
               </td>
               <td>
@@ -468,29 +496,95 @@
     </div>
   </div>
 
-  <!-- Modal: Quick Edit Product PIN Codes -->
+  <!-- Modal: View & Edit Product PIN Codes -->
   <div class="admin-modal-overlay" id="productPincodesModal" onclick="if(event.target===this) closeProductPincodesModal();">
-    <div class="admin-modal-dialog" style="width: min(100%, 500px);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
-          Serviceable PIN Codes: <span id="modalProductName" style="color: #5aa3ff;"></span>
-        </h3>
-        <button type="button" onclick="closeProductPincodesModal()" style="background: none; border: none; color: #9aa2a9; cursor: pointer; font-size: 1.2rem;">✕</button>
+    <div class="admin-modal-dialog" style="width: min(100%, 640px);">
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--admin-line); padding-bottom: 12px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin: 0;">
+              Delivery PIN Codes
+            </h3>
+            <span id="modalProductNameBadge" style="font-size: 0.8rem; padding: 2px 8px; border-radius: 6px; background: rgba(90, 163, 255, 0.15); color: #5aa3ff; font-weight: 700;"></span>
+          </div>
+          <p style="margin: 4px 0 0; font-size: 0.78rem; color: var(--admin-text-muted);">
+            View all serviceable delivery postal codes or add/edit them below.
+          </p>
+        </div>
+        <button type="button" onclick="closeProductPincodesModal()" style="background: none; border: none; color: #9aa2a9; cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 4px;" title="Close">✕</button>
       </div>
 
+      <!-- 1. VIEW PINS SECTION (Shows every PIN pill with search & count) -->
+      <div style="margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.04em;">
+              Serviceable PIN Codes
+            </span>
+            <span id="modalPinsCountBadge" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(90, 163, 255, 0.15); color: #5aa3ff; font-weight: 700;">
+              0 PINs
+            </span>
+          </div>
+          <!-- Quick search filter -->
+          <div style="position: relative; width: 170px;">
+            <input 
+              type="text" 
+              id="modalPinsSearchInput" 
+              placeholder="Search PINs..." 
+              oninput="filterModalPinsList()" 
+              style="width: 100%; font-size: 0.76rem; padding: 4px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--admin-line); color: #fff; box-sizing: border-box;"
+            >
+          </div>
+        </div>
+
+        <!-- Scrollable Grid Showing Every Single PIN -->
+        <div id="modalPinsListWrap" style="max-height: 170px; overflow-y: auto; padding: 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--admin-line); display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;">
+          <!-- Dynamically populated PIN pills -->
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 6px;">
+          <div style="font-size: 0.72rem; color: var(--admin-text-muted);">
+            Click <span style="color: #ff7676; font-weight: 700;">×</span> on any PIN pill above to remove it immediately.
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn-mini" onclick="copyAllModalPins()" style="font-size: 0.72rem; padding: 3px 8px;">Copy All</button>
+            <button type="button" class="btn-mini" onclick="clearAllModalPins()" style="font-size: 0.72rem; padding: 3px 8px; color: #ff7676;">Allow Nationwide (Clear All)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. EDIT PINS SECTION (Add / Edit / Paste 200+ PINs) -->
       <form method="post" id="editProductPincodesForm" action="">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-        <div class="form-group" style="margin-bottom: 20px;">
-          <label class="form-label" for="modalAvailablePincodes">Available PIN Codes</label>
-          <input type="text" name="available_pincodes" id="modalAvailablePincodes" class="form-control" placeholder="e.g. 625018, 625001">
-          <span class="form-help" style="font-size: 0.78rem; color: #9aa2a9;">Enter comma-separated 6-digit PIN codes. Leave completely empty to allow delivery to all PIN codes.</span>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <label class="form-label" for="modalAvailablePincodes" style="margin: 0; font-size: 0.78rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.04em;">
+              Edit PIN Codes (Text / Paste 200+ PINs)
+            </label>
+            <button type="button" class="btn-mini" onclick="sortAndDedupeModalPins()" style="font-size: 0.72rem; padding: 2px 7px;">
+              Sort & Clean Duplicates
+            </button>
+          </div>
+          <textarea 
+            name="available_pincodes" 
+            id="modalAvailablePincodes" 
+            rows="4" 
+            class="form-control" 
+            style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.84rem; line-height: 1.5; resize: vertical; width: 100%; box-sizing: border-box;"
+            placeholder="e.g. 625001, 625002, 625003... (supports 200+ PIN codes separated by commas, spaces, or lines)"
+            oninput="syncModalPinsFromTextarea()"
+          ></textarea>
+          <span class="form-help" style="font-size: 0.75rem; color: var(--admin-text-muted); margin-top: 4px; display: block;">
+            Enter comma-separated 6-digit PIN codes. Leave completely empty to allow delivery nationwide to all PIN codes.
+          </span>
         </div>
 
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button type="button" onclick="closeProductPincodesModal()" class="btn-mini" style="padding: 10px 16px;">Cancel</button>
-          <button type="submit" class="btn-primary" style="padding: 10px 20px;">Save PIN Codes</button>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--admin-line); padding-top: 14px;">
+          <button type="button" onclick="closeProductPincodesModal()" class="btn-mini" style="padding: 9px 18px;">Cancel</button>
+          <button type="submit" class="btn-primary" style="padding: 9px 22px;">Save PIN Codes</button>
         </div>
       </form>
     </div>
@@ -507,14 +601,118 @@
       {% endif %}
     }
 
+    var currentModalPins = [];
+
     function openProductPincodesModal(id, name, pincodes) {
-      document.getElementById('modalProductName').textContent = name;
+      document.getElementById('modalProductNameBadge').textContent = name;
       document.getElementById('editProductPincodesForm').action = '/admin-profile/products/' + id + '/update-pincodes/';
       document.getElementById('modalAvailablePincodes').value = pincodes || '';
+      document.getElementById('modalPinsSearchInput').value = '';
+      parseAndRenderModalPins(pincodes || '');
       document.getElementById('productPincodesModal').classList.add('active');
     }
+
     function closeProductPincodesModal() {
       document.getElementById('productPincodesModal').classList.remove('active');
+    }
+
+    function parsePins(str) {
+      if (!str) return [];
+      var matches = str.match(/\b\d{6}\b/g);
+      if (!matches) {
+        matches = str.split(/[,;\s]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+      }
+      var unique = [];
+      matches.forEach(function(item) {
+        if (item && unique.indexOf(item) === -1) {
+          unique.push(item);
+        }
+      });
+      return unique.sort();
+    }
+
+    function renderPinsList(pinsToRender, filterText) {
+      var wrap = document.getElementById('modalPinsListWrap');
+      var countBadge = document.getElementById('modalPinsCountBadge');
+      wrap.innerHTML = '';
+
+      var totalPinsCount = currentModalPins.length;
+      countBadge.textContent = totalPinsCount + (totalPinsCount === 1 ? ' PIN' : ' PINs');
+
+      if (totalPinsCount === 0) {
+        wrap.innerHTML = '<div style="color: #2fcf7a; font-weight: 600; font-size: 0.84rem; padding: 8px 4px; display: inline-flex; align-items: center; gap: 6px;">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>' +
+          'Nationwide Delivery: Available to all PIN codes across India (Unrestricted).' +
+          '</div>';
+        return;
+      }
+
+      var filtered = pinsToRender;
+      if (filterText) {
+        var q = filterText.toLowerCase().trim();
+        filtered = pinsToRender.filter(function(p) {
+          return p.toLowerCase().indexOf(q) !== -1;
+        });
+      }
+
+      if (filtered.length === 0) {
+        wrap.innerHTML = '<div style="color: var(--admin-text-muted); font-size: 0.8rem; padding: 8px;">No PIN codes match "' + filterText + '".</div>';
+        return;
+      }
+
+      filtered.forEach(function(pin) {
+        var pill = document.createElement('span');
+        pill.className = 'pin-pill';
+        pill.style.cssText = 'display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; padding: 2px 7px;';
+        pill.innerHTML = '<span>' + pin + '</span>' +
+          '<button type="button" onclick="removeSinglePin(\'' + pin + '\')" title="Remove ' + pin + '" style="background: none; border: none; color: #ff7676; cursor: pointer; padding: 0 2px; line-height: 1; font-size: 0.85rem; font-weight: 700;">×</button>';
+        wrap.appendChild(pill);
+      });
+    }
+
+    function parseAndRenderModalPins(rawText) {
+      currentModalPins = parsePins(rawText);
+      renderPinsList(currentModalPins, document.getElementById('modalPinsSearchInput').value);
+    }
+
+    function syncModalPinsFromTextarea() {
+      var text = document.getElementById('modalAvailablePincodes').value;
+      parseAndRenderModalPins(text);
+    }
+
+    function filterModalPinsList() {
+      var q = document.getElementById('modalPinsSearchInput').value;
+      renderPinsList(currentModalPins, q);
+    }
+
+    function removeSinglePin(pinToRemove) {
+      currentModalPins = currentModalPins.filter(function(p) { return p !== pinToRemove; });
+      document.getElementById('modalAvailablePincodes').value = currentModalPins.join(', ');
+      renderPinsList(currentModalPins, document.getElementById('modalPinsSearchInput').value);
+    }
+
+    function clearAllModalPins() {
+      if (confirm('Clear all PIN codes to allow nationwide delivery to all PINs?')) {
+        currentModalPins = [];
+        document.getElementById('modalAvailablePincodes').value = '';
+        renderPinsList(currentModalPins, '');
+      }
+    }
+
+    function sortAndDedupeModalPins() {
+      currentModalPins = parsePins(document.getElementById('modalAvailablePincodes').value);
+      document.getElementById('modalAvailablePincodes').value = currentModalPins.join(', ');
+      renderPinsList(currentModalPins, document.getElementById('modalPinsSearchInput').value);
+    }
+
+    function copyAllModalPins() {
+      if (!currentModalPins.length) {
+        alert('No PIN codes to copy (Nationwide product).');
+        return;
+      }
+      navigator.clipboard.writeText(currentModalPins.join(', ')).then(function() {
+        alert('Copied ' + currentModalPins.length + ' PIN codes to clipboard!');
+      });
     }
 
     document.addEventListener('DOMContentLoaded', function() {

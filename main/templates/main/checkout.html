@@ -508,12 +508,16 @@
                                     <span>Shipping fee<span id="shippingStateNotice">{% if customer_address_form.state %} ({{ customer_address_form.state }}){% endif %}</span></span>
                                     <strong id="shippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
                                 </div>
+                                <div class="summary-row" id="chkOriginalTotalRow" style="display: none; color: rgba(255,255,255,0.65);">
+                                    <span>Original Total</span>
+                                    <span id="chkOriginalTotalDisplay" style="text-decoration: line-through; font-weight: 600;">₹{{ total_with_shipping|floatformat:2 }}</span>
+                                </div>
                                 <div class="summary-row" id="chkDiscountRow" style="display: none; color: #4ade80;">
-                                    <span>Coupon discount (<span id="chkCouponBadge"></span>)</span>
-                                    <strong id="chkDiscountDisplay">-₹0.00</strong>
+                                    <span>Offer Discount (<span id="chkCouponBadge" style="font-family: monospace; letter-spacing: 0.04em;"></span>)</span>
+                                    <strong id="chkDiscountDisplay" style="color: #4ade80;">-₹0.00</strong>
                                 </div>
                                 <div class="summary-row total-row">
-                                    <span>Total</span>
+                                    <span id="chkTotalLabel">Total</span>
                                     <strong id="grandTotalDisplay">₹{{ total_with_shipping|floatformat:2 }}</strong>
                                 </div>
                             </div>
@@ -550,6 +554,28 @@
             const grandTotalDisplay = document.getElementById('grandTotalDisplay');
             const shippingNotice = document.getElementById('shippingStateNotice');
             const phoneInput = document.getElementById('phone');
+            const continueBtn = document.getElementById('continuePaymentBtn');
+            const zipInput = document.getElementById('zip');
+            const zipFeedback = document.getElementById('zipAvailabilityFeedback');
+            const noticeBox = document.getElementById('pincodeDeliveryNotice');
+            const checkoutForm = continueBtn ? continueBtn.closest('form') : null;
+
+            const chkOriginalTotalRow = document.getElementById('chkOriginalTotalRow');
+            const chkOriginalTotalDisplay = document.getElementById('chkOriginalTotalDisplay');
+            const chkTotalLabel = document.getElementById('chkTotalLabel');
+            const discountRow = document.getElementById('chkDiscountRow');
+            const discountDisplay = document.getElementById('chkDiscountDisplay');
+            const couponBadge = document.getElementById('chkCouponBadge');
+            const pmOnlineRadio = document.getElementById('chkPmOnline');
+            const pmCodRadio = document.getElementById('chkPmCod');
+            const pmOnlineLabel = document.getElementById('chkPmOnlineLabel');
+            const pmCodLabel = document.getElementById('chkPmCodLabel');
+            const couponBox = document.getElementById('chkCouponBox');
+            const couponInput = document.getElementById('chkCouponInput');
+            const couponBtn = document.getElementById('chkApplyCouponBtn');
+            const couponFeedback = document.getElementById('chkCouponFeedback');
+
+            let currentDiscount = 0.0;
 
             const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";
             const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;
@@ -579,8 +605,8 @@
                 .filter(function (s) { return s.length > 0; });
 
             function updateShippingFee() {
-                if (!stateSelect || !shippingFeeDisplay || !grandTotalDisplay) return;
-                const selectedState = (stateSelect.value || '').trim();
+                if (!shippingFeeDisplay || !grandTotalDisplay) return;
+                const selectedState = stateSelect ? (stateSelect.value || '').trim() : '';
                 let fee = otherFee;
                 if (selectedState) {
                     const isLocal = localStateList.indexOf(selectedState.toLowerCase()) !== -1;
@@ -598,32 +624,44 @@
                 if (gstFeeDisplay) {
                     gstFeeDisplay.textContent = '₹' + gstAmount.toFixed(2);
                 }
+
+                const rawGrandTotal = subtotal + gstAmount + packingFee + fee;
                 const isOnline = pmOnlineRadio ? pmOnlineRadio.checked : true;
-                const activeDiscount = isOnline ? currentDiscount : 0.0;
-                const grandTotal = Math.max(0, subtotal - activeDiscount) + gstAmount + packingFee + fee;
-                grandTotalDisplay.textContent = '₹' + grandTotal.toFixed(2);
+                const activeDiscount = (isOnline && currentDiscount > 0) ? currentDiscount : 0.0;
+                const finalGrandTotal = Math.max(0, rawGrandTotal - activeDiscount);
+
+                if (activeDiscount > 0) {
+                    if (chkOriginalTotalRow) {
+                        chkOriginalTotalRow.style.display = 'flex';
+                        if (chkOriginalTotalDisplay) chkOriginalTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);
+                    }
+                    if (discountRow) {
+                        discountRow.style.display = 'flex';
+                        if (discountDisplay) discountDisplay.textContent = '-₹' + activeDiscount.toFixed(2);
+                    }
+                    if (chkTotalLabel) chkTotalLabel.textContent = 'Discounted Total';
+                    if (grandTotalDisplay) {
+                        grandTotalDisplay.textContent = '₹' + finalGrandTotal.toFixed(2);
+                        grandTotalDisplay.style.color = '#4ade80';
+                    }
+                } else {
+                    if (chkOriginalTotalRow) chkOriginalTotalRow.style.display = 'none';
+                    if (discountRow) discountRow.style.display = 'none';
+                    if (chkTotalLabel) chkTotalLabel.textContent = 'Total';
+                    if (grandTotalDisplay) {
+                        grandTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);
+                        grandTotalDisplay.style.color = '#fff';
+                    }
+                }
+
                 if (continueBtn) {
                     if (isOnline) {
-                        continueBtn.textContent = 'Continue to payment';
+                        continueBtn.textContent = 'Continue to payment · ₹' + finalGrandTotal.toFixed(2);
                     } else {
-                        continueBtn.textContent = 'Place order (Cash on Delivery)';
+                        continueBtn.textContent = 'Place order (Cash on Delivery) · ₹' + rawGrandTotal.toFixed(2);
                     }
                 }
             }
-
-            // Coupon & Payment Method Logic
-            let currentDiscount = 0.0;
-            const pmOnlineRadio = document.getElementById('chkPmOnline');
-            const pmCodRadio = document.getElementById('chkPmCod');
-            const pmOnlineLabel = document.getElementById('chkPmOnlineLabel');
-            const pmCodLabel = document.getElementById('chkPmCodLabel');
-            const couponBox = document.getElementById('chkCouponBox');
-            const couponInput = document.getElementById('chkCouponInput');
-            const couponBtn = document.getElementById('chkApplyCouponBtn');
-            const couponFeedback = document.getElementById('chkCouponFeedback');
-            const discountRow = document.getElementById('chkDiscountRow');
-            const discountDisplay = document.getElementById('chkDiscountDisplay');
-            const couponBadge = document.getElementById('chkCouponBadge');
 
             function handlePaymentMethodToggle() {
                 const isOnline = pmOnlineRadio && pmOnlineRadio.checked;
@@ -651,57 +689,90 @@
                     // Hide coupon code for COD
                     if (couponBox) couponBox.style.display = 'none';
                     if (discountRow) discountRow.style.display = 'none';
+                    if (chkOriginalTotalRow) chkOriginalTotalRow.style.display = 'none';
                     if (couponFeedback) couponFeedback.style.display = 'none';
                 }
                 updateShippingFee();
             }
 
-            if (pmOnlineRadio && pmCodRadio) {
-                pmOnlineRadio.addEventListener('change', handlePaymentMethodToggle);
-                pmCodRadio.addEventListener('change', handlePaymentMethodToggle);
-                handlePaymentMethodToggle();
+            function showCouponSuccess(msg) {
+                if (!couponFeedback) return;
+                couponFeedback.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(47, 207, 122, 0.4); background: rgba(47, 207, 122, 0.12); color: #4ade80; font-weight: 600;';
+                couponFeedback.innerHTML = '<div style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><span>' + msg + '</span></div><button type="button" id="chkRemoveCouponBtn" style="background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 0.75rem; text-decoration: underline; padding: 0;">Remove</button>';
+                const removeBtn = document.getElementById('chkRemoveCouponBtn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', removeCheckoutCoupon);
+                }
+            }
+
+            function showCouponError(msg) {
+                if (!couponFeedback) return;
+                couponFeedback.style.cssText = 'display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.12); color: #fca5a5; font-weight: 600;';
+                couponFeedback.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg><span>' + msg + '</span>';
+            }
+
+            function removeCheckoutCoupon() {
+                fetch('/api/remove-coupon/')
+                    .then(res => res.json())
+                    .finally(() => {
+                        currentDiscount = 0.0;
+                        if (couponInput) couponInput.value = '';
+                        couponFeedback.style.cssText = 'display: block; margin-top: 8px; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.04); color: rgba(255, 255, 255, 0.7);';
+                        couponFeedback.textContent = 'Coupon removed.';
+                        updateShippingFee();
+                    });
+            }
+
+            if (couponInput && couponBtn) {
+                couponInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        couponBtn.click();
+                    }
+                });
             }
 
             if (couponBtn && couponInput) {
                 couponBtn.addEventListener('click', function () {
                     const code = couponInput.value.trim().toUpperCase();
                     if (!code) {
-                        couponFeedback.className = 'small mt-1 text-warning';
-                        couponFeedback.textContent = 'Please enter a coupon code.';
-                        couponFeedback.style.display = 'block';
+                        showCouponError('Please enter a coupon code.');
                         return;
                     }
                     couponBtn.disabled = true;
                     couponBtn.textContent = '...';
-                    fetch('/api/apply-coupon/?code=' + encodeURIComponent(code) + '&subtotal=' + subtotal + '&payment_method=online')
+                    const url = '/api/apply-coupon/?code=' + encodeURIComponent(code) +
+                                '&subtotal=' + subtotal +
+                                '&payment_method=online' +
+                                '&product_id={{ product.id }}' +
+                                '&quantity=' + quantity;
+                    fetch(url)
                         .then(res => res.json())
                         .then(data => {
-                            couponFeedback.style.display = 'block';
                             if (data.valid) {
                                 currentDiscount = parseFloat(data.discount_amount) || 0.0;
-                                couponFeedback.className = 'small mt-1 text-success fw-semibold';
-                                couponFeedback.textContent = data.message;
                                 if (couponBadge) couponBadge.textContent = data.code;
-                                if (discountDisplay) discountDisplay.textContent = '-₹' + currentDiscount.toFixed(2);
-                                if (discountRow) discountRow.style.display = 'flex';
+                                showCouponSuccess(data.message);
                             } else {
                                 currentDiscount = 0.0;
-                                couponFeedback.className = 'small mt-1 text-danger fw-semibold';
-                                couponFeedback.textContent = data.message;
-                                if (discountRow) discountRow.style.display = 'none';
+                                showCouponError(data.message);
                             }
                             updateShippingFee();
                         })
                         .catch(() => {
-                            couponFeedback.className = 'small mt-1 text-warning';
-                            couponFeedback.textContent = 'Could not verify coupon right now.';
-                            couponFeedback.style.display = 'block';
+                            showCouponError('Could not verify coupon right now. Please try again.');
                         })
                         .finally(() => {
                             couponBtn.disabled = false;
                             couponBtn.textContent = 'Apply';
                         });
                 });
+            }
+
+            if (pmOnlineRadio && pmCodRadio) {
+                pmOnlineRadio.addEventListener('change', handlePaymentMethodToggle);
+                pmCodRadio.addEventListener('change', handlePaymentMethodToggle);
+                handlePaymentMethodToggle();
             }
 
             if (stateSelect) {
@@ -731,7 +802,6 @@
             }
             const productName = "{{ product.name|escapejs }}";
             const zipInput = document.getElementById('zip');
-            const continueBtn = document.getElementById('continuePaymentBtn');
             const zipFeedback = document.getElementById('zipAvailabilityFeedback');
             const noticeBox = document.getElementById('pincodeDeliveryNotice');
             const checkoutForm = continueBtn ? continueBtn.closest('form') : null;

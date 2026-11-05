@@ -426,12 +426,17 @@
 
               <!-- Serviceable PIN Codes -->
               <td>
-                <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 240px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 240px; align-items: center;">
                   {% with pins=profile.get_serviceable_pincodes_list %}
                     {% if pins %}
-                      {% for pin in pins %}
+                      {% for pin in pins|slice:":4" %}
                         <span class="pin-pill">{{ pin }}</span>
                       {% endfor %}
+                      {% if pins|length > 4 %}
+                        <span class="pin-pill" style="background: rgba(255, 255, 255, 0.08); color: var(--admin-text-muted);" title="{{ profile.assigned_delivery_pincodes }}">
+                          +{{ pins|length|add:"-4" }} more
+                        </span>
+                      {% endif %}
                     {% else %}
                       <span style="font-size: 0.78rem; color: var(--admin-text-dimmed); font-style: italic;">
                         All PINs (Unrestricted)
