@@ -19,6 +19,15 @@ from django.core.management.utils import get_random_secret_key
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+_env_file = BASE_DIR / ".env"
+if _env_file.exists():
+    with open(_env_file, encoding="utf-8") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -59,6 +68,13 @@ GOOGLE_ADMIN_EMAIL = os.environ.get("GOOGLE_ADMIN_EMAIL", "").strip().lower()
 GOOGLE_SIGN_IN_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOGLE_ADMIN_EMAIL)
 PAYMENT_WEBHOOK_SECRET = os.environ.get("PAYMENT_WEBHOOK_SECRET", "")
 PAYMENT_SIMULATION_ENABLED = os.environ.get("PAYMENT_SIMULATION_ENABLED", "1").lower() in {"1", "true", "yes"}
+
+# Cashfree Payment Gateway Settings
+CASHFREE_APP_ID = os.environ.get("CASHFREE_APP_ID", "")
+CASHFREE_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "")
+CASHFREE_ENV = os.environ.get("CASHFREE_ENV", "TEST").upper()
+CASHFREE_API_VERSION = os.environ.get("CASHFREE_API_VERSION", "2023-08-01")
+CASHFREE_ENABLED = bool(CASHFREE_APP_ID and CASHFREE_SECRET_KEY)
 
 SOCIALACCOUNT_ADAPTER = "main.adapters.AdminGoogleAccountAdapter"
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True

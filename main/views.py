@@ -1,7 +1,10 @@
 from decimal import Decimal
 import json
+import logging
 import re
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from django.contrib.auth import get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.forms import SetPasswordForm as DjangoSetPasswordForm
@@ -55,6 +58,11 @@ from .models import (
     SiteDetails,
 )
 from .payments import process_payment_webhook, sign_webhook_payload
+from .cashfree_client import (
+    create_cashfree_order,
+    get_cashfree_order,
+    verify_cashfree_webhook,
+)
 from .captcha import generate_captcha_image, generate_captcha_text
 
 MAX_CART_QUANTITY = 1_000_000
@@ -1421,6 +1429,15 @@ def payment_page(request, payment_reference):
             )
         if order.customer_id != request.user.pk:
             raise Http404
+
+    # Check and sync status with Cashfree if order is pending and has a cashfree_order_id
+    if order.payment_status == "pending" and order.cashfree_order_id:
+        ok, cf_info = get_cashfree_order(order.cashfree_order_id)
+        if ok and cf_info.get("order_status") == "PAID":
+            order.payment_status = "paid"
+            order.payment_event_id = f"cf_{cf_info.get('cf_order_id') or order.cashfree_order_id}"
+            order.save(update_fields=["payment_status", "payment_event_id"])
+
     order_items = list(order.items.all())
     if not order_items and order.product_id:
         order_items = [
@@ -1432,6 +1449,25 @@ def payment_page(request, payment_reference):
             }
         ]
     error = None
+
+    cashfree_session_id = order.cashfree_payment_session_id
+    cashfree_error = None
+    cashfree_enabled = getattr(settings, "CASHFREE_ENABLED", False)
+
+    cashfree_return_url = request.build_absolute_uri(
+        reverse("cashfree_payment_return")
+    ) + f"?order_id={{order_id}}&payment_ref={order.payment_reference}"
+    cashfree_notify_url = request.build_absolute_uri(reverse("cashfree_webhook"))
+
+    if cashfree_enabled and order.payment_method == "online" and order.payment_status == "pending":
+        if not cashfree_session_id:
+            success, cf_data = create_cashfree_order(
+                order, return_url=cashfree_return_url, notify_url=cashfree_notify_url
+            )
+            if success:
+                cashfree_session_id = order.cashfree_payment_session_id
+            else:
+                cashfree_error = cf_data.get("error", "Could not initiate Cashfree session.")
 
     if request.method == "POST":
         if not settings.PAYMENT_SIMULATION_ENABLED:
@@ -1466,6 +1502,8 @@ def payment_page(request, payment_reference):
                 "payment_page", payment_reference=order.payment_reference
             )
 
+    cashfree_mode = "sandbox" if getattr(settings, "CASHFREE_ENV", "TEST").upper() in ("TEST", "SANDBOX") else "production"
+
     return render(
         request,
         "main/payment.html",
@@ -1473,12 +1511,90 @@ def payment_page(request, payment_reference):
             "order": order,
             "order_items": order_items,
             "simulation_enabled": settings.PAYMENT_SIMULATION_ENABLED,
+            "cashfree_enabled": cashfree_enabled,
+            "cashfree_session_id": cashfree_session_id,
+            "cashfree_error": cashfree_error,
+            "cashfree_mode": cashfree_mode,
+            "cashfree_return_url": request.build_absolute_uri(
+                reverse("cashfree_payment_return")
+            ) + f"?order_id={order.cashfree_order_id}&payment_ref={order.payment_reference}",
             "password_setup_required": request.session.get(
                 GUEST_PASSWORD_SETUP_SESSION_KEY, False
             ),
             "error": error,
         },
     )
+
+
+def cashfree_payment_return(request):
+    cf_order_id = (request.GET.get("order_id") or "").strip()
+    payment_ref = (request.GET.get("payment_ref") or "").strip()
+
+    order = None
+    if payment_ref:
+        try:
+            order = Order.objects.filter(payment_reference=payment_ref).first()
+        except Exception:
+            order = None
+    if not order and cf_order_id:
+        order = Order.objects.filter(cashfree_order_id=cf_order_id).first()
+
+    if not order:
+        raise Http404("Order not found.")
+
+    if cf_order_id:
+        ok, cf_info = get_cashfree_order(cf_order_id)
+        if ok:
+            status = cf_info.get("order_status")
+            if status == "PAID":
+                order.payment_status = "paid"
+                order.payment_event_id = f"cf_{cf_info.get('cf_order_id') or cf_order_id}"
+                order.save(update_fields=["payment_status", "payment_event_id"])
+                request.session["last_order_reference"] = str(order.payment_reference)
+                return redirect("order_receipt_by_reference", payment_reference=order.payment_reference)
+            elif status in ("FAILED", "USER_DROPPED", "CANCELLED"):
+                order.payment_status = "failed"
+                order.save(update_fields=["payment_status"])
+
+    return redirect("payment_page", payment_reference=order.payment_reference)
+
+
+@csrf_exempt
+@require_POST
+def cashfree_webhook(request):
+    is_valid, msg = verify_cashfree_webhook(request.headers, request.body)
+    if not is_valid:
+        logger.warning("Cashfree webhook signature verification failed: %s", msg)
+        return HttpResponseBadRequest(f"Invalid webhook signature: {msg}")
+
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        return HttpResponseBadRequest("Invalid JSON body")
+
+    event_type = data.get("type", "")
+    event_data = data.get("data", {})
+    order_data = event_data.get("order", {})
+    payment_data = event_data.get("payment", {})
+
+    cf_order_id = order_data.get("order_id") or ""
+    cf_payment_id = payment_data.get("cf_payment_id") or ""
+    payment_status = payment_data.get("payment_status") or ""
+
+    if cf_order_id:
+        order = Order.objects.filter(cashfree_order_id=cf_order_id).first()
+        if order:
+            if event_type == "PAYMENT_SUCCESS_WEBHOOK" or payment_status == "SUCCESS":
+                order.payment_status = "paid"
+                if cf_payment_id:
+                    order.payment_event_id = f"cf_{cf_payment_id}"
+                order.save(update_fields=["payment_status", "payment_event_id"])
+            elif event_type == "PAYMENT_FAILED_WEBHOOK" or payment_status == "FAILED":
+                if order.payment_status != "paid":
+                    order.payment_status = "failed"
+                    order.save(update_fields=["payment_status"])
+
+    return JsonResponse({"status": "OK"})
 
 
 @csrf_exempt

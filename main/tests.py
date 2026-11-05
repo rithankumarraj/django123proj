@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import override_settings
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import json
 from decimal import Decimal
 
@@ -799,7 +799,12 @@ class CheckoutQuantityTests(TestCase):
         self.assertContains(result, "payment-card--failed")
         self.assertContains(result, "payment-status-hero--unpaid")
 
-    @override_settings(PAYMENT_SIMULATION_ENABLED=False)
+    @override_settings(
+        PAYMENT_SIMULATION_ENABLED=False,
+        CASHFREE_ENABLED=False,
+        CASHFREE_APP_ID="",
+        CASHFREE_SECRET_KEY="",
+    )
     def test_payment_page_does_not_claim_payment_when_simulation_disabled(self):
         self.client.force_login(self.customer)
         order = Order.objects.create(
@@ -3819,6 +3824,94 @@ class CouponSystemTests(TestCase):
         self.assertContains(res_cart, 'id="cartTotalLabel"')
         self.assertContains(res_cart, 'id="cartCouponInput"')
         self.assertContains(res_cart, 'id="cartApplyCouponBtn"')
+
+
+class CashfreePaymentGatewayTests(TestCase):
+    def setUp(self):
+        self.category = ProductCategory.objects.create(name="Energy", slug="energy-test")
+        self.product = Product.objects.create(
+            name="Classic Drink",
+            category=self.category,
+            volume="330 ml",
+            price=Decimal("90.00"),
+            available=True,
+        )
+        self.order = Order.objects.create(
+            product=self.product,
+            customer_name="Test Customer",
+            customer_phone="9876543210",
+            quantity=1,
+            total_amount=Decimal("156.20"),
+            payment_method="online",
+            payment_status="pending",
+            cashfree_order_id="ORDER_TEST_123",
+            cashfree_payment_session_id="session_test_mock_123",
+        )
+
+    def test_clean_phone_number(self):
+        from main.cashfree_client import clean_phone_number
+        self.assertEqual(clean_phone_number("+91 9876543210"), "9876543210")
+        self.assertEqual(clean_phone_number("09876543210"), "9876543210")
+        self.assertEqual(clean_phone_number("9876543210"), "9876543210")
+        self.assertEqual(clean_phone_number(""), "9999999999")
+
+    def test_payment_page_renders_cashfree_elements(self):
+        url = reverse("payment_page", kwargs={"payment_reference": self.order.payment_reference})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pay ₹156.20 with Cashfree")
+        self.assertContains(response, "sdk.cashfree.com/js/v3/cashfree.js")
+        self.assertContains(response, "cashfreeModalPayBtn")
+
+    @patch("main.views.get_cashfree_order")
+    def test_cashfree_payment_return_success(self, mock_get_order):
+        mock_get_order.return_value = (True, {"order_status": "PAID", "cf_order_id": "cf_12345"})
+        url = reverse("cashfree_payment_return") + f"?order_id={self.order.cashfree_order_id}&payment_ref={self.order.payment_reference}"
+        response = self.client.get(url)
+        self.assertRedirects(response, reverse("order_receipt_by_reference", kwargs={"payment_reference": self.order.payment_reference}))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.payment_status, "paid")
+        self.assertEqual(self.order.payment_event_id, "cf_cf_12345")
+
+    @patch("main.views.get_cashfree_order")
+    def test_cashfree_payment_return_failed(self, mock_get_order):
+        mock_get_order.return_value = (True, {"order_status": "FAILED"})
+        url = reverse("cashfree_payment_return") + f"?order_id={self.order.cashfree_order_id}&payment_ref={self.order.payment_reference}"
+        response = self.client.get(url)
+        self.assertRedirects(response, reverse("payment_page", kwargs={"payment_reference": self.order.payment_reference}))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.payment_status, "failed")
+
+    @patch("main.views.verify_cashfree_webhook")
+    def test_cashfree_webhook_success(self, mock_verify):
+        mock_verify.return_value = (True, "Valid")
+        payload = {
+            "type": "PAYMENT_SUCCESS_WEBHOOK",
+            "data": {
+                "order": {"order_id": self.order.cashfree_order_id},
+                "payment": {"cf_payment_id": "cf_pay_9999", "payment_status": "SUCCESS"}
+            }
+        }
+        response = self.client.post(
+            reverse("cashfree_webhook"),
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_WEBHOOK_SIGNATURE="mock_sig",
+            HTTP_X_WEBHOOK_TIMESTAMP="1600000000",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.payment_status, "paid")
+        self.assertEqual(self.order.payment_event_id, "cf_cf_pay_9999")
+
+    def test_cashfree_webhook_invalid_signature_rejected(self):
+        response = self.client.post(
+            reverse("cashfree_webhook"),
+            data=json.dumps({"some": "data"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
 
 
 

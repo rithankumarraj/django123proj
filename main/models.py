@@ -434,6 +434,8 @@ class Order(models.Model):
     coupon_code = models.CharField(max_length=50, blank=True, default="")
     payment_reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     payment_event_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    cashfree_order_id = models.CharField(max_length=100, blank=True, default="")
+    cashfree_payment_session_id = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
 
