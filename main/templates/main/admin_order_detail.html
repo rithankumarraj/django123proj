@@ -162,6 +162,25 @@
               <span class="summary-label">Shipping Fee ({% if order.delivery_state %}{{ order.delivery_state }}{% else %}Standard{% endif %})</span>
               <span class="summary-value">{% if order.shipping_fee > 0 %}₹{{ order.shipping_fee|floatformat:2 }}{% else %}FREE{% endif %}</span>
             </div>
+            {% if order.combo_discount > 0 or order.combo_name %}
+            <div class="order-summary-row" style="color: #fbbf24;">
+              <span class="summary-label" style="color: #fbbf24;">
+                Combo Offer ({{ order.combo_name|default:"Cans of Assortment" }})
+              </span>
+              <span class="summary-value" style="color: #fbbf24; font-weight: 700;">-₹{{ order.combo_discount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            {% if order.combo_discount > 0 or order.combo_name %}
+            <div class="modal-info-item">
+              <span class="modal-info-label">Combo Offer</span>
+              <span class="modal-info-val" style="color: #fbbf24; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="padding: 1px 7px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); border: 1px dashed rgba(245, 158, 11, 0.5);">
+                  {{ order.combo_name|default:"Cans of Assortment" }}
+                </span>
+                <span>(-₹{{ order.combo_discount|floatformat:2 }})</span>
+              </span>
+            </div>
+            {% endif %}
             {% if order.discount_amount > 0 or order.coupon_code %}
             <div class="order-summary-row" style="color: #2fcf7a;">
               <span class="summary-label" style="color: #2fcf7a;">
@@ -368,6 +387,17 @@
                 {% endif %}
               </span>
             </div>
+            {% if order.combo_discount > 0 or order.combo_name %}
+            <div class="modal-info-item">
+              <span class="modal-info-label">Combo Offer</span>
+              <span class="modal-info-val" style="color: #fbbf24; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span style="padding: 1px 7px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); border: 1px dashed rgba(245, 158, 11, 0.5);">
+                  {{ order.combo_name|default:"Cans of Assortment" }}
+                </span>
+                <span>(-₹{{ order.combo_discount|floatformat:2 }})</span>
+              </span>
+            </div>
+            {% endif %}
             {% if order.discount_amount > 0 or order.coupon_code %}
             <div class="modal-info-item">
               <span class="modal-info-label">Coupon Applied</span>

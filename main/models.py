@@ -369,6 +369,216 @@ class Coupon(models.Model):
         return max(Decimal("0.00"), discount)
 
 
+class ComboOffer(models.Model):
+    OFFER_TYPE_CHOICES = [
+        ("multiple_products", "Multiple Products Combo"),
+        ("single_quantity", "Single Quantity Offer"),
+        ("price_based", "Price Based Offer"),
+    ]
+    DISCOUNT_TYPE_CHOICES = [
+        ("percentage", "Percentage (%)"),
+        ("fixed", "Fixed Price (₹)"),
+    ]
+
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140, blank=True)
+    offer_type = models.CharField(
+        max_length=30,
+        choices=OFFER_TYPE_CHOICES,
+        default="multiple_products",
+    )
+    applicable_categories = models.ManyToManyField(
+        ProductCategory,
+        blank=True,
+        related_name="combo_offers",
+        help_text="Selective categories this combo applies to. Leave empty for all categories.",
+    )
+    usage_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum total uses across all orders. Leave blank for unlimited.",
+    )
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPE_CHOICES,
+        default="percentage",
+    )
+    discount_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("15.00"),
+    )
+    max_discount_cap = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Maximum discount amount in ₹ (applies to percentage discounts).",
+    )
+    min_order_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("6.00"),
+        help_text="Minimum order amount (default 6).",
+    )
+    min_quantity = models.PositiveIntegerField(
+        default=6,
+        help_text="Minimum items quantity required (default 6).",
+    )
+    min_distinct_products = models.PositiveIntegerField(
+        default=6,
+        help_text="Minimum distinct products required for assortment (default 6).",
+    )
+    expire_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Expiry Date for combo offer.",
+    )
+    times_used = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(
+        blank=True,
+        default="Mix and match any 6 different cans to unlock the Cans of Assortment combo offer!",
+    )
+    badge_text = models.CharField(
+        max_length=100,
+        default="Cans of Assortment",
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_offer_type_display()} - {self.discount_display})"
+
+    def clean(self):
+        if self.name:
+            self.name = self.name.strip()
+        if self.discount_type == "percentage" and self.discount_value is not None:
+            if self.discount_value > 100 or self.discount_value <= 0:
+                raise ValidationError({"discount_value": "Percentage discount must be between 0.01% and 100%."})
+        elif self.discount_type == "fixed" and self.discount_value is not None:
+            if self.discount_value <= 0:
+                raise ValidationError({"discount_value": "Discount value must be greater than 0."})
+        if self.min_order_amount is not None and self.min_order_amount < 0:
+            raise ValidationError({"min_order_amount": "Minimum order amount cannot be negative."})
+        if self.max_discount_cap is not None and self.max_discount_cap <= 0:
+            raise ValidationError({"max_discount_cap": "Max discount cap must be greater than 0."})
+
+    def save(self, *args, **kwargs):
+        if self.name and not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        if not self.expire_date:
+            return False
+        return self.expire_date < timezone.localdate()
+
+    @property
+    def is_usage_limit_reached(self):
+        if self.usage_limit is not None and self.usage_limit > 0:
+            return self.times_used >= self.usage_limit
+        return False
+
+    @property
+    def is_valid_status(self):
+        return self.is_active and not self.is_expired and not self.is_usage_limit_reached
+
+    @property
+    def discount_display(self):
+        if self.discount_type == "percentage":
+            val = int(self.discount_value) if self.discount_value == int(self.discount_value) else self.discount_value
+            cap_str = f" (Capped at ₹{self.max_discount_cap})" if self.max_discount_cap else ""
+            return f"{val}% OFF{cap_str}"
+        val = int(self.discount_value) if self.discount_value == int(self.discount_value) else self.discount_value
+        return f"₹{val} OFF"
+
+    @property
+    def categories_display(self):
+        cats = list(self.applicable_categories.all())
+        if not cats:
+            return "All Categories"
+        return ", ".join(c.name for c in cats)
+
+    @property
+    def offer_type_display(self):
+        return dict(self.OFFER_TYPE_CHOICES).get(self.offer_type, self.offer_type.replace("_", " ").title())
+
+    def evaluate_cart(self, cart_items, subtotal=None):
+        if not self.is_valid_status:
+            return False, Decimal("0.00"), {}
+
+        cats = list(self.applicable_categories.all())
+        cat_slugs = {c.slug.lower() for c in cats}
+        cat_names = {c.name.lower() for c in cats}
+
+        eligible_items = []
+        eligible_subtotal = Decimal("0.00")
+        for it in cart_items:
+            prod = it.get("product")
+            if not prod:
+                continue
+            prod_cat = (getattr(prod, "category", "") or "").lower().strip()
+            prod_cat_slug = (getattr(prod, "category_slug", "") or "").lower().strip()
+            if (
+                not cats
+                or prod_cat in cat_slugs
+                or prod_cat in cat_names
+                or prod_cat_slug in cat_slugs
+            ):
+                eligible_items.append(it)
+                qty = it.get("quantity", 1)
+                price = getattr(prod, "price", Decimal("0.00"))
+                eligible_subtotal += Decimal(str(price)) * int(qty)
+
+        if not eligible_items:
+            return False, Decimal("0.00"), {}
+
+        total_eligible_qty = sum(it.get("quantity", 1) for it in eligible_items)
+        distinct_eligible_count = len({it["product"].id for it in eligible_items})
+
+        qualifies = False
+        if self.offer_type == "multiple_products":
+            if (
+                total_eligible_qty >= self.min_quantity
+                and distinct_eligible_count >= self.min_distinct_products
+                and eligible_subtotal >= self.min_order_amount
+            ):
+                qualifies = True
+        elif self.offer_type == "single_quantity":
+            has_single_meet = any(it.get("quantity", 1) >= self.min_quantity for it in eligible_items)
+            if (has_single_meet or total_eligible_qty >= self.min_quantity) and eligible_subtotal >= self.min_order_amount:
+                qualifies = True
+        elif self.offer_type == "price_based":
+            if eligible_subtotal >= self.min_order_amount:
+                qualifies = True
+
+        if not qualifies:
+            return False, Decimal("0.00"), {}
+
+        if self.discount_type == "percentage":
+            discount = (eligible_subtotal * (self.discount_value / Decimal("100"))).quantize(Decimal("0.01"))
+            if self.max_discount_cap and self.max_discount_cap > Decimal("0.00"):
+                discount = min(discount, self.max_discount_cap)
+        else:
+            discount = min(eligible_subtotal, self.discount_value)
+
+        discount = max(Decimal("0.00"), discount)
+        return True, discount, {
+            "combo_id": self.id,
+            "name": self.name,
+            "badge_text": self.badge_text or self.name,
+            "distinct_count": distinct_eligible_count,
+            "total_qty": total_eligible_qty,
+            "eligible_product_ids": [it["product"].id for it in eligible_items],
+        }
+
+
 class Order(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Payment pending"),
@@ -424,6 +634,15 @@ class Order(models.Model):
     packing_fee = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
     gst_amount = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0.00"))
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    combo_offer = models.ForeignKey(
+        ComboOffer,
+        related_name="orders",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    combo_name = models.CharField(max_length=120, blank=True, default="")
+    combo_discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     coupon = models.ForeignKey(
         Coupon,
         related_name="orders",
@@ -444,7 +663,14 @@ class Order(models.Model):
 
     @property
     def items_subtotal(self):
-        sub = self.total_amount + self.discount_amount - self.shipping_fee - self.packing_fee - self.gst_amount
+        sub = (
+            self.total_amount
+            + self.discount_amount
+            + self.combo_discount
+            - self.shipping_fee
+            - self.packing_fee
+            - self.gst_amount
+        )
         return sub if sub > 0 else self.total_amount
 
     def save(self, *args, **kwargs):

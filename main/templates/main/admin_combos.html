@@ -1,0 +1,573 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Combo Offers & Assortments | Admin{% endblock %}
+{% block page_heading %}Combo Offers & Assortments{% endblock %}
+{% block page_description %}Create and manage multi-product combo packs, mix-and-match assortment deals, and quantity-based discounts.{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'combos_showcase' %}" target="_blank" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+      <polyline points="15 3 21 3 21 9"></polyline>
+      <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg>
+    <span>View Showcase ↗</span>
+  </a>
+  <button type="button" class="btn-primary" onclick="openComboModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    <span>Create New Combo</span>
+  </button>
+{% endblock %}
+
+{% block admin_content %}
+  <style>
+    /* Stats Grid */
+    .combos-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 992px) {
+      .combos-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+      }
+    }
+    @media (max-width: 576px) {
+      .combos-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+      }
+      .combos-stats-grid .stat-card {
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+      }
+      .combos-stats-grid .stat-label {
+        font-size: 0.62rem !important;
+      }
+      .combos-stats-grid .stat-value {
+        font-size: 1.35rem !important;
+      }
+    }
+
+    /* Combo Badges */
+    .combo-name-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: -0.01em;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+    }
+    .offer-type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .offer-type-multiple {
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #c084fc;
+    }
+    .offer-type-single {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #60a5fa;
+    }
+    .offer-type-price {
+      background: rgba(47, 207, 122, 0.15);
+      border: 1px solid rgba(47, 207, 122, 0.35);
+      color: #2fcf7a;
+    }
+
+    .discount-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+    .discount-pill-percentage {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+    }
+    .discount-pill-fixed {
+      background: rgba(47, 207, 122, 0.15);
+      border: 1px solid rgba(47, 207, 122, 0.35);
+      color: #2fcf7a;
+    }
+
+    .cat-chip {
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      margin: 1px 2px;
+    }
+    .cat-all-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 6px;
+      background: rgba(90, 163, 255, 0.12);
+      border: 1px solid rgba(90, 163, 255, 0.25);
+      color: #5aa3ff;
+    }
+
+    /* Modal Overlay */
+    .admin-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-modal-overlay.active {
+      display: flex;
+    }
+    .admin-modal-dialog {
+      background: #11161a;
+      border: 1px solid var(--admin-line-strong);
+      border-radius: 18px;
+      width: min(100%, 720px);
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+    }
+    .admin-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--admin-line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .admin-modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .admin-modal-close {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+    .admin-modal-close:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .admin-modal-body {
+      padding: 24px;
+      flex: 1;
+    }
+    .admin-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--admin-line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .form-grid-full {
+      grid-column: 1 / -1;
+    }
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 6px;
+    }
+    .form-help {
+      display: block;
+      font-size: 0.74rem;
+      color: rgba(255, 255, 255, 0.45);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .categories-selector-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--admin-line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+    .category-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.85);
+      cursor: pointer;
+    }
+  </style>
+
+  <!-- Top Stats Row -->
+  <div class="combos-stats-grid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Total Combos</span>
+        <span class="stat-tag stat-tag-blue">All Deals</span>
+      </div>
+      <div class="stat-value">{{ total_combos_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Active Deals</span>
+        <span class="stat-tag stat-tag-green">Live Now</span>
+      </div>
+      <div class="stat-value">{{ active_combos_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Expired</span>
+        <span class="stat-tag stat-tag-amber">Inactive</span>
+      </div>
+      <div class="stat-value">{{ expired_combos_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Total Combo Savings</span>
+        <span class="stat-tag stat-tag-purple">Given</span>
+      </div>
+      <div class="stat-value">₹{{ total_combo_savings|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <!-- Combos Table Panel -->
+  <div class="admin-panel mb-4">
+    <div class="admin-panel-header" style="flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.25rem;">🥫</span>
+        <div>
+          <h2 class="admin-panel-title" style="margin: 0;">Active & Configured Combos</h2>
+          <div style="font-size: 0.78rem; color: rgba(255,255,255,0.5);">Manage your combo offers, assortment rules, and discount caps.</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="text" id="comboSearchInput" placeholder="Filter combos..." oninput="filterCombosTable()"
+          style="background: rgba(0,0,0,0.3); border: 1px solid var(--admin-line); border-radius: 8px; padding: 6px 12px; font-size: 0.82rem; color: #fff; width: 180px;">
+      </div>
+    </div>
+
+    <div class="table-container" style="overflow-x: auto;">
+      <table class="admin-table" id="combosTable">
+        <thead>
+          <tr>
+            <th>Combo Name</th>
+            <th>Offer Type</th>
+            <th>Categories</th>
+            <th>Discount / CAP</th>
+            <th>Min Order / Qty</th>
+            <th>Expiry Date</th>
+            <th>Uses / Limit</th>
+            <th>Status</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for combo in combos %}
+            <tr class="combo-row" data-name="{{ combo.name|lower }}">
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span class="combo-name-badge">{{ combo.name }}</span>
+                  {% if combo.badge_text and combo.badge_text != combo.name %}
+                    <span style="font-size: 0.72rem; color: rgba(255,255,255,0.5);">Badge: {{ combo.badge_text }}</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                {% if combo.offer_type == 'multiple_products' %}
+                  <span class="offer-type-chip offer-type-multiple">Multiple Products</span>
+                {% elif combo.offer_type == 'single_quantity' %}
+                  <span class="offer-type-chip offer-type-single">Single Quantity</span>
+                {% else %}
+                  <span class="offer-type-chip offer-type-price">Price Based</span>
+                {% endif %}
+              </td>
+              <td style="max-width: 180px;">
+                {% with cats=combo.applicable_categories.all %}
+                  {% if cats %}
+                    {% for c in cats %}
+                      <span class="cat-chip">{{ c.name }}</span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="cat-all-chip">All Categories</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  {% if combo.discount_type == 'percentage' %}
+                    <span class="discount-pill discount-pill-percentage">{{ combo.discount_value|floatformat:0 }}% OFF</span>
+                    {% if combo.max_discount_cap %}
+                      <span style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">Cap: ₹{{ combo.max_discount_cap|floatformat:2 }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="discount-pill discount-pill-fixed">₹{{ combo.discount_value|floatformat:2 }} OFF</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 0.8rem; line-height: 1.3;">
+                  <div>Min: <strong>₹{{ combo.min_order_amount|floatformat:2 }}</strong></div>
+                  {% if combo.min_quantity %}
+                    <div style="font-size: 0.72rem; color: rgba(255,255,255,0.55);">Qty ≥ {{ combo.min_quantity }}{% if combo.min_distinct_products %} ({{ combo.min_distinct_products }} distinct){% endif %}</div>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                {% if combo.expire_date %}
+                  <div style="font-size: 0.8rem; {% if combo.is_expired %}color: #fca5a5; font-weight: 700;{% endif %}">
+                    {{ combo.expire_date|date:"d M Y" }}
+                  </div>
+                {% else %}
+                  <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">No expiry</span>
+                {% endif %}
+              </td>
+              <td>
+                <span style="font-weight: 700;">{{ combo.times_used }}</span>
+                <span style="font-size: 0.74rem; color: rgba(255,255,255,0.4);">/ {% if combo.usage_limit %}{{ combo.usage_limit }}{% else %}∞{% endif %}</span>
+              </td>
+              <td>
+                {% if combo.is_expired %}
+                  <span class="badge-status badge-gray">Expired</span>
+                {% elif combo.is_usage_limit_reached %}
+                  <span class="badge-status badge-gray">Limit Reached</span>
+                {% elif combo.is_active %}
+                  <span class="badge-status badge-green">Active</span>
+                {% else %}
+                  <span class="badge-status badge-gray">Inactive</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  <form method="post" action="{% url 'admin_toggle_combo' combo.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sm {% if combo.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                      style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; cursor: pointer;">
+                      {% if combo.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                  <form method="post" action="{% url 'admin_delete_combo' combo.id %}" onsubmit="return confirm('Delete combo offer \'{{ combo.name|escapejs }}\'? This cannot be undone.');" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sm btn-outline-danger"
+                      style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; cursor: pointer; color: #f87171; border: 1px solid rgba(248,113,113,0.3); background: transparent;">
+                      ✕
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" style="text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.45);">
+                No combo offers configured yet. Click "Create New Combo" above to add your first deal!
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create New Combo Modal -->
+  <div class="admin-modal-overlay {% if show_modal %}active{% endif %}" id="comboModal">
+    <div class="admin-modal-dialog">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title">Create New Combo Offer</h3>
+        <button type="button" class="admin-modal-close" onclick="closeComboModal()">&times;</button>
+      </div>
+      <form method="post" action="{% url 'admin_combos' %}">
+        {% csrf_token %}
+        <div class="admin-modal-body">
+          <div class="form-grid">
+            <!-- 1. Offer Type Dropdown -->
+            <div>
+              <label for="{{ form.offer_type.id_for_label }}" class="form-label">Offer Type *</label>
+              {{ form.offer_type }}
+              <small class="form-help">Select multiple products combo, single quantity, or price based offer.</small>
+            </div>
+
+            <!-- 2. Combo Name -->
+            <div>
+              <label for="{{ form.name.id_for_label }}" class="form-label">Combo Name *</label>
+              {{ form.name }}
+              <small class="form-help">e.g. Cans of Assortment, Weekend Blast</small>
+            </div>
+
+            <!-- 3. Badge Text -->
+            <div>
+              <label for="{{ form.badge_text.id_for_label }}" class="form-label">Badge Text</label>
+              {{ form.badge_text }}
+              <small class="form-help">Displayed on item cards & checkout tags.</small>
+            </div>
+
+            <!-- 4. Selective Categories -->
+            <div>
+              <label class="form-label">Selective Categories</label>
+              <div class="categories-selector-box">
+                {% for pk, choice in form.applicable_categories.field.choices %}
+                  <label class="category-checkbox-item">
+                    <input type="checkbox" name="applicable_categories" value="{{ pk }}"
+                      {% if pk in form.applicable_categories.value %}checked{% endif %}>
+                    <span>{{ choice }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+              <small class="form-help">Leave unchecked to apply to all categories.</small>
+            </div>
+
+            <!-- 5. Discount Type Dropdown -->
+            <div>
+              <label for="{{ form.discount_type.id_for_label }}" class="form-label">Discount Type *</label>
+              {{ form.discount_type }}
+              <small class="form-help">Percentage (%) or Fixed Price (₹).</small>
+            </div>
+
+            <!-- 6. Discount Value -->
+            <div>
+              <label for="{{ form.discount_value.id_for_label }}" class="form-label">Discount Value *</label>
+              {{ form.discount_value }}
+              <small class="form-help">e.g. 15 for 15% or 50 for ₹50.</small>
+            </div>
+
+            <!-- 7. Max Discount CAP -->
+            <div>
+              <label for="{{ form.max_discount_cap.id_for_label }}" class="form-label">Max Discount CAP (₹)</label>
+              {{ form.max_discount_cap }}
+              <small class="form-help">Optional ceiling for percentage discounts (e.g. 100.00).</small>
+            </div>
+
+            <!-- 8. Minimum Order Amount (default 6) -->
+            <div>
+              <label for="{{ form.min_order_amount.id_for_label }}" class="form-label">Minimum Order Amount (₹) *</label>
+              {{ form.min_order_amount }}
+              <small class="form-help">Default 6.00.</small>
+            </div>
+
+            <!-- 9. Minimum Quantity -->
+            <div>
+              <label for="{{ form.min_quantity.id_for_label }}" class="form-label">Minimum Quantity *</label>
+              {{ form.min_quantity }}
+              <small class="form-help">Minimum total cans/items required (default 6).</small>
+            </div>
+
+            <!-- 10. Minimum Distinct Products -->
+            <div>
+              <label for="{{ form.min_distinct_products.id_for_label }}" class="form-label">Min Distinct Products (for Assortment)</label>
+              {{ form.min_distinct_products }}
+              <small class="form-help">Require each can to be different (default 6).</small>
+            </div>
+
+            <!-- 11. Usage Limit -->
+            <div>
+              <label for="{{ form.usage_limit.id_for_label }}" class="form-label">Usage Limit</label>
+              {{ form.usage_limit }}
+              <small class="form-help">Leave blank for unlimited uses.</small>
+            </div>
+
+            <!-- 12. Expiry Date -->
+            <div>
+              <label for="{{ form.expire_date.id_for_label }}" class="form-label">Expiry Date</label>
+              {{ form.expire_date }}
+              <small class="form-help">Optional expiry date for creating.</small>
+            </div>
+
+            <!-- 13. Description -->
+            <div class="form-grid-full">
+              <label for="{{ form.description.id_for_label }}" class="form-label">Offer Description</label>
+              {{ form.description }}
+              <small class="form-help">Explains the promo details on the public showcase page.</small>
+            </div>
+
+            <!-- 14. Active Checkbox -->
+            <div class="form-grid-full">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: #fff;">
+                {{ form.is_active }}
+                <span>Activate this combo offer immediately</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeComboModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save & Launch Combo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openComboModal() {
+      var modal = document.getElementById('comboModal');
+      if (modal) modal.classList.add('active');
+    }
+    function closeComboModal() {
+      var modal = document.getElementById('comboModal');
+      if (modal) modal.classList.remove('active');
+    }
+    function filterCombosTable() {
+      var q = (document.getElementById('comboSearchInput').value || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#combosTable tbody tr.combo-row');
+      rows.forEach(function (r) {
+        var name = r.getAttribute('data-name') || '';
+        if (!q || name.indexOf(q) !== -1) {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
+        }
+      });
+    }
+  </script>
+{% endblock %}

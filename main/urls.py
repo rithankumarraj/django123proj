@@ -153,6 +153,32 @@ urlpatterns = [
         name="admin_delete_coupon",
     ),
     path(
+        "admin-profile/combos/",
+        views.admin_combos,
+        name="admin_combos",
+    ),
+    path(
+        "admin-profile/combos/<int:combo_id>/toggle/",
+        views.admin_toggle_combo,
+        name="admin_toggle_combo",
+    ),
+    path(
+        "admin-profile/combos/<int:combo_id>/delete/",
+        views.admin_delete_combo,
+        name="admin_delete_combo",
+    ),
+    path("combos/", views.combos_showcase, name="combos_showcase"),
+    path(
+        "combos/add-assortment/",
+        views.add_assortment_combo_to_cart,
+        name="add_assortment_combo_to_cart",
+    ),
+    path(
+        "api/check-combo/",
+        views.api_check_combo,
+        name="api_check_combo",
+    ),
+    path(
         "api/apply-coupon/",
         views.api_apply_coupon,
         name="api_apply_coupon",

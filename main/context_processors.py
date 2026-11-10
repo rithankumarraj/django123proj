@@ -1,17 +1,18 @@
-from .models import ContactMessage, Coupon, DeliveryProfile, Product, SiteDetails
+from .models import ComboOffer, ContactMessage, Coupon, DeliveryProfile, Product, SiteDetails
 from .views import CART_SESSION_KEY, WISHLIST_SESSION_KEY, _cart_items
 
 
 def navbar_context(request):
     """
     Context processor to provide common variables (cart_count, wishlist_count,
-    is_delivery_user, site_details, and unread_messages_count) across all templates.
+    is_delivery_user, site_details, unread_messages_count, and admin counts) across all templates.
     """
     cart_count = 0
     wishlist_count = 0
     is_delivery_user = False
     unread_messages_count = 0
     total_coupons_count = 0
+    total_combos_count = 0
     site_details = None
 
     try:
@@ -57,6 +58,10 @@ def navbar_context(request):
                 total_coupons_count = Coupon.objects.count()
             except Exception:
                 total_coupons_count = 0
+            try:
+                total_combos_count = ComboOffer.objects.count()
+            except Exception:
+                total_combos_count = 0
 
     return {
         "cart_count": cart_count,
@@ -64,6 +69,7 @@ def navbar_context(request):
         "is_delivery_user": is_delivery_user,
         "unread_messages_count": unread_messages_count,
         "total_coupons_count": total_coupons_count,
+        "total_combos_count": total_combos_count,
         "site_details": site_details,
         "details": site_details,
     }

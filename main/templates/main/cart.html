@@ -760,6 +760,72 @@
       color: #8ee2b3;
     }
 
+    /* Combo Offers Styling */
+    .combo-unlocked-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .combo-unlocked-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .combo-unlocked-body {
+      flex: 1;
+    }
+    .combo-unlocked-kicker {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fbbf24;
+    }
+    .combo-unlocked-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .combo-unlocked-text {
+      font-size: 0.76rem;
+      color: rgba(255, 255, 255, 0.75);
+      margin-top: 2px;
+    }
+    .combo-unlocked-amount {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #fbbf24;
+      white-space: nowrap;
+    }
+    .combo-teaser-banner {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(245, 158, 11, 0.35);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-combo-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fbbf24;
+      text-transform: uppercase;
+    }
+
     @media (max-width: 991.98px) {
       .checkout-summary-sticky {
         position: static;
@@ -838,6 +904,37 @@
             <span class="cart-muted" data-cart-count>{{ cart_count }} item{{ cart_count|pluralize }}</span>
           </div>
 
+          <!-- Combo Offer Banner -->
+          <div id="cartComboAlert" class="combo-unlocked-banner mb-3" style="{% if applied_combo and combo_discount > 0 %}display: flex;{% else %}display: none;{% endif %}">
+            <div class="combo-unlocked-icon">✨</div>
+            <div class="combo-unlocked-body">
+              <div class="combo-unlocked-kicker">COMBO OFFER APPLIED</div>
+              <div class="combo-unlocked-title" id="cartComboAlertTitle">{{ combo_name }}</div>
+              <div class="combo-unlocked-text" id="cartComboAlertText">
+                {% if "assortment" in combo_name|lower %}
+                  You've unlocked the <strong>Cans of Assortment</strong> combo with 6 distinct cans! Instant discount applied.
+                {% else %}
+                  You've unlocked the <strong>{{ combo_name }}</strong> combo offer!
+                {% endif %}
+              </div>
+            </div>
+            <div class="combo-unlocked-amount" id="cartComboAlertSavings">-₹{{ combo_discount|floatformat:2 }}</div>
+          </div>
+
+          <!-- Teaser if customer has 1 to 5 different cans -->
+          <div id="cartComboTeaser" class="combo-teaser-banner mb-3" style="{% if distinct_cans_count > 0 and distinct_cans_count < 6 %}display: flex;{% else %}display: none;{% endif %}">
+            <span style="font-size: 1.3rem;">🥫</span>
+            <div style="flex: 1;">
+              <div style="font-size: 0.82rem; font-weight: 700; color: #fff;">Unlock "Cans of Assortment" (15% OFF)</div>
+              <div style="font-size: 0.74rem; color: rgba(255,255,255,0.7);" id="cartComboTeaserText">
+                Add <span id="cartComboTeaserMissing">{{ missing_cans_count }}</span> more different can{{ missing_cans_count|pluralize }} to trigger automatic combo savings!
+              </div>
+            </div>
+            <a href="{% url 'combos_showcase' %}" class="btn-sm btn-outline-warning" style="font-size: 0.72rem; font-weight: 700; text-decoration: none; padding: 4px 10px; border-radius: 6px; border: 1px solid #f59e0b; color: #f59e0b; white-space: nowrap;">
+              View Combos →
+            </a>
+          </div>
+
           <form method="post" action="{% url 'update_cart' %}" data-cart-update-form>
             {% csrf_token %}
             <input type="hidden" name="action" value="update">
@@ -847,6 +944,9 @@
               <div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                   <h2 style="margin: 0; font-size: 1.15rem; font-weight: 700;">{{ item.product.name }}</h2>
+                  <span class="badge-combo-item" id="item-combo-badge-{{ item.product.id }}" style="{% if item.product.id in combo_eligible_ids and applied_combo %}display: inline-flex;{% else %}display: none;{% endif %}">
+                    ✨ {{ combo_name }}
+                  </span>
                   <span class="cart-item-unavail-badge" id="cart-item-pin-badge-{{ item.product.id }}" style="display: none;">
                     ⚠️ Unavailable for this PIN
                   </span>
@@ -1189,6 +1289,14 @@
       const cartDiscountRow = document.getElementById('cartDiscountRow');
       const cartDiscountDisplay = document.getElementById('cartDiscountDisplay');
       const cartCouponBadge = document.getElementById('cartCouponBadge');
+      const cartComboRow = document.getElementById('cartComboRow');
+      const cartComboDisplay = document.getElementById('cartComboDisplay');
+      const cartComboBadge = document.getElementById('cartComboBadge');
+      const cartComboAlert = document.getElementById('cartComboAlert');
+      const cartComboAlertSavings = document.getElementById('cartComboAlertSavings');
+      const cartComboTeaser = document.getElementById('cartComboTeaser');
+      const cartComboTeaserMissing = document.getElementById('cartComboTeaserMissing');
+
       const cartPmOnlineRadio = document.getElementById('cartPmOnline');
       const cartPmCodRadio = document.getElementById('cartPmCod');
       const cartPmOnlineLabel = document.getElementById('cartPmOnlineLabel');
@@ -1199,6 +1307,9 @@
       const cartCouponFeedback = document.getElementById('cartCouponFeedback');
 
       let cartCurrentDiscount = 0.0;
+      let cartCurrentComboDiscount = parseFloat("{{ combo_discount|default:'0' }}") || 0.0;
+      let cartComboName = "{{ combo_name|default:'Cans of Assortment'|escapejs }}";
+      let cartComboActive = {% if applied_combo and combo_discount > 0 %}true{% else %}false{% endif %};
 
       const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";
       const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;
@@ -1260,10 +1371,70 @@
           }
         }
 
+        // Combo Evaluation: if 6 or more distinct cans are in cart and subtotal >= 6
+        const distinctItems = document.querySelectorAll('.cart-item').length;
+        if (distinctItems >= 6 && itemCount >= 6 && subtotal >= 6.0) {
+          cartComboActive = true;
+          cartComboName = 'Cans of Assortment';
+          // 15% discount
+          cartCurrentComboDiscount = Math.round(subtotal * 0.15 * 100) / 100;
+        } else if (distinctItems < 6) {
+          cartComboActive = false;
+          cartCurrentComboDiscount = 0.0;
+        }
+
+        // Update item badges
+        document.querySelectorAll('.badge-combo-item').forEach(function (badge) {
+          if (cartComboActive) {
+            badge.style.display = 'inline-flex';
+            badge.textContent = '✨ ' + cartComboName;
+          } else {
+            badge.style.display = 'none';
+          }
+        });
+
+        // Update Teaser Banner
+        if (cartComboTeaser) {
+          if (distinctItems > 0 && distinctItems < 6) {
+            cartComboTeaser.style.display = 'flex';
+            if (cartComboTeaserMissing) {
+              cartComboTeaserMissing.textContent = (6 - distinctItems);
+            }
+          } else {
+            cartComboTeaser.style.display = 'none';
+          }
+        }
+
+        // Update Combo Alert Banner
+        if (cartComboAlert) {
+          if (cartComboActive && cartCurrentComboDiscount > 0) {
+            cartComboAlert.style.display = 'flex';
+            if (cartComboAlertSavings) {
+              cartComboAlertSavings.textContent = '-₹' + cartCurrentComboDiscount.toFixed(2);
+            }
+          } else {
+            cartComboAlert.style.display = 'none';
+          }
+        }
+
+        // Update Combo Summary Row
+        if (cartComboRow) {
+          if (cartComboActive && cartCurrentComboDiscount > 0) {
+            cartComboRow.style.display = 'flex';
+            if (cartComboDisplay) cartComboDisplay.textContent = '-₹' + cartCurrentComboDiscount.toFixed(2);
+            if (cartComboBadge) cartComboBadge.textContent = cartComboName;
+          } else {
+            cartComboRow.style.display = 'none';
+          }
+        }
+
         const isOnline = cartPmOnlineRadio ? cartPmOnlineRadio.checked : true;
-        const activeDiscount = (isOnline && cartCurrentDiscount > 0) ? cartCurrentDiscount : 0.0;
+        const activeCouponDiscount = (isOnline && cartCurrentDiscount > 0) ? cartCurrentDiscount : 0.0;
+        const activeComboDiscount = (cartComboActive && cartCurrentComboDiscount > 0) ? cartCurrentComboDiscount : 0.0;
+        const totalDiscount = activeCouponDiscount + activeComboDiscount;
+
         const rawGrandTotal = subtotal + gstAmount + packingFee + shippingFee;
-        const grandTotal = Math.max(0, rawGrandTotal - activeDiscount);
+        const grandTotal = Math.max(0, rawGrandTotal - totalDiscount);
 
         if (subtotalDisplay) subtotalDisplay.textContent = '₹' + subtotal.toFixed(2);
         const gstDisplay = document.getElementById('cartGstDisplay');
@@ -1282,14 +1453,19 @@
         }
         if (shippingFeeDisplay) shippingFeeDisplay.textContent = '₹' + shippingFee.toFixed(2);
 
-        if (activeDiscount > 0) {
+        if (activeCouponDiscount > 0) {
+          if (cartDiscountRow) {
+            cartDiscountRow.style.display = 'flex';
+            if (cartDiscountDisplay) cartDiscountDisplay.textContent = '-₹' + activeCouponDiscount.toFixed(2);
+          }
+        } else {
+          if (cartDiscountRow) cartDiscountRow.style.display = 'none';
+        }
+
+        if (totalDiscount > 0) {
           if (cartOriginalTotalRow) {
             cartOriginalTotalRow.style.display = 'flex';
             if (cartOriginalTotalDisplay) cartOriginalTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);
-          }
-          if (cartDiscountRow) {
-            cartDiscountRow.style.display = 'flex';
-            if (cartDiscountDisplay) cartDiscountDisplay.textContent = '-₹' + activeDiscount.toFixed(2);
           }
           if (cartTotalLabel) cartTotalLabel.textContent = 'Discounted Total';
           if (grandTotalDisplay) {
@@ -1298,7 +1474,6 @@
           }
         } else {
           if (cartOriginalTotalRow) cartOriginalTotalRow.style.display = 'none';
-          if (cartDiscountRow) cartDiscountRow.style.display = 'none';
           if (cartTotalLabel) cartTotalLabel.textContent = 'Total';
           if (grandTotalDisplay) {
             grandTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);

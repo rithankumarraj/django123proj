@@ -508,17 +508,21 @@
                                     <span>Shipping fee<span id="shippingStateNotice">{% if customer_address_form.state %} ({{ customer_address_form.state }}){% endif %}</span></span>
                                     <strong id="shippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
                                 </div>
-                                <div class="summary-row" id="chkOriginalTotalRow" style="display: none; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+                                <div class="summary-row" id="chkComboRow" style="{% if combo_discount > 0 %}display: flex;{% else %}display: none;{% endif %} color: #fbbf24;">
+                                    <span style="font-weight: 600;">Combo Offer (<span id="chkComboBadge" style="font-weight: 800;">{{ combo_name }}</span>)</span>
+                                    <strong id="chkComboDisplay" style="color: #fbbf24; font-weight: 700;">-₹{{ combo_discount|floatformat:2 }}</strong>
+                                </div>
+                                <div class="summary-row" id="chkOriginalTotalRow" style="{% if combo_discount > 0 %}display: flex;{% else %}display: none;{% endif %} padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
                                     <span style="font-weight: 600; color: rgba(255,255,255,0.75);">Grand Total</span>
                                     <strong id="chkOriginalTotalDisplay" style="color: rgba(255,255,255,0.85); font-weight: 700;">₹{{ total_with_shipping|floatformat:2 }}</strong>
                                 </div>
                                 <div class="summary-row" id="chkDiscountRow" style="display: none; color: #4ade80;">
-                                    <span style="font-weight: 600;">Discount Amount (<span id="chkCouponBadge" style="font-family: monospace; font-weight: 700;"></span>)</span>
+                                    <span style="font-weight: 600;">Coupon Discount (<span id="chkCouponBadge" style="font-family: monospace; font-weight: 700;"></span>)</span>
                                     <strong id="chkDiscountDisplay" style="color: #4ade80; font-weight: 700;">-₹0.00</strong>
                                 </div>
                                 <div class="summary-row total-row">
-                                    <span id="chkTotalLabel" style="font-weight: 800;">Total</span>
-                                    <strong id="grandTotalDisplay" style="font-size: 1.25rem;">₹{{ total_with_shipping|floatformat:2 }}</strong>
+                                    <span id="chkTotalLabel" style="font-weight: 800;">{% if combo_discount > 0 %}Discounted Total{% else %}Total{% endif %}</span>
+                                    <strong id="grandTotalDisplay" style="font-size: 1.25rem; {% if combo_discount > 0 %}color: #4ade80;{% endif %}">₹{{ total_discounted_with_shipping|default:total_with_shipping|floatformat:2 }}</strong>
                                 </div>
                             </div>
 
@@ -549,6 +553,8 @@
     <script src="{% static 'main/address.js' %}" defer></script>
     <script>
         var currentDiscount = 0.0;
+        var chkComboDiscount = parseFloat("{{ combo_discount|default:'0' }}") || 0.0;
+        var chkComboName = "{{ combo_name|default:''|escapejs }}";
 
         function showCouponSuccess(msg, code, discount) {
             var fb = document.getElementById('chkCouponFeedback');
@@ -689,26 +695,44 @@
             var rawGrandTotal = subtotal + gstAmount + packingFee + fee;
             var isOnline = pmOnlineRadio ? pmOnlineRadio.checked : true;
             var activeDiscount = (isOnline && currentDiscount > 0) ? currentDiscount : 0.0;
-            var finalDiscountedTotal = Math.max(0, rawGrandTotal - activeDiscount);
+            var totalDiscount = activeDiscount + chkComboDiscount;
+            var finalDiscountedTotal = Math.max(0, rawGrandTotal - totalDiscount);
 
             var chkOriginalTotalRow = document.getElementById('chkOriginalTotalRow');
             var chkOriginalTotalDisplay = document.getElementById('chkOriginalTotalDisplay');
             var discountRow = document.getElementById('chkDiscountRow');
             var discountDisplay = document.getElementById('chkDiscountDisplay');
+            var chkComboRow = document.getElementById('chkComboRow');
+            var chkComboDisplay = document.getElementById('chkComboDisplay');
+            var chkComboBadge = document.getElementById('chkComboBadge');
             var chkTotalLabel = document.getElementById('chkTotalLabel');
 
+            if (chkComboDiscount > 0) {
+                if (chkComboRow) {
+                    chkComboRow.style.display = 'flex';
+                    if (chkComboDisplay) chkComboDisplay.textContent = '-₹' + chkComboDiscount.toFixed(2);
+                    if (chkComboBadge && chkComboName) chkComboBadge.textContent = chkComboName;
+                }
+            } else {
+                if (chkComboRow) chkComboRow.style.display = 'none';
+            }
+
             if (activeDiscount > 0) {
+                if (discountRow) {
+                    discountRow.style.display = 'flex';
+                    if (discountDisplay) discountDisplay.textContent = '-₹' + activeDiscount.toFixed(2);
+                }
+            } else {
+                if (discountRow) discountRow.style.display = 'none';
+            }
+
+            if (totalDiscount > 0) {
                 // 1. Grand Total
                 if (chkOriginalTotalRow) {
                     chkOriginalTotalRow.style.display = 'flex';
                     if (chkOriginalTotalDisplay) chkOriginalTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);
                 }
-                // 2. Discount Amount
-                if (discountRow) {
-                    discountRow.style.display = 'flex';
-                    if (discountDisplay) discountDisplay.textContent = '-₹' + activeDiscount.toFixed(2);
-                }
-                // 3. Discounted Total
+                // 2. Discounted Total
                 if (chkTotalLabel) chkTotalLabel.textContent = 'Discounted Total';
                 if (grandTotalDisplay) {
                     grandTotalDisplay.textContent = '₹' + finalDiscountedTotal.toFixed(2);
@@ -716,7 +740,6 @@
                 }
             } else {
                 if (chkOriginalTotalRow) chkOriginalTotalRow.style.display = 'none';
-                if (discountRow) discountRow.style.display = 'none';
                 if (chkTotalLabel) chkTotalLabel.textContent = 'Total';
                 if (grandTotalDisplay) {
                     grandTotalDisplay.textContent = '₹' + rawGrandTotal.toFixed(2);

@@ -571,6 +571,13 @@
             {% endif %}
           </strong>
         </div>
+        {% if order.combo_discount > 0 or order.combo_name %}
+        <div class="receipt-summary-row" style="color: #d97706;">
+          <span>Combo offer ({{ order.combo_name|default:"Cans of Assortment" }})</span>
+          <strong style="color: #d97706;">-₹{{ order.combo_discount|floatformat:2 }}</strong>
+        </div>
+        {% endif %}
+
         {% if order.discount_amount > 0 or order.coupon_code %}
         <div class="receipt-summary-row" style="color: #059669;">
           <span>Coupon discount ({% if order.coupon %}{{ order.coupon.code }}{% else %}{{ order.coupon_code }}{% endif %})</span>

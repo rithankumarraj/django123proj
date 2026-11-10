@@ -6,7 +6,17 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, Us
 from django.core.files.storage import default_storage
 from django.utils.text import slugify
 
-from .models import Coupon, CustomerAddress, CustomerProfile, DeliveryProfile, INDIAN_STATES, Product, ProductCategory, SiteDetails
+from .models import (
+    ComboOffer,
+    Coupon,
+    CustomerAddress,
+    CustomerProfile,
+    DeliveryProfile,
+    INDIAN_STATES,
+    Product,
+    ProductCategory,
+    SiteDetails,
+)
 
 
 class CustomerAccountForm(forms.ModelForm):
@@ -650,6 +660,167 @@ class CouponForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError(f"Coupon code '{code}' already exists.")
         return code
+
+    def clean(self):
+        cleaned_data = super().clean()
+        dtype = cleaned_data.get("discount_type")
+        dval = cleaned_data.get("discount_value")
+        if dtype == "percentage" and dval is not None:
+            if dval > 100:
+                self.add_error("discount_value", "Percentage discount cannot exceed 100%.")
+            if dval <= 0:
+                self.add_error("discount_value", "Discount value must be greater than 0.")
+        elif dtype == "fixed" and dval is not None:
+            if dval <= 0:
+                self.add_error("discount_value", "Discount value must be greater than 0.")
+        return cleaned_data
+
+
+class ComboOfferForm(forms.ModelForm):
+    applicable_categories = forms.ModelMultipleChoiceField(
+        queryset=ProductCategory.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "category-checkbox"}),
+        label="Selective Categories",
+        help_text="Select specific categories or leave unselected for all categories.",
+    )
+
+    class Meta:
+        model = ComboOffer
+        fields = [
+            "name",
+            "offer_type",
+            "applicable_categories",
+            "discount_type",
+            "discount_value",
+            "max_discount_cap",
+            "min_order_amount",
+            "min_quantity",
+            "min_distinct_products",
+            "usage_limit",
+            "expire_date",
+            "badge_text",
+            "description",
+            "is_active",
+        ]
+        labels = {
+            "name": "Combo Name",
+            "offer_type": "Offer Type",
+            "applicable_categories": "Selective Categories",
+            "discount_type": "Discount Type",
+            "discount_value": "Discount Value",
+            "max_discount_cap": "Max Discount CAP (₹)",
+            "min_order_amount": "Minimum Order Amount (₹)",
+            "min_quantity": "Minimum Items Quantity",
+            "min_distinct_products": "Minimum Distinct Products (for Assortment)",
+            "usage_limit": "Usage Limit",
+            "expire_date": "Expiry Date",
+            "badge_text": "Badge Display Text",
+            "description": "Offer Description",
+            "is_active": "Offer is Active",
+        }
+        widgets = {
+            "name": forms.TextInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_name",
+                "placeholder": "e.g. Cans of Assortment",
+                "required": True,
+            }),
+            "offer_type": forms.Select(attrs={
+                "class": "form-control",
+                "id": "id_combo_offer_type",
+                "required": True,
+            }),
+            "discount_type": forms.Select(attrs={
+                "class": "form-control",
+                "id": "id_combo_discount_type",
+                "required": True,
+            }),
+            "discount_value": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_discount_value",
+                "step": "0.01",
+                "min": "0.01",
+                "placeholder": "e.g. 15 for 15% or 50 for ₹50",
+                "required": True,
+            }),
+            "max_discount_cap": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_max_cap",
+                "step": "0.01",
+                "min": "0",
+                "placeholder": "e.g. 100.00 (optional)",
+            }),
+            "min_order_amount": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_min_order",
+                "step": "0.01",
+                "min": "0",
+                "placeholder": "6.00",
+            }),
+            "min_quantity": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_min_qty",
+                "min": "1",
+                "placeholder": "6",
+            }),
+            "min_distinct_products": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_min_distinct",
+                "min": "1",
+                "placeholder": "6",
+            }),
+            "usage_limit": forms.NumberInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_usage_limit",
+                "min": "1",
+                "placeholder": "Leave empty for unlimited",
+            }),
+            "expire_date": forms.DateInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_expire_date",
+                "type": "date",
+            }),
+            "badge_text": forms.TextInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_badge_text",
+                "placeholder": "e.g. Cans of Assortment",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "form-control",
+                "id": "id_combo_description",
+                "rows": 2,
+                "placeholder": "e.g. Mix and match 6 different cans to unlock special combo pricing!",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+                "id": "id_combo_is_active",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from decimal import Decimal
+        for slug, name in [("cola", "Cola"), ("energy_drink", "Energy Drink"), ("others", "Others")]:
+            ProductCategory.objects.get_or_create(slug=slug, defaults={"name": name})
+        self.fields["applicable_categories"].queryset = ProductCategory.objects.all().order_by("name")
+        if not self.instance.pk:
+            if "min_order_amount" in self.fields:
+                self.fields["min_order_amount"].initial = Decimal("6.00")
+            if "min_quantity" in self.fields:
+                self.fields["min_quantity"].initial = 6
+            if "min_distinct_products" in self.fields:
+                self.fields["min_distinct_products"].initial = 6
+            if "badge_text" in self.fields:
+                self.fields["badge_text"].initial = "Cans of Assortment"
+            if "is_active" in self.fields:
+                self.fields["is_active"].initial = True
+
+    def clean_name(self):
+        name = self.cleaned_data.get("name", "").strip()
+        if not name:
+            raise forms.ValidationError("Combo name is required.")
+        return name
 
     def clean(self):
         cleaned_data = super().clean()

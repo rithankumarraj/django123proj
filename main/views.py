@@ -28,6 +28,7 @@ from django.views.decorators.http import require_POST
 from .forms import (
     AboutDetailsForm,
     AdminLoginForm,
+    ComboOfferForm,
     ContactDetailsForm,
     CouponForm,
     CustomerAccountForm,
@@ -45,6 +46,7 @@ from .forms import (
     ShippingSettingsForm,
 )
 from .models import (
+    ComboOffer,
     ContactMessage,
     Coupon,
     CustomerAddress,
@@ -449,6 +451,34 @@ def _cart_quantity(request):
     return sum(item["quantity"] for item in _cart_items(request))
 
 
+def _evaluate_cart_combos(cart_items, subtotal=None):
+    """
+    Evaluates cart_items against active ComboOffer objects.
+    Returns (combo_obj, discount_amount, details_dict) or (None, Decimal("0.00"), {})
+    """
+    if not cart_items:
+        return None, Decimal("0.00"), {}
+
+    active_combos = ComboOffer.objects.filter(is_active=True).prefetch_related("applicable_categories")
+    valid_matches = []
+    for combo in active_combos:
+        qualifies, discount, details = combo.evaluate_cart(cart_items, subtotal)
+        if qualifies and discount > Decimal("0.00"):
+            valid_matches.append((combo, discount, details))
+
+    if not valid_matches:
+        return None, Decimal("0.00"), {}
+
+    def sort_key(item):
+        combo, discount, details = item
+        is_assortment = 1 if "assortment" in (combo.name or "").lower() else 0
+        return (is_assortment, discount)
+
+    valid_matches.sort(key=sort_key, reverse=True)
+    best_combo, best_discount, best_details = valid_matches[0]
+    return best_combo, best_discount, best_details
+
+
 def _wishlist_products(request):
     wishlist = request.session.get(WISHLIST_SESSION_KEY, [])
     if not isinstance(wishlist, list):
@@ -801,12 +831,19 @@ def update_cart(request):
         cart_total = sum((item["line_total"] for item in items), Decimal("0.00"))
         gst_amount = site_details.calculate_gst(cart_total)
         packing_fee = site_details.calculate_packing_fee(cart_count)
+        combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, cart_total)
+        distinct_count = len({it["product"].id for it in items})
         return JsonResponse(
             {
                 "cart_count": cart_count,
                 "cart_total": str(cart_total),
                 "gst_amount": str(gst_amount),
                 "packing_fee": str(packing_fee),
+                "combo_active": bool(combo_obj),
+                "combo_name": combo_details.get("badge_text") or (combo_obj.name if combo_obj else ""),
+                "combo_discount": str(combo_discount),
+                "combo_eligible_ids": combo_details.get("eligible_product_ids", []),
+                "distinct_cans_count": distinct_count,
                 "items": [
                     {
                         "product_id": item["product"].id,
@@ -850,6 +887,13 @@ def cart_page(request):
     initial_gst_amount = site_details.calculate_gst(total)
     total_with_shipping = total + initial_gst_amount + initial_packing_fee + initial_shipping_fee
 
+    combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, total)
+    applied_combo_name = combo_details.get("badge_text") or (combo_obj.name if combo_obj else "")
+    combo_eligible_ids = combo_details.get("eligible_product_ids", [])
+    distinct_cans_count = len({it["product"].id for it in items})
+    missing_cans_count = max(0, 6 - distinct_cans_count)
+    total_discounted_with_shipping = max(Decimal("0.00"), total_with_shipping - combo_discount)
+
     cart_pin_rules = [
         {
             "id": it["product"].id,
@@ -882,6 +926,14 @@ def cart_page(request):
             "packing_cost_per_batch": site_details.packing_cost_per_batch,
             "packing_batch_size": site_details.packing_batch_size,
             "total_with_shipping": total_with_shipping,
+            "applied_combo": combo_obj,
+            "combo_name": applied_combo_name,
+            "combo_discount": combo_discount,
+            "combo_details": combo_details,
+            "combo_eligible_ids": combo_eligible_ids,
+            "distinct_cans_count": distinct_cans_count,
+            "missing_cans_count": missing_cans_count,
+            "total_discounted_with_shipping": total_discounted_with_shipping,
             "customer_phone_10_digits": clean_10_phone,
             "customer_address_form": {
                 "phone": raw_phone,
@@ -1184,6 +1236,11 @@ def cart_checkout(request):
     if payment_method not in ["online", "cod"]:
         payment_method = "online"
 
+    combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, items_subtotal)
+    combo_name = combo_details.get("badge_text") or (combo_obj.name if combo_obj else "")
+    if combo_obj:
+        ComboOffer.objects.filter(pk=combo_obj.pk).update(times_used=models.F("times_used") + 1)
+
     coupon_code = (request.POST.get("coupon_code") or request.session.get("applied_coupon_code") or "").strip().upper()
     applied_coupon = None
     discount_amount = Decimal("0.00")
@@ -1198,7 +1255,7 @@ def cart_checkout(request):
                 applied_coupon = coupon_obj
                 Coupon.objects.filter(pk=coupon_obj.pk).update(times_used=models.F("times_used") + 1)
 
-    total_amount = max(Decimal("0.00"), items_subtotal - discount_amount) + gst_amount + packing_fee + shipping_fee
+    total_amount = max(Decimal("0.00"), items_subtotal - combo_discount - discount_amount) + gst_amount + packing_fee + shipping_fee
     guest_checkout = not request.user.is_authenticated
     with transaction.atomic():
         customer = _checkout_customer(request, details)
@@ -1216,6 +1273,9 @@ def cart_checkout(request):
             shipping_fee=shipping_fee,
             gst_amount=gst_amount,
             discount_amount=discount_amount,
+            combo_offer=combo_obj,
+            combo_name=combo_name,
+            combo_discount=combo_discount,
             coupon=applied_coupon,
             coupon_code=coupon_code if applied_coupon else "",
             payment_method=payment_method,
@@ -1292,6 +1352,12 @@ def checkout(request, product_id):
         if payment_method not in ["online", "cod"]:
             payment_method = "online"
 
+        single_cart_item = [{"product": product, "quantity": quantity, "line_total": items_subtotal}]
+        combo_obj, combo_discount, combo_details = _evaluate_cart_combos(single_cart_item, items_subtotal)
+        combo_name = combo_details.get("badge_text") or (combo_obj.name if combo_obj else "")
+        if combo_obj:
+            ComboOffer.objects.filter(pk=combo_obj.pk).update(times_used=models.F("times_used") + 1)
+
         coupon_code = (request.POST.get("coupon_code") or request.session.get("applied_coupon_code") or "").strip().upper()
         applied_coupon = None
         discount_amount = Decimal("0.00")
@@ -1306,7 +1372,7 @@ def checkout(request, product_id):
                     applied_coupon = coupon_obj
                     Coupon.objects.filter(pk=coupon_obj.pk).update(times_used=models.F("times_used") + 1)
 
-        total_price = max(Decimal("0.00"), items_subtotal - discount_amount) + gst_amount + packing_fee + shipping_fee
+        total_price = max(Decimal("0.00"), items_subtotal - combo_discount - discount_amount) + gst_amount + packing_fee + shipping_fee
 
         guest_checkout = not request.user.is_authenticated
         with transaction.atomic():
@@ -1325,6 +1391,9 @@ def checkout(request, product_id):
                 shipping_fee=shipping_fee,
                 gst_amount=gst_amount,
                 discount_amount=discount_amount,
+                combo_offer=combo_obj,
+                combo_name=combo_name,
+                combo_discount=combo_discount,
                 coupon=applied_coupon,
                 coupon_code=coupon_code if applied_coupon else "",
                 payment_method=payment_method,
@@ -1351,6 +1420,11 @@ def checkout(request, product_id):
     initial_packing_fee = site_details.calculate_packing_fee(quantity)
     initial_shipping_fee = site_details.calculate_shipping_fee(initial_state)
     initial_total_with_shipping = items_subtotal + initial_gst_amount + initial_packing_fee + initial_shipping_fee
+
+    single_cart_item = [{"product": product, "quantity": quantity, "line_total": items_subtotal}]
+    combo_obj, combo_discount, combo_details = _evaluate_cart_combos(single_cart_item, items_subtotal)
+    applied_combo_name = combo_details.get("badge_text") or (combo_obj.name if combo_obj else "")
+    total_discounted_with_shipping = max(Decimal("0.00"), initial_total_with_shipping - combo_discount)
 
     raw_phone = request.POST.get(
         "phone",
@@ -1393,6 +1467,10 @@ def checkout(request, product_id):
             "packing_batch_size": site_details.packing_batch_size,
             "shipping_fee": initial_shipping_fee,
             "total_with_shipping": initial_total_with_shipping,
+            "applied_combo": combo_obj,
+            "combo_name": applied_combo_name,
+            "combo_discount": combo_discount,
+            "total_discounted_with_shipping": total_discounted_with_shipping,
             "shipping_fee_local": site_details.shipping_fee_local,
             "shipping_fee_other": site_details.shipping_fee_other,
             "shipping_local_states": site_details.shipping_local_states,
@@ -2719,5 +2797,160 @@ def api_apply_coupon(request):
 def api_remove_coupon(request):
     request.session.pop("applied_coupon_code", None)
     return JsonResponse({"valid": True, "message": "Coupon removed successfully."})
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_combos(request):
+    show_modal = False
+    if request.method == "POST":
+        form = ComboOfferForm(request.POST)
+        if form.is_valid():
+            combo = form.save()
+            messages.success(request, f"Combo offer '{combo.name}' created successfully!")
+            return redirect("admin_combos")
+        else:
+            show_modal = True
+            for field, errs in form.errors.items():
+                for e in errs:
+                    messages.error(request, f"{field.replace('_', ' ').capitalize()}: {e}")
+    else:
+        form = ComboOfferForm()
+
+    combos = ComboOffer.objects.prefetch_related("applicable_categories").all().order_by("-created_at")
+
+    combo_orders = (
+        Order.objects.filter(
+            Q(combo_offer__isnull=False) | ~Q(combo_name="") | Q(combo_discount__gt=0)
+        )
+        .select_related("combo_offer", "customer", "product")
+        .order_by("-created_at")
+    )
+
+    total_combos_count = combos.count()
+    active_combos_count = sum(1 for c in combos if c.is_valid_status)
+    expired_combos_count = sum(1 for c in combos if c.is_expired)
+    total_combo_savings = combo_orders.aggregate(total=Sum("combo_discount"))["total"] or Decimal("0.00")
+    combo_orders_count = combo_orders.count()
+
+    context = {
+        "active_page": "combos",
+        "form": form,
+        "show_modal": show_modal,
+        "combos": combos,
+        "combo_orders": combo_orders,
+        "total_combos_count": total_combos_count,
+        "active_combos_count": active_combos_count,
+        "expired_combos_count": expired_combos_count,
+        "total_combo_savings": total_combo_savings,
+        "combo_orders_count": combo_orders_count,
+        "total_products_count": Product.objects.count(),
+        "total_coupons_count": Coupon.objects.count(),
+        "total_delivery_users_count": DeliveryProfile.objects.count(),
+        "pending_orders_count": Order.objects.filter(status="pending").count(),
+        "unread_messages_count": ContactMessage.objects.filter(is_read=False).count(),
+    }
+    return render(request, "main/admin_combos.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_toggle_combo(request, combo_id):
+    combo = get_object_or_404(ComboOffer, pk=combo_id)
+    combo.is_active = not combo.is_active
+    combo.save(update_fields=["is_active"])
+    state_str = "activated" if combo.is_active else "deactivated"
+    messages.success(request, f"Combo offer '{combo.name}' was {state_str}.")
+    return redirect("admin_combos")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_delete_combo(request, combo_id):
+    combo = get_object_or_404(ComboOffer, pk=combo_id)
+    name = combo.name
+    combo.delete()
+    messages.success(request, f"Combo offer '{name}' was permanently deleted.")
+    return redirect("admin_combos")
+
+
+def combos_showcase(request):
+    """
+    Public storefront showcase page for Combo Offers.
+    Highlights 'Cans of Assortment' with a 1-click curated button to add 6 distinct cans.
+    """
+    combos = ComboOffer.objects.filter(is_active=True).prefetch_related("applicable_categories").order_by("-created_at")
+    products = list(Product.objects.filter(available=True).order_by("id"))
+
+    assortment_sample = products[:6]
+    sample_price = sum(p.price for p in assortment_sample) if assortment_sample else Decimal("540.00")
+    assortment_combo = ComboOffer.objects.filter(is_active=True, name__icontains="assortment").first()
+    if assortment_combo:
+        sample_items = [{"product": p, "quantity": 1, "line_total": p.price} for p in assortment_sample]
+        _, assortment_discount, _ = assortment_combo.evaluate_cart(sample_items, sample_price)
+    else:
+        assortment_discount = (sample_price * Decimal("0.15")).quantize(Decimal("0.01"))
+    assortment_discounted_price = max(Decimal("0.00"), sample_price - assortment_discount)
+
+    return render(
+        request,
+        "main/combos_showcase.html",
+        {
+            "combos": combos,
+            "assortment_combo": assortment_combo,
+            "assortment_sample": assortment_sample,
+            "sample_price": sample_price,
+            "assortment_discount": assortment_discount,
+            "assortment_discounted_price": assortment_discounted_price,
+            "total_products": len(products),
+        },
+    )
+
+
+@require_POST
+def add_assortment_combo_to_cart(request):
+    """
+    Quick 1-click curated action:
+    Adds 6 distinct available cans (1 each) to the cart, unlocking Cans of Assortment!
+    """
+    available_products = list(Product.objects.filter(available=True).order_by("id")[:6])
+    if len(available_products) < 6:
+        available_products = list(Product.objects.filter(available=True).order_by("id"))
+
+    cart = request.session.get(CART_SESSION_KEY, {})
+    if not isinstance(cart, dict):
+        cart = {}
+
+    for prod in available_products:
+        cart[str(prod.id)] = 1
+
+    request.session[CART_SESSION_KEY] = cart
+    request.session.modified = True
+
+    messages.success(
+        request,
+        "✨ Added 6 distinct cans to your cart! You've unlocked the 'Cans of Assortment' combo offer!",
+    )
+    return redirect("cart")
+
+
+def api_check_combo(request):
+    items = _cart_items(request)
+    subtotal = sum((item["line_total"] for item in items), Decimal("0.00"))
+    combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, subtotal)
+    distinct_count = len({it["product"].id for it in items})
+    total_qty = sum(it["quantity"] for it in items)
+
+    return JsonResponse({
+        "combo_active": bool(combo_obj),
+        "combo_name": combo_details.get("badge_text") or (combo_obj.name if combo_obj else ""),
+        "combo_discount": float(combo_discount),
+        "distinct_count": distinct_count,
+        "total_qty": total_qty,
+        "eligible_ids": combo_details.get("eligible_product_ids", []),
+    })
+
 
 

@@ -11,6 +11,7 @@ from allauth.core.exceptions import ImmediateHttpResponse
 
 from .adapters import AdminGoogleAccountAdapter
 from .models import (
+    ComboOffer,
     ContactMessage,
     Coupon,
     CustomerAddress,
@@ -1497,19 +1498,19 @@ class CartTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["cart_count"], 5)
+        self.assertEqual(data["cart_total"], "470.00")
+        self.assertEqual(data["gst_amount"], "84.60")
+        self.assertEqual(data["packing_fee"], "0.00")
         self.assertEqual(
-            response.json(),
-            {
-                "cart_count": 5,
-                "cart_total": "470.00",
-                "gst_amount": "84.60",
-                "packing_fee": "0.00",
-                "items": [
-                    {"product_id": self.cola.id, "quantity": 4, "line_total": "360.00"},
-                    {"product_id": self.lime.id, "quantity": 1, "line_total": "110.00"},
-                ],
-            },
+            data["items"],
+            [
+                {"product_id": self.cola.id, "quantity": 4, "line_total": "360.00"},
+                {"product_id": self.lime.id, "quantity": 1, "line_total": "110.00"},
+            ],
         )
+        self.assertFalse(data["combo_active"])
 
     def test_ajax_cart_quantity_update_calculates_packing_fee_dynamically(self):
         self.add_item(self.cola, "1")
@@ -3951,6 +3952,191 @@ class RazorpayPaymentGatewayTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 400)
+
+
+class ComboOfferTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="testuser", password="password123")
+        self.admin = get_user_model().objects.create_superuser(username="adminuser", password="password123", email="admin@example.com")
+        self.cat_cola = ProductCategory.objects.create(name="Cola", slug="cola")
+        self.cat_energy = ProductCategory.objects.create(name="Energy Drink", slug="energy_drink")
+        self.cat_others = ProductCategory.objects.create(name="Others", slug="others")
+
+        self.products = []
+        for i in range(1, 9):
+            p = Product.objects.create(
+                name=f"Can Flavour {i}",
+                category="cola" if i <= 3 else "others",
+                price=Decimal("90.00"),
+                volume="330 ml",
+                available=True,
+            )
+            self.products.append(p)
+
+        self.combo = ComboOffer.objects.create(
+            name="Cans of Assortment",
+            offer_type="multiple_products",
+            discount_type="percentage",
+            discount_value=Decimal("15.00"),
+            max_discount_cap=Decimal("100.00"),
+            min_order_amount=Decimal("6.00"),
+            min_quantity=6,
+            min_distinct_products=6,
+            badge_text="Cans of Assortment",
+            is_active=True,
+        )
+
+    def test_combo_offer_creation_and_properties(self):
+        self.assertTrue(self.combo.is_valid_status)
+        self.assertFalse(self.combo.is_expired)
+        self.assertFalse(self.combo.is_usage_limit_reached)
+        self.assertIn("15% OFF", self.combo.discount_display)
+        self.assertEqual(self.combo.offer_type_display, "Multiple Products Combo")
+
+    def test_cans_of_assortment_triggers_with_6_distinct_cans(self):
+        cart_items = [
+            {"product": self.products[i], "quantity": 1, "line_total": self.products[i].price}
+            for i in range(6)
+        ]
+        subtotal = sum(it["line_total"] for it in cart_items)  # 6 * 90 = 540
+        qualifies, discount, details = self.combo.evaluate_cart(cart_items, subtotal)
+        self.assertTrue(qualifies)
+        # 15% of 540 = 81.00
+        self.assertEqual(discount, Decimal("81.00"))
+        self.assertEqual(details["badge_text"], "Cans of Assortment")
+        self.assertEqual(details["distinct_count"], 6)
+
+    def test_cans_of_assortment_fails_with_6_same_cans(self):
+        cart_items = [
+            {"product": self.products[0], "quantity": 6, "line_total": self.products[0].price * 6}
+        ]
+        subtotal = Decimal("540.00")
+        qualifies, discount, details = self.combo.evaluate_cart(cart_items, subtotal)
+        self.assertFalse(qualifies)
+        self.assertEqual(discount, Decimal("0.00"))
+
+    def test_cans_of_assortment_fails_with_fewer_than_6_cans(self):
+        cart_items = [
+            {"product": self.products[i], "quantity": 1, "line_total": self.products[i].price}
+            for i in range(5)
+        ]
+        subtotal = Decimal("450.00")
+        qualifies, discount, details = self.combo.evaluate_cart(cart_items, subtotal)
+        self.assertFalse(qualifies)
+        self.assertEqual(discount, Decimal("0.00"))
+
+    def test_max_discount_cap_enforced(self):
+        # Create a combo with 50% discount capped at 50
+        capped_combo = ComboOffer.objects.create(
+            name="Super Capped Combo",
+            offer_type="price_based",
+            discount_type="percentage",
+            discount_value=Decimal("50.00"),
+            max_discount_cap=Decimal("50.00"),
+            min_order_amount=Decimal("100.00"),
+            is_active=True,
+        )
+        cart_items = [{"product": self.products[0], "quantity": 10, "line_total": Decimal("900.00")}]
+        qualifies, discount, details = capped_combo.evaluate_cart(cart_items, Decimal("900.00"))
+        self.assertTrue(qualifies)
+        # 50% of 900 is 450, but capped at 50
+        self.assertEqual(discount, Decimal("50.00"))
+
+    def test_combos_showcase_view(self):
+        response = self.client.get(reverse("combos_showcase"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "CANS OF ASSORTMENT")
+        self.assertContains(response, "Add 6 Cans Assortment to Cart")
+
+    def test_add_assortment_combo_to_cart_action(self):
+        response = self.client.post(reverse("add_assortment_combo_to_cart"), follow=True)
+        self.assertEqual(response.status_code, 200)
+        cart = self.client.session.get("cart", {})
+        self.assertGreaterEqual(len(cart), 6)
+        self.assertContains(response, "Cans of Assortment")
+
+    def test_cart_page_displays_cans_of_assortment(self):
+        session = self.client.session
+        session["cart"] = {str(self.products[i].id): 1 for i in range(6)}
+        session.save()
+
+        response = self.client.get(reverse("cart"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cans of Assortment")
+        self.assertContains(response, "COMBO OFFER APPLIED")
+
+    def test_cart_checkout_saves_combo_offer_fields(self):
+        session = self.client.session
+        session["cart"] = {str(self.products[i].id): 1 for i in range(6)}
+        session.save()
+
+        post_data = {
+            "first_name": "Combo",
+            "last_name": "Tester",
+            "email": "combo@test.com",
+            "phone": "9876543210",
+            "address": "123 Beverage Road",
+            "city": "Chennai",
+            "state": "Tamil Nadu",
+            "postal_code": "600001",
+            "payment_method": "online",
+        }
+        response = self.client.post(reverse("cart_checkout"), data=post_data)
+        self.assertEqual(response.status_code, 302)
+
+        order = Order.objects.order_by("-id").first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.combo_offer, self.combo)
+        self.assertEqual(order.combo_name, "Cans of Assortment")
+        self.assertEqual(order.combo_discount, Decimal("81.00"))
+
+    def test_admin_combos_view_requires_staff(self):
+        # Anonymous
+        response = self.client.get(reverse("admin_combos"))
+        self.assertEqual(response.status_code, 302)
+
+        # Non-staff
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("admin_combos"))
+        self.assertEqual(response.status_code, 302)
+
+        # Staff
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_combos"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Combo Offers")
+
+    def test_admin_create_toggle_delete_combo(self):
+        self.client.force_login(self.admin)
+
+        # Create
+        create_data = {
+            "name": "Weekend Party Pack",
+            "offer_type": "price_based",
+            "discount_type": "fixed",
+            "discount_value": "75.00",
+            "min_order_amount": "500.00",
+            "min_quantity": 4,
+            "min_distinct_products": 2,
+            "is_active": True,
+        }
+        response = self.client.post(reverse("admin_combos"), data=create_data, follow=True)
+        self.assertEqual(response.status_code, 200)
+        new_combo = ComboOffer.objects.filter(name="Weekend Party Pack").first()
+        self.assertIsNotNone(new_combo)
+        self.assertTrue(new_combo.is_active)
+
+        # Toggle
+        toggle_res = self.client.post(reverse("admin_toggle_combo", kwargs={"combo_id": new_combo.id}), follow=True)
+        self.assertEqual(toggle_res.status_code, 200)
+        new_combo.refresh_from_db()
+        self.assertFalse(new_combo.is_active)
+
+        # Delete
+        del_res = self.client.post(reverse("admin_delete_combo", kwargs={"combo_id": new_combo.id}), follow=True)
+        self.assertEqual(del_res.status_code, 200)
+        self.assertFalse(ComboOffer.objects.filter(name="Weekend Party Pack").exists())
+
 
 
 
