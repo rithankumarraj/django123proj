@@ -44,9 +44,6 @@
                             <button class="btn btn-dark btn-cta" type="button" onclick="document.getElementById('shop').scrollIntoView()">
                                 Shop drinks
                             </button>
-                            <a class="btn btn-outline-warning btn-cta" href="{% url 'combos_showcase' %}" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700;">
-                                ✨ Combo Offers
-                            </a>
                             <a class="btn btn-outline-light btn-cta btn-cta--ghost" href="{% url 'about' %}">
                                 About us
                             </a>
@@ -96,24 +93,38 @@
                                     <span class="category-pill-count">{{ cat.count|default:0 }}</span>
                                 </button>
                             {% endfor %}
+                            {% if active_combos %}
+                                <button
+                                    type="button"
+                                    class="category-pill category-pill--combo"
+                                    data-filter-category="combo"
+                                    role="tab"
+                                    aria-selected="false"
+                                >
+                                    <span class="category-pill-label">Combos</span>
+                                    <span class="category-pill-count">{{ active_combos|length }}</span>
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
 
                     <div class="product-switcher" data-product-switcher>
                         <div class="product-rail" role="tablist" aria-label="Choose a product">
-                            {% for product in products %}
+                            {% for product in display_products %}
                                 <button
-                                    class="product-tile{% if forloop.first %} is-selected{% endif %}"
+                                    class="product-tile{% if forloop.first %} is-selected{% endif %}{% if product.is_combo %} is-combo-tile is-hidden{% endif %}"
                                     type="button"
                                     role="tab"
                                     data-product-index="{{ forloop.counter0 }}"
                                     data-product-category="{{ product.category }}"
-                                    data-product-url="{% url 'product_detail' product.id %}"
-                                    data-add-to-cart-url="{% url 'add_to_cart' product.id %}"
-                                    data-wishlist-url="{{ product.wishlist_url }}"
+                                    data-is-combo="{{ product.is_combo|yesno:'true,false' }}"
+                                    data-product-url="{{ product.product_url }}"
+                                    data-add-to-cart-url="{{ product.add_to_cart_url }}"
+                                    data-wishlist-url="{{ product.wishlist_url|default:'' }}"
                                     data-is-wishlisted="{{ product.is_wishlisted|yesno:'true,false' }}"
                                     aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-                                    title="Double-click to add {{ product.name }} to your cart"
+                                    title="{% if product.is_combo %}Click to view {{ product.name }}{% else %}Double-click to add {{ product.name }} to your cart{% endif %}"
+                                    {% if product.is_combo %}style="display: none;" hidden{% endif %}
                                 >
                                     <span class="product-tile-image">
                                         <img src="{{ product.image }}" alt="{{ product.name }}">
@@ -186,6 +197,6 @@
         {% include "main/includes/footer.html" %}
     </div>
 
-    {{ products|json_script:"products-data" }}
+    {{ display_products|json_script:"products-data" }}
 </body>
 </html>

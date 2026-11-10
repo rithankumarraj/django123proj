@@ -25,16 +25,20 @@ if (switcher && productData.length) {
         if (!product) return;
 
         const update = () => {
+            const isCombo = Boolean(product.is_combo);
             image.src = product.image;
             image.alt = product.name;
             if (imageLink) {
                 imageLink.href = tiles[index].dataset.productUrl;
                 imageLink.setAttribute('aria-label', `View ${product.name} details`);
+                imageLink.classList.toggle('is-combo', isCombo);
             }
             if (categoryBadge) {
-                categoryBadge.textContent = product.category_display || '';
+                categoryBadge.textContent = isCombo ? 'COMBO OFFER' : (product.category_display || '');
+                categoryBadge.classList.toggle('category-badge--combo', isCombo);
             }
-            count.textContent = `${index + 1} / ${productData.length}`;
+            const nonComboTotal = productData.filter(p => !p.is_combo).length;
+            count.textContent = isCombo ? 'COMBO DEAL' : `${index + 1} / ${nonComboTotal}`;
             name.textContent = product.name;
             if (description) {
                 description.textContent = product.description;
@@ -43,15 +47,30 @@ if (switcher && productData.length) {
                 descriptionToggle.setAttribute('aria-label', `Show ${product.name} description`);
             }
             volume.textContent = product.volume;
-            price.textContent = `₹${Number(product.price).toFixed(0)}`;
+            if (isCombo && product.original_price) {
+                price.innerHTML = `<span style="color: #2fcf7a; font-weight: 800;">₹${product.price}</span> <del style="opacity: 0.55; font-size: 0.82em; margin-left: 6px; font-weight: 400;">₹${product.original_price}</del> <span class="badge" style="background: rgba(47, 207, 122, 0.2); color: #2fcf7a; font-size: 0.72em; margin-left: 8px; padding: 3px 8px; border-radius: 999px;">${product.discount_display || 'SPECIAL OFFER'}</span>`;
+            } else {
+                price.textContent = `₹${Number(product.price).toFixed(0)}`;
+            }
+            const shopLink = switcher.querySelector('[data-product-shop]');
+            if (shopLink) {
+                shopLink.style.display = isCombo ? 'none' : '';
+            }
             if (cartForm) {
                 cartForm.action = tiles[index].dataset.addToCartUrl;
+                const addBtn = cartForm.querySelector('button');
+                if (addBtn) {
+                    addBtn.textContent = isCombo ? 'Add Combo to Cart' : 'Add to cart';
+                }
             }
             if (wishlistForm) {
-                wishlistForm.action = tiles[index].dataset.wishlistUrl;
-                const isWishlisted = tiles[index].dataset.isWishlisted === 'true';
-                wishlistButton.textContent = isWishlisted ? '♥ Saved' : '♡ Wishlist';
-                wishlistButton.setAttribute('aria-pressed', String(isWishlisted));
+                wishlistForm.style.display = isCombo ? 'none' : '';
+                if (!isCombo) {
+                    wishlistForm.action = tiles[index].dataset.wishlistUrl;
+                    const isWishlisted = tiles[index].dataset.isWishlisted === 'true';
+                    wishlistButton.textContent = isWishlisted ? '♥ Saved' : '♡ Wishlist';
+                    wishlistButton.setAttribute('aria-pressed', String(isWishlisted));
+                }
             }
 
             tiles.forEach((tile, tileIndex) => {
@@ -118,7 +137,16 @@ if (switcher && productData.length) {
                 tiles.forEach((tile) => {
                     const idx = Number(tile.dataset.productIndex);
                     const prodCategory = tile.dataset.productCategory;
-                    const matches = activeCategory === 'all' || prodCategory === activeCategory;
+                    const isCombo = tile.dataset.isCombo === 'true';
+
+                    let matches = false;
+                    if (activeCategory === 'all') {
+                        matches = !isCombo;
+                    } else if (activeCategory === 'combo') {
+                        matches = isCombo;
+                    } else {
+                        matches = (prodCategory === activeCategory) && !isCombo;
+                    }
 
                     if (matches) {
                         tile.classList.remove('is-hidden');
@@ -139,7 +167,11 @@ if (switcher && productData.length) {
                 });
 
                 if (totalCountEl) {
-                    totalCountEl.textContent = `${visibleCount} product${visibleCount === 1 ? '' : 's'}`;
+                    if (activeCategory === 'combo') {
+                        totalCountEl.textContent = `${visibleCount} combo offer${visibleCount === 1 ? '' : 's'}`;
+                    } else {
+                        totalCountEl.textContent = `${visibleCount} product${visibleCount === 1 ? '' : 's'}`;
+                    }
                 }
 
                 if (!currentIsVisible && firstVisibleIndex !== -1) {
@@ -182,6 +214,10 @@ if (switcher && productData.length) {
             }
 
             const result = await response.json();
+            if (result.redirect_url) {
+                window.location.href = result.redirect_url;
+                return;
+            }
             const cartCount = cartLink?.querySelector('.cart-count');
             if (cartCount && cartLink) {
                 cartCount.textContent = String(result.cart_count);

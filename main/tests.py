@@ -4042,11 +4042,44 @@ class ComboOfferTests(TestCase):
         # 50% of 900 is 450, but capped at 50
         self.assertEqual(discount, Decimal("50.00"))
 
-    def test_combos_showcase_view(self):
+    def test_combos_showcase_redirects_to_home_shop(self):
         response = self.client.get(reverse("combos_showcase"))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].endswith("#shop"))
+
+    def test_home_page_displays_combos_category_and_pack(self):
+        response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "CANS OF ASSORTMENT")
-        self.assertContains(response, "Add 6 Cans Assortment to Cart")
+        self.assertContains(response, 'data-filter-category="combo"')
+        self.assertContains(response, "Combos")
+        self.assertContains(response, "Cans of Assortment")
+        self.assertNotContains(response, "✨ Combo Offers")
+
+    def test_admin_combo_creation_with_image(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.admin)
+        gif_bytes = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        test_image = SimpleUploadedFile("pack.gif", gif_bytes, content_type="image/gif")
+        response = self.client.post(
+            reverse("admin_combos"),
+            data={
+                "name": "Summer 6 Pack",
+                "offer_type": "multiple_products",
+                "image": test_image,
+                "discount_type": "percentage",
+                "discount_value": "20.00",
+                "min_order_amount": "6.00",
+                "min_quantity": 6,
+                "min_distinct_products": 6,
+                "badge_text": "Summer Pack",
+                "is_active": True,
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        new_combo = ComboOffer.objects.filter(name="Summer 6 Pack").first()
+        self.assertIsNotNone(new_combo)
+        self.assertTrue(bool(new_combo.image))
 
     def test_add_assortment_combo_to_cart_action(self):
         response = self.client.post(reverse("add_assortment_combo_to_cart"), follow=True)

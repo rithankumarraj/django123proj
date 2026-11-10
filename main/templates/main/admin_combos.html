@@ -319,11 +319,14 @@
           {% for combo in combos %}
             <tr class="combo-row" data-name="{{ combo.name|lower }}">
               <td>
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                  <span class="combo-name-badge">{{ combo.name }}</span>
-                  {% if combo.badge_text and combo.badge_text != combo.name %}
-                    <span style="font-size: 0.72rem; color: rgba(255,255,255,0.5);">Badge: {{ combo.badge_text }}</span>
-                  {% endif %}
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #000; border: 1px solid rgba(255,255,255,0.12); padding: 2px;">
+                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span class="combo-name-badge">{{ combo.name }}</span>
+                    {% if combo.badge_text and combo.badge_text != combo.name %}
+                      <span style="font-size: 0.72rem; color: rgba(255,255,255,0.5);">Badge: {{ combo.badge_text }}</span>
+                    {% endif %}
+                  </div>
                 </div>
               </td>
               <td>
@@ -428,7 +431,7 @@
         <h3 class="admin-modal-title">Create New Combo Offer</h3>
         <button type="button" class="admin-modal-close" onclick="closeComboModal()">&times;</button>
       </div>
-      <form method="post" action="{% url 'admin_combos' %}">
+      <form method="post" action="{% url 'admin_combos' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="admin-modal-body">
           <div class="form-grid">
@@ -444,6 +447,13 @@
               <label for="{{ form.name.id_for_label }}" class="form-label">Combo Name *</label>
               {{ form.name }}
               <small class="form-help">e.g. Cans of Assortment, Weekend Blast</small>
+            </div>
+
+            <!-- Combo Pack Image Upload -->
+            <div>
+              <label for="{{ form.image.id_for_label }}" class="form-label">Combo Pack Image</label>
+              {{ form.image }}
+              <small class="form-help">Upload combo pack photo (e.g. 6-can shrink wrap pack).</small>
             </div>
 
             <!-- 3. Badge Text -->
@@ -571,3 +581,4 @@
     }
   </script>
 {% endblock %}
+

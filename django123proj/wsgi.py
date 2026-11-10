@@ -32,6 +32,7 @@ if os.environ.get("VERCEL") == "1":
                 "min_quantity": 6,
                 "min_distinct_products": 6,
                 "badge_text": "Cans of Assortment",
+                "image": "combos/cans_of_assortment.jpg",
                 "description": "Mix & match any 6 different cans to unlock the Cans of Assortment combo offer with 15% instant discount!",
                 "is_active": True,
             },

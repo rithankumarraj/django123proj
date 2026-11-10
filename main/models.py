@@ -434,6 +434,12 @@ class ComboOffer(models.Model):
         blank=True,
         help_text="Expiry Date for combo offer.",
     )
+    image = models.ImageField(
+        upload_to="combos/",
+        blank=True,
+        null=True,
+        help_text="Upload combo pack showcase image.",
+    )
     times_used = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     description = models.TextField(
@@ -508,6 +514,15 @@ class ComboOffer(models.Model):
     @property
     def offer_type_display(self):
         return dict(self.OFFER_TYPE_CHOICES).get(self.offer_type, self.offer_type.replace("_", " ").title())
+
+    @property
+    def image_url(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        return "/static/main/images/combos/cans_of_assortment.jpg"
 
     def evaluate_cart(self, cart_items, subtotal=None):
         if not self.is_valid_status:

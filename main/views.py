@@ -529,9 +529,47 @@ def home(request):
             "category_display": product.category_display,
             "is_wishlisted": product.id in wishlisted_ids,
             "wishlist_url": reverse("wishlist_toggle", kwargs={"product_id": product.id}),
+            "product_url": reverse("product_detail", kwargs={"product_id": product.id}),
+            "add_to_cart_url": reverse("add_to_cart", kwargs={"product_id": product.id}),
+            "is_combo": False,
         }
         for product in product_records
     ]
+
+    active_combos = list(
+        ComboOffer.objects.filter(is_active=True)
+        .prefetch_related("applicable_categories")
+        .order_by("-created_at")
+    )
+    combo_items = []
+    for combo in active_combos:
+        req_qty = combo.min_quantity or 6
+        sample_prods = list(product_records[:req_qty])
+        sample_sum = sum(p.price for p in sample_prods) if sample_prods else Decimal("540.00")
+        sample_cart_items = [{"product": p, "quantity": 1, "line_total": p.price} for p in sample_prods]
+        _, c_disc, _ = combo.evaluate_cart(sample_cart_items, sample_sum)
+        final_price = max(Decimal("0.00"), sample_sum - c_disc)
+
+        combo_items.append({
+            "id": f"combo_{combo.id}",
+            "name": combo.name,
+            "description": combo.description or f"Mix and match any {req_qty} different cans to unlock {combo.discount_display} savings!",
+            "price": f"{final_price:.0f}",
+            "original_price": f"{sample_sum:.0f}",
+            "discount_display": combo.discount_display,
+            "volume": f"{req_qty} × 330 ml Pack",
+            "image": combo.image_url,
+            "category": "combo",
+            "category_display": "Combo Offer",
+            "is_wishlisted": False,
+            "wishlist_url": "",
+            "product_url": reverse("home") + "#shop",
+            "add_to_cart_url": reverse("add_assortment_combo_to_cart"),
+            "is_combo": True,
+            "combo_id": combo.id,
+        })
+
+    display_products = products + combo_items
 
     category_counts = {
         "all": len(products),
@@ -573,6 +611,9 @@ def home(request):
         "main/home.html",
         {
             "products": products,
+            "display_products": display_products,
+            "active_combos": active_combos,
+            "combo_items": combo_items,
             "categories": categories,
             "category_counts": category_counts,
             "cart_count": _cart_quantity(request),
@@ -2804,7 +2845,7 @@ def api_remove_coupon(request):
 def admin_combos(request):
     show_modal = False
     if request.method == "POST":
-        form = ComboOfferForm(request.POST)
+        form = ComboOfferForm(request.POST, request.FILES)
         if form.is_valid():
             combo = form.save()
             messages.success(request, f"Combo offer '{combo.name}' created successfully!")
@@ -2878,35 +2919,11 @@ def admin_delete_combo(request, combo_id):
 
 def combos_showcase(request):
     """
-    Public storefront showcase page for Combo Offers.
-    Highlights 'Cans of Assortment' with a 1-click curated button to add 6 distinct cans.
+    Public showcase for combos is integrated directly into the homepage shop switcher
+    under the 'Combos' category filter pill, per user request (no separate page).
+    Redirects to the homepage shop section.
     """
-    combos = ComboOffer.objects.filter(is_active=True).prefetch_related("applicable_categories").order_by("-created_at")
-    products = list(Product.objects.filter(available=True).order_by("id"))
-
-    assortment_sample = products[:6]
-    sample_price = sum(p.price for p in assortment_sample) if assortment_sample else Decimal("540.00")
-    assortment_combo = ComboOffer.objects.filter(is_active=True, name__icontains="assortment").first()
-    if assortment_combo:
-        sample_items = [{"product": p, "quantity": 1, "line_total": p.price} for p in assortment_sample]
-        _, assortment_discount, _ = assortment_combo.evaluate_cart(sample_items, sample_price)
-    else:
-        assortment_discount = (sample_price * Decimal("0.15")).quantize(Decimal("0.01"))
-    assortment_discounted_price = max(Decimal("0.00"), sample_price - assortment_discount)
-
-    return render(
-        request,
-        "main/combos_showcase.html",
-        {
-            "combos": combos,
-            "assortment_combo": assortment_combo,
-            "assortment_sample": assortment_sample,
-            "sample_price": sample_price,
-            "assortment_discount": assortment_discount,
-            "assortment_discounted_price": assortment_discounted_price,
-            "total_products": len(products),
-        },
-    )
+    return redirect(reverse("home") + "#shop")
 
 
 @require_POST
@@ -2928,6 +2945,13 @@ def add_assortment_combo_to_cart(request):
 
     request.session[CART_SESSION_KEY] = cart
     request.session.modified = True
+
+    if request.headers.get("Accept") == "application/json" or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "cart_count": _cart_quantity(request),
+            "redirect_url": reverse("cart"),
+            "message": "✨ Added 6 distinct cans to your cart! You've unlocked the 'Cans of Assortment' combo offer!",
+        })
 
     messages.success(
         request,

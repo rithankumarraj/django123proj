@@ -690,6 +690,7 @@ class ComboOfferForm(forms.ModelForm):
         fields = [
             "name",
             "offer_type",
+            "image",
             "applicable_categories",
             "discount_type",
             "discount_value",
@@ -706,6 +707,7 @@ class ComboOfferForm(forms.ModelForm):
         labels = {
             "name": "Combo Name",
             "offer_type": "Offer Type",
+            "image": "Combo Pack Image",
             "applicable_categories": "Selective Categories",
             "discount_type": "Discount Type",
             "discount_value": "Discount Value",
@@ -730,6 +732,11 @@ class ComboOfferForm(forms.ModelForm):
                 "class": "form-control",
                 "id": "id_combo_offer_type",
                 "required": True,
+            }),
+            "image": forms.FileInput(attrs={
+                "class": "form-control",
+                "id": "id_combo_image",
+                "accept": "image/*",
             }),
             "discount_type": forms.Select(attrs={
                 "class": "form-control",

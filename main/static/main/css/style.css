@@ -1934,3 +1934,52 @@ a {
   display: none !important;
 }
 
+.category-pill--combo {
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.category-pill--combo:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.category-pill--combo.is-active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #d97706;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
+.category-pill--combo .category-pill-count {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+}
+
+.category-pill--combo.is-active .category-pill-count {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.switch-category-badge.category-badge--combo {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+}
+
+.switch-image-wrap.is-combo {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+}
+
+.product-tile.is-combo-tile {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.product-tile.is-combo-tile .product-tile-image {
+  background: #000000;
+  border-radius: 8px;
+}
+
