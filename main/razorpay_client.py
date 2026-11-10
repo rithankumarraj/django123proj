@@ -52,8 +52,11 @@ def create_razorpay_order(order):
         )
         data = resp.json()
         if resp.status_code in (200, 201) and "id" in data:
-            order.razorpay_order_id = data["id"]
-            order.save(update_fields=["razorpay_order_id"])
+            try:
+                order.razorpay_order_id = data["id"]
+                order.save(update_fields=["razorpay_order_id"])
+            except Exception as db_err:
+                logger.warning("Could not persist razorpay_order_id to DB: %s", db_err)
             return True, data
         else:
             err_msg = data.get("error", {}).get("description", "Failed to create Razorpay order.")

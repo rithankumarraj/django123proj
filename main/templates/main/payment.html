@@ -670,8 +670,9 @@
       </div>
       <form method="post" id="paymentConfirmForm" class="payment-actions">
         {% csrf_token %}
+        <input type="hidden" name="action" id="paymentActionField" value="confirm">
         <button class="payment-confirm" id="confirmDemoPaymentBtn" type="submit" name="action" value="confirm">Confirm demo payment</button>
-        <button class="payment-cancel" type="submit" name="action" value="cancel">Cancel payment</button>
+        <button class="payment-cancel" type="submit" name="action" value="cancel" onclick="var a=document.getElementById('paymentActionField');if(a)a.value='cancel';">Cancel payment</button>
       </form>
       {% else %}
       <div class="payment-notice">
@@ -728,7 +729,6 @@
             currency: currency,
             name: "J CSD Drinks",
             description: "Order #{{ order.id }}",
-            order_id: rOrderId,
             prefill: {
               name: "{{ order.customer_name|escapejs }}",
               contact: "{{ order.customer_phone|escapejs }}",
@@ -768,7 +768,7 @@
               })
               .catch(function (err) {
                 console.error('Razorpay verification error:', err);
-                if (confirmForm) confirmForm.submit();
+                safeFallbackSubmit();
               });
             },
             modal: {
@@ -778,6 +778,10 @@
               }
             }
           };
+
+          if (rOrderId) {
+            options.order_id = rOrderId;
+          }
 
           try {
             var rzp = new Razorpay(options);
@@ -791,8 +795,14 @@
             console.error('Razorpay open error:', err);
             confirmBtn.disabled = false;
             confirmBtn.textContent = origText;
-            if (confirmForm) confirmForm.submit();
+            safeFallbackSubmit();
           }
+        }
+
+        function safeFallbackSubmit() {
+          var actionField = document.getElementById('paymentActionField');
+          if (actionField) actionField.value = 'confirm';
+          if (confirmForm) confirmForm.submit();
         }
 
         if (orderId) {
@@ -806,13 +816,13 @@
                 amountInPaise = data.amount || amountInPaise;
                 openRazorpayModal(orderId, amountInPaise);
               } else {
-                console.warn('Could not initialize Razorpay order:', data);
-                if (confirmForm) confirmForm.submit();
+                console.warn('Could not initialize Razorpay order ID, opening Razorpay modal with amount directly:', data);
+                openRazorpayModal(null, amountInPaise);
               }
             })
             .catch(function (err) {
-              console.error('Failed to init Razorpay order:', err);
-              if (confirmForm) confirmForm.submit();
+              console.error('Failed to init Razorpay order ID, opening Razorpay modal with amount directly:', err);
+              openRazorpayModal(null, amountInPaise);
             });
         }
       });

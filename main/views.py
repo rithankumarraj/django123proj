@@ -1451,7 +1451,7 @@ def payment_page(request, payment_reference):
         if not razorpay_order_id:
             success, rzp_data = create_razorpay_order(order)
             if success:
-                razorpay_order_id = order.razorpay_order_id
+                razorpay_order_id = rzp_data.get("id") or getattr(order, "razorpay_order_id", "")
             else:
                 razorpay_error = rzp_data.get("error", "Could not initiate Razorpay order.")
 
@@ -1461,7 +1461,12 @@ def payment_page(request, payment_reference):
         elif order.payment_status != "pending":
             error = "This order already has a final payment status."
         else:
-            action = request.POST.get("action")
+            raw_action = request.POST.get("action")
+            if raw_action is None or raw_action == "":
+                action = "confirm"
+            else:
+                action = raw_action.strip().lower()
+
             event_types = {
                 "confirm": "payment.succeeded",
                 "cancel": "payment.failed",
@@ -1516,16 +1521,18 @@ def razorpay_create_order_view(request, payment_reference):
     if order.payment_status != "pending":
         return JsonResponse({"success": False, "error": "Order is not pending payment."})
 
-    if not order.razorpay_order_id:
+    rzp_order_id = getattr(order, "razorpay_order_id", "")
+    if not rzp_order_id:
         success, rzp_data = create_razorpay_order(order)
         if not success:
             return JsonResponse({"success": False, "error": rzp_data.get("error", "Could not create Razorpay order.")})
+        rzp_order_id = rzp_data.get("id", "")
 
     amount_in_paise = max(100, int(round(float(order.total_amount) * 100)))
     return JsonResponse({
         "success": True,
         "key_id": getattr(settings, "RAZORPAY_KEY_ID", ""),
-        "order_id": order.razorpay_order_id,
+        "order_id": rzp_order_id,
         "amount": amount_in_paise,
         "currency": "INR",
         "name": order.customer_name or "Customer",
@@ -1553,7 +1560,10 @@ def razorpay_verify_payment(request):
         except Exception:
             order = None
     if not order and razorpay_order_id:
-        order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+        try:
+            order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+        except Exception:
+            order = None
 
     if not order:
         return JsonResponse({"success": False, "error": "Order not found."}, status=404)
@@ -1566,10 +1576,20 @@ def razorpay_verify_payment(request):
     with transaction.atomic():
         order.payment_status = "paid"
         order.payment_event_id = f"rzp_{razorpay_payment_id}"
-        order.razorpay_payment_id = razorpay_payment_id
-        order.razorpay_order_id = razorpay_order_id
-        order.razorpay_signature = razorpay_signature
-        order.save(update_fields=["payment_status", "payment_event_id", "razorpay_payment_id", "razorpay_order_id", "razorpay_signature"])
+        update_fields = ["payment_status", "payment_event_id"]
+        if hasattr(order, "razorpay_payment_id"):
+            order.razorpay_payment_id = razorpay_payment_id
+            update_fields.append("razorpay_payment_id")
+        if hasattr(order, "razorpay_order_id") and razorpay_order_id:
+            order.razorpay_order_id = razorpay_order_id
+            update_fields.append("razorpay_order_id")
+        if hasattr(order, "razorpay_signature") and razorpay_signature:
+            order.razorpay_signature = razorpay_signature
+            update_fields.append("razorpay_signature")
+        try:
+            order.save(update_fields=update_fields)
+        except Exception:
+            order.save(update_fields=["payment_status", "payment_event_id"])
 
     request.session["last_order_reference"] = str(order.payment_reference)
     redirect_url = reverse("order_receipt_by_reference", kwargs={"payment_reference": order.payment_reference})
