@@ -522,7 +522,7 @@ class ComboOffer(models.Model):
                 return self.image.url
             except Exception:
                 pass
-        return "/static/main/images/combos/cans_of_assortment.jpg"
+        return "/static/main/images/combos/cans_of_assortment.png"
 
     def evaluate_cart(self, cart_items, subtotal=None):
         if not self.is_valid_status:

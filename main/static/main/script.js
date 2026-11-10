@@ -48,7 +48,7 @@ if (switcher && productData.length) {
             }
             volume.textContent = product.volume;
             if (isCombo && product.original_price) {
-                price.innerHTML = `<span style="color: #2fcf7a; font-weight: 800;">₹${product.price}</span> <del style="opacity: 0.55; font-size: 0.82em; margin-left: 6px; font-weight: 400;">₹${product.original_price}</del> <span class="badge" style="background: rgba(47, 207, 122, 0.2); color: #2fcf7a; font-size: 0.72em; margin-left: 8px; padding: 3px 8px; border-radius: 999px;">${product.discount_display || 'SPECIAL OFFER'}</span>`;
+                price.innerHTML = `<span style="color: #16a34a; font-weight: 800; font-size: 1.15em;">₹${product.price}</span> <del style="opacity: 0.55; font-size: 0.85em; margin: 0 6px; font-weight: 400; color: #666;">₹${product.original_price}</del> <span class="badge" style="background: rgba(22, 163, 74, 0.12); color: #15803d; border: 1px solid rgba(22, 163, 74, 0.25); font-size: 0.72em; padding: 3px 8px; border-radius: 999px; font-weight: 700; white-space: nowrap;">${product.discount_display || 'SPECIAL OFFER'}</span>`;
             } else {
                 price.textContent = `₹${Number(product.price).toFixed(0)}`;
             }
