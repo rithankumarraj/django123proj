@@ -436,6 +436,9 @@ class Order(models.Model):
     payment_event_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
     cashfree_order_id = models.CharField(max_length=100, blank=True, default="")
     cashfree_payment_session_id = models.TextField(blank=True, default="")
+    razorpay_order_id = models.CharField(max_length=100, blank=True, default="")
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, default="")
+    razorpay_signature = models.CharField(max_length=255, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
 

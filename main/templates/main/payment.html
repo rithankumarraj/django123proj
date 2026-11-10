@@ -657,14 +657,14 @@
         </div>
       </div>
       {% else %}
-      {% if cashfree_error %}
+      {% if razorpay_error %}
       <div class="payment-notice"
         style="background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5;">
-        <strong>Payment Gateway Notice:</strong> {{ cashfree_error }}
+        <strong>Payment Gateway Notice:</strong> {{ razorpay_error }}
       </div>
       {% endif %}
 
-      {% if simulation_enabled or cashfree_enabled %}
+      {% if simulation_enabled or razorpay_enabled %}
       <div class="payment-notice">
         Demo only: confirming records a simulated successful payment. No card, bank, or UPI payment is made.
       </div>
@@ -692,14 +692,18 @@
   </main>
   {% include "main/includes/footer.html" %}
 
-  {% if cashfree_enabled %}
-  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+  {% if razorpay_enabled %}
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     (function () {
-      var sessionId = "{{ cashfree_session_id|escapejs }}";
-      var mode = "{{ cashfree_mode|default:'sandbox'|escapejs }}";
-      var returnUrl = "{{ cashfree_return_url|escapejs }}";
-      var initUrl = "{% url 'cashfree_init_session' order.payment_reference %}";
+      var keyId = "{{ razorpay_key_id|escapejs }}";
+      var orderId = "{{ razorpay_order_id|escapejs }}";
+      var amountInPaise = {{ razorpay_amount_in_paise|default:0 }};
+      var currency = "{{ razorpay_currency|default:'INR'|escapejs }}";
+      var paymentRef = "{{ order.payment_reference }}";
+      var initUrl = "{% url 'razorpay_create_order' order.payment_reference %}";
+      var verifyUrl = "{% url 'razorpay_verify_payment' %}";
+      var csrfToken = "{{ csrf_token }}";
 
       var confirmBtn = document.getElementById('confirmDemoPaymentBtn');
       var confirmForm = document.getElementById('paymentConfirmForm');
@@ -707,56 +711,107 @@
       if (!confirmBtn) return;
 
       confirmBtn.addEventListener('click', function (e) {
-        if (typeof Cashfree === 'undefined') {
-          // If Cashfree SDK is not available, allow normal form submission
+        if (typeof Razorpay === 'undefined' || !keyId) {
+          // Fall back to standard form submission if SDK isn't loaded
           return;
         }
 
         e.preventDefault();
         var origText = confirmBtn.textContent;
         confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Launching Cashfree Test Setup...';
+        confirmBtn.textContent = 'Launching Razorpay Checkout...';
 
-        var cashfree = Cashfree({ mode: mode });
+        function openRazorpayModal(rOrderId, rAmount) {
+          var options = {
+            key: keyId,
+            amount: rAmount || amountInPaise,
+            currency: currency,
+            name: "J CSD Drinks",
+            description: "Order #{{ order.id }}",
+            order_id: rOrderId,
+            prefill: {
+              name: "{{ order.customer_name|escapejs }}",
+              contact: "{{ order.customer_phone|escapejs }}",
+              email: "{{ request.user.email|default:''|escapejs }}"
+            },
+            notes: {
+              order_id: "{{ order.id }}",
+              payment_reference: paymentRef
+            },
+            theme: {
+              color: "#ff6b2b"
+            },
+            handler: function (response) {
+              confirmBtn.textContent = 'Verifying payment...';
+              fetch(verifyUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({
+                  payment_reference: paymentRef,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature
+                })
+              })
+              .then(function (res) { return res.json(); })
+              .then(function (data) {
+                if (data.success && data.redirect_url) {
+                  window.location.href = data.redirect_url;
+                } else {
+                  alert(data.error || 'Payment verification failed. Please try again.');
+                  confirmBtn.disabled = false;
+                  confirmBtn.textContent = origText;
+                }
+              })
+              .catch(function (err) {
+                console.error('Razorpay verification error:', err);
+                if (confirmForm) confirmForm.submit();
+              });
+            },
+            modal: {
+              ondismiss: function () {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = origText;
+              }
+            }
+          };
 
-        function launchCheckoutModal(sid) {
-          cashfree.checkout({
-            paymentSessionId: sid,
-            redirectTarget: '_modal'
-          }).then(function (result) {
-            if (result.error) {
-              console.warn('Cashfree checkout notice:', result.error);
+          try {
+            var rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (resp) {
+              console.warn('Razorpay payment failed:', resp.error);
               confirmBtn.disabled = false;
               confirmBtn.textContent = origText;
-            }
-            if (result.paymentDetails) {
-              window.location.href = returnUrl;
-            }
-          }).catch(function (err) {
-            console.error('Cashfree checkout exception:', err);
+            });
+            rzp.open();
+          } catch (err) {
+            console.error('Razorpay open error:', err);
             confirmBtn.disabled = false;
             confirmBtn.textContent = origText;
             if (confirmForm) confirmForm.submit();
-          });
+          }
         }
 
-        if (sessionId) {
-          launchCheckoutModal(sessionId);
+        if (orderId) {
+          openRazorpayModal(orderId, amountInPaise);
         } else {
           fetch(initUrl)
             .then(function (res) { return res.json(); })
             .then(function (data) {
-              if (data.success && data.session_id) {
-                sessionId = data.session_id;
-                if (data.return_url) returnUrl = data.return_url;
-                launchCheckoutModal(sessionId);
+              if (data.success && data.order_id) {
+                orderId = data.order_id;
+                amountInPaise = data.amount || amountInPaise;
+                openRazorpayModal(orderId, amountInPaise);
               } else {
-                console.warn('Could not initialize Cashfree session:', data);
+                console.warn('Could not initialize Razorpay order:', data);
                 if (confirmForm) confirmForm.submit();
               }
             })
             .catch(function (err) {
-              console.error('Failed to init Cashfree session:', err);
+              console.error('Failed to init Razorpay order:', err);
               if (confirmForm) confirmForm.submit();
             });
         }

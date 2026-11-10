@@ -801,9 +801,9 @@ class CheckoutQuantityTests(TestCase):
 
     @override_settings(
         PAYMENT_SIMULATION_ENABLED=False,
-        CASHFREE_ENABLED=False,
-        CASHFREE_APP_ID="",
-        CASHFREE_SECRET_KEY="",
+        RAZORPAY_ENABLED=False,
+        RAZORPAY_KEY_ID="",
+        RAZORPAY_KEY_SECRET="",
     )
     def test_payment_page_does_not_claim_payment_when_simulation_disabled(self):
         self.client.force_login(self.customer)
@@ -3826,7 +3826,7 @@ class CouponSystemTests(TestCase):
         self.assertContains(res_cart, 'id="cartApplyCouponBtn"')
 
 
-class CashfreePaymentGatewayTests(TestCase):
+class RazorpayPaymentGatewayTests(TestCase):
     def setUp(self):
         self.category = ProductCategory.objects.create(name="Energy", slug="energy-test")
         self.product = Product.objects.create(
@@ -3844,77 +3844,109 @@ class CashfreePaymentGatewayTests(TestCase):
             total_amount=Decimal("156.20"),
             payment_method="online",
             payment_status="pending",
-            cashfree_order_id="ORDER_TEST_123",
-            cashfree_payment_session_id="session_test_mock_123",
+            razorpay_order_id="order_test_mock_123",
         )
 
-    def test_clean_phone_number(self):
-        from main.cashfree_client import clean_phone_number
-        self.assertEqual(clean_phone_number("+91 9876543210"), "9876543210")
-        self.assertEqual(clean_phone_number("09876543210"), "9876543210")
-        self.assertEqual(clean_phone_number("9876543210"), "9876543210")
-        self.assertEqual(clean_phone_number(""), "9999999999")
+    def test_signature_verification(self):
+        from main.razorpay_client import verify_razorpay_signature
+        import hmac, hashlib
+        from django.conf import settings
 
-    def test_payment_page_renders_cashfree_elements(self):
+        order_id = "order_12345"
+        payment_id = "pay_67890"
+        msg = f"{order_id}|{payment_id}".encode("utf-8")
+        sig = hmac.new(settings.RAZORPAY_KEY_SECRET.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+        self.assertTrue(verify_razorpay_signature(order_id, payment_id, sig))
+        self.assertFalse(verify_razorpay_signature(order_id, payment_id, "invalid_sig"))
+
+    def test_payment_page_renders_razorpay_elements(self):
         url = reverse("payment_page", kwargs={"payment_reference": self.order.payment_reference})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Confirm demo payment")
-        self.assertContains(response, "sdk.cashfree.com/js/v3/cashfree.js")
+        self.assertContains(response, "checkout.razorpay.com/v1/checkout.js")
         self.assertContains(response, "confirmDemoPaymentBtn")
 
-    def test_cashfree_init_session_endpoint(self):
-        url = reverse("cashfree_init_session", kwargs={"payment_reference": self.order.payment_reference})
+    def test_razorpay_create_order_endpoint(self):
+        url = reverse("razorpay_create_order", kwargs={"payment_reference": self.order.payment_reference})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data["success"])
-        self.assertEqual(data["session_id"], "session_test_mock_123")
+        self.assertEqual(data["order_id"], "order_test_mock_123")
+        self.assertEqual(data["amount"], 15620)
 
-    @patch("main.views.get_cashfree_order")
-    def test_cashfree_payment_return_success(self, mock_get_order):
-        mock_get_order.return_value = (True, {"order_status": "PAID", "cf_order_id": "cf_12345"})
-        url = reverse("cashfree_payment_return") + f"?order_id={self.order.cashfree_order_id}&payment_ref={self.order.payment_reference}"
-        response = self.client.get(url)
-        self.assertRedirects(response, reverse("order_receipt_by_reference", kwargs={"payment_reference": self.order.payment_reference}))
+    def test_razorpay_verify_payment_success(self):
+        import hmac, hashlib
+        from django.conf import settings
+
+        order_id = self.order.razorpay_order_id
+        payment_id = "pay_valid_mock_999"
+        msg = f"{order_id}|{payment_id}".encode("utf-8")
+        sig = hmac.new(settings.RAZORPAY_KEY_SECRET.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+        url = reverse("razorpay_verify_payment")
+        response = self.client.post(
+            url,
+            data=json.dumps({
+                "payment_reference": str(self.order.payment_reference),
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertIn("receipt", data["redirect_url"])
+
         self.order.refresh_from_db()
         self.assertEqual(self.order.payment_status, "paid")
-        self.assertEqual(self.order.payment_event_id, "cf_cf_12345")
+        self.assertEqual(self.order.razorpay_payment_id, payment_id)
+        self.assertEqual(self.order.payment_event_id, f"rzp_{payment_id}")
 
-    @patch("main.views.get_cashfree_order")
-    def test_cashfree_payment_return_failed(self, mock_get_order):
-        mock_get_order.return_value = (True, {"order_status": "FAILED"})
-        url = reverse("cashfree_payment_return") + f"?order_id={self.order.cashfree_order_id}&payment_ref={self.order.payment_reference}"
-        response = self.client.get(url)
-        self.assertRedirects(response, reverse("payment_page", kwargs={"payment_reference": self.order.payment_reference}))
+    def test_razorpay_verify_payment_invalid_signature_rejected(self):
+        url = reverse("razorpay_verify_payment")
+        response = self.client.post(
+            url,
+            data=json.dumps({
+                "payment_reference": str(self.order.payment_reference),
+                "razorpay_order_id": self.order.razorpay_order_id,
+                "razorpay_payment_id": "pay_fake",
+                "razorpay_signature": "fake_signature",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
         self.order.refresh_from_db()
-        self.assertEqual(self.order.payment_status, "failed")
+        self.assertEqual(self.order.payment_status, "pending")
 
-    @patch("main.views.verify_cashfree_webhook")
-    def test_cashfree_webhook_success(self, mock_verify):
+    @patch("main.views.verify_razorpay_webhook_signature")
+    def test_razorpay_webhook_success(self, mock_verify):
         mock_verify.return_value = (True, "Valid")
         payload = {
-            "type": "PAYMENT_SUCCESS_WEBHOOK",
-            "data": {
-                "order": {"order_id": self.order.cashfree_order_id},
-                "payment": {"cf_payment_id": "cf_pay_9999", "payment_status": "SUCCESS"}
+            "event": "payment.captured",
+            "payload": {
+                "order": {"entity": {"id": self.order.razorpay_order_id}},
+                "payment": {"entity": {"id": "pay_hook_888", "order_id": self.order.razorpay_order_id}}
             }
         }
         response = self.client.post(
-            reverse("cashfree_webhook"),
+            reverse("razorpay_webhook"),
             data=json.dumps(payload),
             content_type="application/json",
-            HTTP_X_WEBHOOK_SIGNATURE="mock_sig",
-            HTTP_X_WEBHOOK_TIMESTAMP="1600000000",
+            HTTP_X_RAZORPAY_SIGNATURE="mock_sig",
         )
         self.assertEqual(response.status_code, 200)
         self.order.refresh_from_db()
         self.assertEqual(self.order.payment_status, "paid")
-        self.assertEqual(self.order.payment_event_id, "cf_cf_pay_9999")
+        self.assertEqual(self.order.razorpay_payment_id, "pay_hook_888")
 
-    def test_cashfree_webhook_invalid_signature_rejected(self):
+    def test_razorpay_webhook_invalid_signature_rejected(self):
         response = self.client.post(
-            reverse("cashfree_webhook"),
+            reverse("razorpay_webhook"),
             data=json.dumps({"some": "data"}),
             content_type="application/json",
         )

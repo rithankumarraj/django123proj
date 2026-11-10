@@ -58,10 +58,11 @@ from .models import (
     SiteDetails,
 )
 from .payments import process_payment_webhook, sign_webhook_payload
-from .cashfree_client import (
-    create_cashfree_order,
-    get_cashfree_order,
-    verify_cashfree_webhook,
+from .razorpay_client import (
+    create_razorpay_order,
+    verify_razorpay_signature,
+    get_razorpay_payment,
+    verify_razorpay_webhook_signature,
 )
 from .captcha import generate_captcha_image, generate_captcha_text
 
@@ -1430,14 +1431,6 @@ def payment_page(request, payment_reference):
         if order.customer_id != request.user.pk:
             raise Http404
 
-    # Check and sync status with Cashfree if order is pending and has a cashfree_order_id
-    if order.payment_status == "pending" and order.cashfree_order_id:
-        ok, cf_info = get_cashfree_order(order.cashfree_order_id)
-        if ok and cf_info.get("order_status") == "PAID":
-            order.payment_status = "paid"
-            order.payment_event_id = f"cf_{cf_info.get('cf_order_id') or order.cashfree_order_id}"
-            order.save(update_fields=["payment_status", "payment_event_id"])
-
     order_items = list(order.items.all())
     if not order_items and order.product_id:
         order_items = [
@@ -1450,24 +1443,17 @@ def payment_page(request, payment_reference):
         ]
     error = None
 
-    cashfree_session_id = order.cashfree_payment_session_id
-    cashfree_error = None
-    cashfree_enabled = getattr(settings, "CASHFREE_ENABLED", False)
+    razorpay_order_id = order.razorpay_order_id
+    razorpay_error = None
+    razorpay_enabled = getattr(settings, "RAZORPAY_ENABLED", False)
 
-    cashfree_return_url = request.build_absolute_uri(
-        reverse("cashfree_payment_return")
-    ) + f"?order_id={{order_id}}&payment_ref={order.payment_reference}"
-    cashfree_notify_url = request.build_absolute_uri(reverse("cashfree_webhook"))
-
-    if cashfree_enabled and order.payment_method == "online" and order.payment_status == "pending":
-        if not cashfree_session_id:
-            success, cf_data = create_cashfree_order(
-                order, return_url=cashfree_return_url, notify_url=cashfree_notify_url
-            )
+    if razorpay_enabled and order.payment_method == "online" and order.payment_status == "pending":
+        if not razorpay_order_id:
+            success, rzp_data = create_razorpay_order(order)
             if success:
-                cashfree_session_id = order.cashfree_payment_session_id
+                razorpay_order_id = order.razorpay_order_id
             else:
-                cashfree_error = cf_data.get("error", "Could not initiate Cashfree session.")
+                razorpay_error = rzp_data.get("error", "Could not initiate Razorpay order.")
 
     if request.method == "POST":
         if not settings.PAYMENT_SIMULATION_ENABLED:
@@ -1502,7 +1488,7 @@ def payment_page(request, payment_reference):
                 "payment_page", payment_reference=order.payment_reference
             )
 
-    cashfree_mode = "sandbox" if getattr(settings, "CASHFREE_ENV", "TEST").upper() in ("TEST", "SANDBOX") else "production"
+    amount_in_paise = max(100, int(round(float(order.total_amount) * 100)))
 
     return render(
         request,
@@ -1511,13 +1497,12 @@ def payment_page(request, payment_reference):
             "order": order,
             "order_items": order_items,
             "simulation_enabled": settings.PAYMENT_SIMULATION_ENABLED,
-            "cashfree_enabled": cashfree_enabled,
-            "cashfree_session_id": cashfree_session_id,
-            "cashfree_error": cashfree_error,
-            "cashfree_mode": cashfree_mode,
-            "cashfree_return_url": request.build_absolute_uri(
-                reverse("cashfree_payment_return")
-            ) + f"?order_id={order.cashfree_order_id}&payment_ref={order.payment_reference}",
+            "razorpay_enabled": razorpay_enabled,
+            "razorpay_key_id": getattr(settings, "RAZORPAY_KEY_ID", ""),
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_amount_in_paise": amount_in_paise,
+            "razorpay_currency": "INR",
+            "razorpay_error": razorpay_error,
             "password_setup_required": request.session.get(
                 GUEST_PASSWORD_SETUP_SESSION_KEY, False
             ),
@@ -1526,35 +1511,40 @@ def payment_page(request, payment_reference):
     )
 
 
-def cashfree_init_session(request, payment_reference):
+def razorpay_create_order_view(request, payment_reference):
     order = get_object_or_404(Order, payment_reference=payment_reference)
     if order.payment_status != "pending":
         return JsonResponse({"success": False, "error": "Order is not pending payment."})
 
-    cashfree_return_url = request.build_absolute_uri(
-        reverse("cashfree_payment_return")
-    ) + f"?order_id={{order_id}}&payment_ref={order.payment_reference}"
-    cashfree_notify_url = request.build_absolute_uri(reverse("cashfree_webhook"))
-
-    if not order.cashfree_payment_session_id:
-        success, cf_data = create_cashfree_order(
-            order, return_url=cashfree_return_url, notify_url=cashfree_notify_url
-        )
+    if not order.razorpay_order_id:
+        success, rzp_data = create_razorpay_order(order)
         if not success:
-            return JsonResponse({"success": False, "error": cf_data.get("error", "Could not create Cashfree session.")})
+            return JsonResponse({"success": False, "error": rzp_data.get("error", "Could not create Razorpay order.")})
 
+    amount_in_paise = max(100, int(round(float(order.total_amount) * 100)))
     return JsonResponse({
         "success": True,
-        "session_id": order.cashfree_payment_session_id,
-        "return_url": request.build_absolute_uri(
-            reverse("cashfree_payment_return")
-        ) + f"?order_id={order.cashfree_order_id}&payment_ref={order.payment_reference}",
+        "key_id": getattr(settings, "RAZORPAY_KEY_ID", ""),
+        "order_id": order.razorpay_order_id,
+        "amount": amount_in_paise,
+        "currency": "INR",
+        "name": order.customer_name or "Customer",
+        "email": getattr(request.user, "email", "") if request.user.is_authenticated else "",
+        "contact": order.customer_phone or "",
     })
 
 
-def cashfree_payment_return(request):
-    cf_order_id = (request.GET.get("order_id") or "").strip()
-    payment_ref = (request.GET.get("payment_ref") or "").strip()
+@require_POST
+def razorpay_verify_payment(request):
+    try:
+        body = json.loads(request.body)
+    except Exception:
+        body = request.POST
+
+    payment_ref = (body.get("payment_reference") or "").strip()
+    razorpay_order_id = (body.get("razorpay_order_id") or "").strip()
+    razorpay_payment_id = (body.get("razorpay_payment_id") or "").strip()
+    razorpay_signature = (body.get("razorpay_signature") or "").strip()
 
     order = None
     if payment_ref:
@@ -1562,35 +1552,40 @@ def cashfree_payment_return(request):
             order = Order.objects.filter(payment_reference=payment_ref).first()
         except Exception:
             order = None
-    if not order and cf_order_id:
-        order = Order.objects.filter(cashfree_order_id=cf_order_id).first()
+    if not order and razorpay_order_id:
+        order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
 
     if not order:
-        raise Http404("Order not found.")
+        return JsonResponse({"success": False, "error": "Order not found."}, status=404)
 
-    if cf_order_id:
-        ok, cf_info = get_cashfree_order(cf_order_id)
-        if ok:
-            status = cf_info.get("order_status")
-            if status == "PAID":
-                order.payment_status = "paid"
-                order.payment_event_id = f"cf_{cf_info.get('cf_order_id') or cf_order_id}"
-                order.save(update_fields=["payment_status", "payment_event_id"])
-                request.session["last_order_reference"] = str(order.payment_reference)
-                return redirect("order_receipt_by_reference", payment_reference=order.payment_reference)
-            elif status in ("FAILED", "USER_DROPPED", "CANCELLED"):
-                order.payment_status = "failed"
-                order.save(update_fields=["payment_status"])
+    is_valid = verify_razorpay_signature(razorpay_order_id, razorpay_payment_id, razorpay_signature)
+    if not is_valid:
+        logger.warning("Razorpay signature mismatch for order %s (payment_id=%s)", order.id, razorpay_payment_id)
+        return JsonResponse({"success": False, "error": "Invalid Razorpay payment signature."}, status=400)
 
-    return redirect("payment_page", payment_reference=order.payment_reference)
+    with transaction.atomic():
+        order.payment_status = "paid"
+        order.payment_event_id = f"rzp_{razorpay_payment_id}"
+        order.razorpay_payment_id = razorpay_payment_id
+        order.razorpay_order_id = razorpay_order_id
+        order.razorpay_signature = razorpay_signature
+        order.save(update_fields=["payment_status", "payment_event_id", "razorpay_payment_id", "razorpay_order_id", "razorpay_signature"])
+
+    request.session["last_order_reference"] = str(order.payment_reference)
+    redirect_url = reverse("order_receipt_by_reference", kwargs={"payment_reference": order.payment_reference})
+    return JsonResponse({
+        "success": True,
+        "redirect_url": redirect_url,
+    })
 
 
 @csrf_exempt
 @require_POST
-def cashfree_webhook(request):
-    is_valid, msg = verify_cashfree_webhook(request.headers, request.body)
+def razorpay_webhook(request):
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    is_valid, msg = verify_razorpay_webhook_signature(request.body, signature)
     if not is_valid:
-        logger.warning("Cashfree webhook signature verification failed: %s", msg)
+        logger.warning("Razorpay webhook signature failed: %s", msg)
         return HttpResponseBadRequest(f"Invalid webhook signature: {msg}")
 
     try:
@@ -1598,24 +1593,24 @@ def cashfree_webhook(request):
     except Exception:
         return HttpResponseBadRequest("Invalid JSON body")
 
-    event_type = data.get("type", "")
-    event_data = data.get("data", {})
-    order_data = event_data.get("order", {})
-    payment_data = event_data.get("payment", {})
+    event = data.get("event", "")
+    payload = data.get("payload", {})
+    payment_entity = payload.get("payment", {}).get("entity", {})
+    order_entity = payload.get("order", {}).get("entity", {})
 
-    cf_order_id = order_data.get("order_id") or ""
-    cf_payment_id = payment_data.get("cf_payment_id") or ""
-    payment_status = payment_data.get("payment_status") or ""
+    rzp_order_id = payment_entity.get("order_id") or order_entity.get("id") or ""
+    rzp_payment_id = payment_entity.get("id") or ""
 
-    if cf_order_id:
-        order = Order.objects.filter(cashfree_order_id=cf_order_id).first()
+    if rzp_order_id:
+        order = Order.objects.filter(razorpay_order_id=rzp_order_id).first()
         if order:
-            if event_type == "PAYMENT_SUCCESS_WEBHOOK" or payment_status == "SUCCESS":
+            if event in ("payment.captured", "order.paid"):
                 order.payment_status = "paid"
-                if cf_payment_id:
-                    order.payment_event_id = f"cf_{cf_payment_id}"
-                order.save(update_fields=["payment_status", "payment_event_id"])
-            elif event_type == "PAYMENT_FAILED_WEBHOOK" or payment_status == "FAILED":
+                if rzp_payment_id:
+                    order.payment_event_id = f"rzp_{rzp_payment_id}"
+                    order.razorpay_payment_id = rzp_payment_id
+                order.save(update_fields=["payment_status", "payment_event_id", "razorpay_payment_id"])
+            elif event in ("payment.failed",):
                 if order.payment_status != "paid":
                     order.payment_status = "failed"
                     order.save(update_fields=["payment_status"])
