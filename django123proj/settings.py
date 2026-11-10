@@ -71,8 +71,8 @@ PAYMENT_WEBHOOK_SECRET = os.environ.get("PAYMENT_WEBHOOK_SECRET", "")
 PAYMENT_SIMULATION_ENABLED = os.environ.get("PAYMENT_SIMULATION_ENABLED", "1").lower() in {"1", "true", "yes"}
 
 # Razorpay Payment Gateway Settings (Testing / Sandbox)
-_DEFAULT_RZP_KEY = base64.b64decode("cnpwX3Rlc3RfVEcxVGVjQlhYVGFiQ1g=").decode("utf-8")
-_DEFAULT_RZP_SECRET = base64.b64decode("ektDMDZFNkdkQk56WURqNWNaZHYwTVhD").decode("utf-8")
+_DEFAULT_RZP_KEY = base64.b64decode("cnpwX3Rlc3RfVHlPbTZ4Z0VtbmNtY3k=").decode("utf-8")
+_DEFAULT_RZP_SECRET = base64.b64decode("aktEblZuUlZKNTROcTdUT1NDTU9FY2dn").decode("utf-8")
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", _DEFAULT_RZP_KEY)
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", _DEFAULT_RZP_SECRET)
 RAZORPAY_ENABLED = bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
