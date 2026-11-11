@@ -321,21 +321,87 @@ if (switcher && productData.length) {
         });
     }
 
+    // Direct function to showcase matching combo bundle offer
+    window.showMatchingComboOffer = function(comboId) {
+        const shopSection = document.getElementById('shop');
+        if (shopSection) {
+            shopSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Switch to the 'Combos' category filter tab
+        if (categoryFilters) {
+            const comboPill = categoryFilters.querySelector('[data-filter-category="combo"]');
+            if (comboPill) {
+                const pills = categoryFilters.querySelectorAll('[data-filter-category]');
+                pills.forEach((p) => {
+                    const isActive = p === comboPill;
+                    p.classList.toggle('is-active', isActive);
+                    p.setAttribute('aria-selected', String(isActive));
+                });
+                activeCategory = 'combo';
+
+                let visibleCount = 0;
+                tiles.forEach((tile) => {
+                    const isCombo = tile.dataset.isCombo === 'true';
+                    if (isCombo) {
+                        tile.classList.remove('is-hidden');
+                        tile.removeAttribute('hidden');
+                        tile.style.display = '';
+                        visibleCount++;
+                    } else {
+                        tile.classList.add('is-hidden');
+                        tile.setAttribute('hidden', '');
+                        tile.style.display = 'none';
+                    }
+                });
+
+                if (totalCountEl) {
+                    totalCountEl.textContent = `${visibleCount} combo offer${visibleCount === 1 ? '' : 's'}`;
+                }
+            }
+        }
+
+        // Find exact matching combo product bundle index
+        let targetIndex = productData.findIndex(p => p.is_combo && String(p.combo_id) === String(comboId));
+        if (targetIndex === -1) {
+            targetIndex = productData.findIndex(p => p.is_combo);
+        }
+
+        if (targetIndex !== -1) {
+            currentProduct = targetIndex;
+            renderProduct(currentProduct, false);
+
+            const targetTile = tiles[targetIndex];
+            if (targetTile) {
+                targetTile.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                targetTile.classList.add('combo-tile-highlight');
+                setTimeout(() => targetTile.classList.remove('combo-tile-highlight'), 1800);
+            }
+        }
+    };
+
     renderProduct(currentProduct);
 }
 
+// Fallback for pages without switcher
+if (!window.showMatchingComboOffer) {
+    window.showMatchingComboOffer = function() {
+        const shopSection = document.getElementById('shop');
+        if (shopSection) shopSection.scrollIntoView({ behavior: 'smooth' });
+    };
+}
+
 // ==========================================================================
-// Announcement Bar Slider & Matching Combo Showcase Navigator
+// Announcement Bar Slider (Clean auto-cycling description ticker)
 // ==========================================================================
 (function initAnnouncementSlider() {
     const track = document.getElementById('announcementTrack');
     if (!track) return;
     const slides = track.querySelectorAll('.announcement-slide');
-    if (!slides.length) return;
+    if (slides.length <= 1) return;
 
     let currentSlide = 0;
     const totalSlides = slides.length;
-    const dots = document.querySelectorAll('#announcementDots .announcement-dot');
     let autoInterval = null;
 
     function showSlide(index) {
@@ -344,37 +410,7 @@ if (switcher && productData.length) {
         currentSlide = index;
 
         slides.forEach((s, idx) => {
-            const active = idx === currentSlide;
-            s.classList.toggle('is-active', active);
-        });
-
-        dots.forEach((d, idx) => {
-            const active = idx === currentSlide;
-            d.classList.toggle('is-active', active);
-            d.setAttribute('aria-selected', String(active));
-        });
-    }
-
-    window.goToAnnouncementSlide = function(index) {
-        showSlide(index);
-        restartTimer();
-    };
-
-    const prevBtn = document.getElementById('announcementPrevBtn');
-    const nextBtn = document.getElementById('announcementNextBtn');
-
-    if (prevBtn) {
-        prevBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showSlide(currentSlide - 1);
-            restartTimer();
-        });
-    }
-    if (nextBtn) {
-        nextBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showSlide(currentSlide + 1);
-            restartTimer();
+            s.classList.toggle('is-active', idx === currentSlide);
         });
     }
 
@@ -382,7 +418,7 @@ if (switcher && productData.length) {
         if (totalSlides > 1 && !autoInterval) {
             autoInterval = setInterval(() => {
                 showSlide(currentSlide + 1);
-            }, 4500);
+            }, 4200);
         }
     }
 
@@ -393,11 +429,6 @@ if (switcher && productData.length) {
         }
     }
 
-    function restartTimer() {
-        stopTimer();
-        startTimer();
-    }
-
     const bar = document.getElementById('comboAnnouncementBar');
     if (bar) {
         bar.addEventListener('mouseenter', stopTimer);
@@ -406,33 +437,4 @@ if (switcher && productData.length) {
 
     startTimer();
 })();
-
-// Jump and highlight matching combo offer bundle in shop switcher
-window.showMatchingComboOffer = function(comboId) {
-    const shopSection = document.getElementById('shop');
-    if (shopSection) {
-        shopSection.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    const comboPill = document.querySelector('.category-pill[data-filter-category="combo"]');
-    if (comboPill) {
-        comboPill.click();
-    }
-
-    setTimeout(() => {
-        let matchingTile = document.querySelector(`.product-tile[data-combo-id="${comboId}"]`);
-        if (!matchingTile) {
-            const matchIndex = productData.findIndex(p => p.is_combo && String(p.combo_id) === String(comboId));
-            if (matchIndex !== -1) {
-                matchingTile = document.querySelector(`.product-tile[data-product-index="${matchIndex}"]`);
-            }
-        }
-        if (matchingTile) {
-            matchingTile.click();
-            matchingTile.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            matchingTile.classList.add('combo-tile-highlight');
-            setTimeout(() => matchingTile.classList.remove('combo-tile-highlight'), 1800);
-        }
-    }, 280);
-};
 
