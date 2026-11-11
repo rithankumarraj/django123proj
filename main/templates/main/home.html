@@ -9,12 +9,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'main/css/style.css' %}?v=frosted-nav-1">
+    <link rel="stylesheet" href="{% static 'main/css/style.css' %}?v=announcement-bundles-1">
     <script src="{% static 'main/cart-scroll.js' %}?v=cart-scroll-navbar-threshold-7" defer></script>
-    <script src="{% static 'main/script.js' %}?v=category-filters-2" defer></script>
+    <script src="{% static 'main/script.js' %}?v=combo-bundles-3" defer></script>
 </head>
 <body>
     <div class="page-shell">
+        {% include "main/includes/announcement_bar.html" %}
         <header class="hero-panel">
             <nav class="navbar navbar-expand-lg navbar-dark px-3 px-md-5 py-3">
                 <div class="container-fluid px-0">
@@ -118,16 +119,17 @@
                                     data-product-index="{{ forloop.counter0 }}"
                                     data-product-category="{{ product.category }}"
                                     data-is-combo="{{ product.is_combo|yesno:'true,false' }}"
+                                    data-combo-id="{{ product.combo_id|default:'' }}"
                                     data-product-url="{{ product.product_url }}"
                                     data-add-to-cart-url="{{ product.add_to_cart_url }}"
                                     data-wishlist-url="{{ product.wishlist_url|default:'' }}"
                                     data-is-wishlisted="{{ product.is_wishlisted|yesno:'true,false' }}"
                                     aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-                                    title="{% if product.is_combo %}Click to view {{ product.name }}{% else %}Double-click to add {{ product.name }} to your cart{% endif %}"
+                                    title="{% if product.is_combo %}Click to view {{ product.name }} bundle{% else %}Double-click to add {{ product.name }} to your cart{% endif %}"
                                     {% if product.is_combo %}style="display: none;" hidden{% endif %}
                                 >
                                     <span class="product-tile-image">
-                                        <img src="{{ product.image }}" alt="{{ product.name }}">
+                                        <img src="{{ product.image }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'">
                                     </span>
                                     <span class="product-tile-name">{{ product.name }}</span>
                                 </button>
@@ -159,6 +161,13 @@
                                 <div class="product-info">
                                     <span data-product-volume></span>
                                     <strong data-product-price></strong>
+                                </div>
+                                <div class="bundle-summary-panel mb-3" data-bundle-summary style="display: none; padding: 10px 14px; border-radius: 10px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.28); color: #fbbf24; font-size: 0.84rem;">
+                                    <div style="font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 6px;">
+                                        <span>📦</span>
+                                        <span>Bundle Includes:</span>
+                                    </div>
+                                    <div data-bundle-items-text style="color: rgba(255, 255, 255, 0.88); font-size: 0.8rem; line-height: 1.4;"></div>
                                 </div>
                                 <div class="home-purchase-actions">
                                     <a class="add" href="{% if products %}{% url 'product_detail' products.0.id %}{% endif %}" data-product-shop>Shop now</a>

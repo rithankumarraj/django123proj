@@ -174,6 +174,11 @@ urlpatterns = [
     ),
     path("combos/", views.combos_showcase, name="combos_showcase"),
     path(
+        "combos/add-bundle/<int:combo_id>/",
+        views.add_bundle_to_cart,
+        name="add_bundle_to_cart",
+    ),
+    path(
         "combos/add-assortment/",
         views.add_assortment_combo_to_cart,
         name="add_assortment_combo_to_cart",

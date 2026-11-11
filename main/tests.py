@@ -4115,15 +4115,12 @@ class ComboOfferTests(TestCase):
             edit_url,
             data={
                 "name": "Cans of Assortment Updated",
-                "offer_type": "multiple_products",
-                "applicable_products": selected_pids,
+                "bundle_product_ids": selected_pids,
+                f"product_qty_{selected_pids[0]}": "3",
+                f"product_qty_{selected_pids[1]}": "3",
                 "discount_type": "percentage",
                 "discount_value": "25.00",
                 "max_discount_cap": "150.00",
-                "min_order_amount": "6.00",
-                "min_quantity": 6,
-                "min_distinct_products": 6,
-                "badge_text": "Assortment Mega",
                 "description": "Updated promo description",
                 "is_active": True,
             },
@@ -4133,8 +4130,16 @@ class ComboOfferTests(TestCase):
         self.combo.refresh_from_db()
         self.assertEqual(self.combo.name, "Cans of Assortment Updated")
         self.assertEqual(self.combo.discount_value, Decimal("25.00"))
-        self.assertEqual(self.combo.badge_text, "Assortment Mega")
-        self.assertEqual(self.combo.applicable_products.count(), 2)
+        self.assertEqual(self.combo.bundle_items.count(), 2)
+        self.assertEqual(self.combo.total_bundle_cans, 6)
+
+    def test_add_bundle_to_cart_view(self):
+        bundle_url = reverse("add_bundle_to_cart", kwargs={"combo_id": self.combo.id})
+        response = self.client.post(bundle_url, follow=True)
+        self.assertEqual(response.status_code, 200)
+        cart = self.client.session.get("cart", {})
+        self.assertGreaterEqual(len(cart), 6)
+        self.assertContains(response, "Cans of Assortment")
 
     def test_add_assortment_combo_to_cart_action(self):
         response = self.client.post(reverse("add_assortment_combo_to_cart"), follow=True)

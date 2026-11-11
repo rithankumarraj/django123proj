@@ -51,6 +51,16 @@ if (switcher && productData.length) {
                 descriptionToggle.setAttribute('aria-label', `Show ${product.name} description`);
             }
             volume.textContent = product.volume;
+            const bundleSummary = switcher.querySelector('[data-bundle-summary]');
+            const bundleItemsText = switcher.querySelector('[data-bundle-items-text]');
+            if (bundleSummary && bundleItemsText) {
+                if (isCombo && product.bundle_items_summary) {
+                    bundleItemsText.textContent = product.bundle_items_summary;
+                    bundleSummary.style.display = 'block';
+                } else {
+                    bundleSummary.style.display = 'none';
+                }
+            }
             if (isCombo && product.original_price) {
                 price.innerHTML = `<span style="color: #16a34a; font-weight: 800; font-size: 1.15em;">₹${product.price}</span> <del style="opacity: 0.55; font-size: 0.85em; margin: 0 6px; font-weight: 400; color: #666;">₹${product.original_price}</del> <span class="badge" style="background: rgba(22, 163, 74, 0.12); color: #15803d; border: 1px solid rgba(22, 163, 74, 0.25); font-size: 0.72em; padding: 3px 8px; border-radius: 999px; font-weight: 700; white-space: nowrap;">${product.discount_display || 'SPECIAL OFFER'}</span>`;
             } else {
@@ -64,7 +74,7 @@ if (switcher && productData.length) {
                 cartForm.action = tiles[index].dataset.addToCartUrl;
                 const addBtn = cartForm.querySelector('button');
                 if (addBtn) {
-                    addBtn.textContent = isCombo ? 'Add Combo to Cart' : 'Add to cart';
+                    addBtn.textContent = isCombo ? 'Add Bundle to Cart' : 'Add to cart';
                 }
             }
             if (wishlistForm) {
@@ -313,3 +323,116 @@ if (switcher && productData.length) {
 
     renderProduct(currentProduct);
 }
+
+// ==========================================================================
+// Announcement Bar Slider & Matching Combo Showcase Navigator
+// ==========================================================================
+(function initAnnouncementSlider() {
+    const track = document.getElementById('announcementTrack');
+    if (!track) return;
+    const slides = track.querySelectorAll('.announcement-slide');
+    if (!slides.length) return;
+
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+    const dots = document.querySelectorAll('#announcementDots .announcement-dot');
+    let autoInterval = null;
+
+    function showSlide(index) {
+        if (index < 0) index = totalSlides - 1;
+        if (index >= totalSlides) index = 0;
+        currentSlide = index;
+
+        slides.forEach((s, idx) => {
+            const active = idx === currentSlide;
+            s.classList.toggle('is-active', active);
+        });
+
+        dots.forEach((d, idx) => {
+            const active = idx === currentSlide;
+            d.classList.toggle('is-active', active);
+            d.setAttribute('aria-selected', String(active));
+        });
+    }
+
+    window.goToAnnouncementSlide = function(index) {
+        showSlide(index);
+        restartTimer();
+    };
+
+    const prevBtn = document.getElementById('announcementPrevBtn');
+    const nextBtn = document.getElementById('announcementNextBtn');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showSlide(currentSlide - 1);
+            restartTimer();
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showSlide(currentSlide + 1);
+            restartTimer();
+        });
+    }
+
+    function startTimer() {
+        if (totalSlides > 1 && !autoInterval) {
+            autoInterval = setInterval(() => {
+                showSlide(currentSlide + 1);
+            }, 4500);
+        }
+    }
+
+    function stopTimer() {
+        if (autoInterval) {
+            clearInterval(autoInterval);
+            autoInterval = null;
+        }
+    }
+
+    function restartTimer() {
+        stopTimer();
+        startTimer();
+    }
+
+    const bar = document.getElementById('comboAnnouncementBar');
+    if (bar) {
+        bar.addEventListener('mouseenter', stopTimer);
+        bar.addEventListener('mouseleave', startTimer);
+    }
+
+    startTimer();
+})();
+
+// Jump and highlight matching combo offer bundle in shop switcher
+window.showMatchingComboOffer = function(comboId) {
+    const shopSection = document.getElementById('shop');
+    if (shopSection) {
+        shopSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    const comboPill = document.querySelector('.category-pill[data-filter-category="combo"]');
+    if (comboPill) {
+        comboPill.click();
+    }
+
+    setTimeout(() => {
+        let matchingTile = document.querySelector(`.product-tile[data-combo-id="${comboId}"]`);
+        if (!matchingTile) {
+            const matchIndex = productData.findIndex(p => p.is_combo && String(p.combo_id) === String(comboId));
+            if (matchIndex !== -1) {
+                matchingTile = document.querySelector(`.product-tile[data-product-index="${matchIndex}"]`);
+            }
+        }
+        if (matchingTile) {
+            matchingTile.click();
+            matchingTile.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            matchingTile.classList.add('combo-tile-highlight');
+            setTimeout(() => matchingTile.classList.remove('combo-tile-highlight'), 1800);
+        }
+    }, 280);
+};
+

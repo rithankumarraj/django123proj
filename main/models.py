@@ -371,6 +371,7 @@ class Coupon(models.Model):
 
 class ComboOffer(models.Model):
     OFFER_TYPE_CHOICES = [
+        ("bundle", "Combo Bundle"),
         ("multiple_products", "Multiple Products Combo"),
         ("single_quantity", "Single Quantity Offer"),
         ("price_based", "Price Based Offer"),
@@ -385,7 +386,7 @@ class ComboOffer(models.Model):
     offer_type = models.CharField(
         max_length=30,
         choices=OFFER_TYPE_CHOICES,
-        default="multiple_products",
+        default="bundle",
     )
     applicable_categories = models.ManyToManyField(
         ProductCategory,
@@ -424,16 +425,22 @@ class ComboOffer(models.Model):
     min_order_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=Decimal("6.00"),
-        help_text="Minimum order amount (default 6).",
+        default=Decimal("0.00"),
+        blank=True,
+        null=True,
+        help_text="Minimum order amount.",
     )
     min_quantity = models.PositiveIntegerField(
-        default=6,
-        help_text="Minimum items quantity required (default 6).",
+        default=1,
+        blank=True,
+        null=True,
+        help_text="Minimum items quantity required.",
     )
     min_distinct_products = models.PositiveIntegerField(
-        default=6,
-        help_text="Minimum distinct products required for assortment (default 6).",
+        default=1,
+        blank=True,
+        null=True,
+        help_text="Minimum distinct products required.",
     )
     expire_date = models.DateField(
         null=True,
@@ -446,15 +453,30 @@ class ComboOffer(models.Model):
         null=True,
         help_text="Upload combo pack showcase image.",
     )
+    image_data_url = models.TextField(
+        blank=True,
+        default="",
+        help_text="Base64 Data URL for persistent image display.",
+    )
+    show_in_announcement = models.BooleanField(
+        default=True,
+        help_text="Show this combo offer in the top announcement bar slider.",
+    )
+    announcement_text = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Custom highlight text for announcement bar slide (optional).",
+    )
     times_used = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     description = models.TextField(
         blank=True,
-        default="Mix and match any 6 different cans to unlock the Cans of Assortment combo offer!",
+        default="Mix and match our handcrafted cans to unlock special combo bundle pricing!",
     )
     badge_text = models.CharField(
         max_length=100,
-        default="Cans of Assortment",
+        default="",
         blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -529,7 +551,52 @@ class ComboOffer(models.Model):
         return dict(self.OFFER_TYPE_CHOICES).get(self.offer_type, self.offer_type.replace("_", " ").title())
 
     @property
+    def bundle_items_display(self):
+        items = list(self.bundle_items.select_related("product").all())
+        if items:
+            return ", ".join(f"{it.quantity}× {it.product.name}" for it in items)
+        prods = list(self.applicable_products.all())
+        if prods:
+            return ", ".join(f"1× {p.name}" for p in prods)
+        return "All Products"
+
+    @property
+    def total_bundle_cans(self):
+        items = list(self.bundle_items.all())
+        if items:
+            return sum(it.quantity for it in items)
+        return self.min_quantity or 6
+
+    @property
+    def bundle_regular_price(self):
+        items = list(self.bundle_items.select_related("product").all())
+        if items:
+            return sum(it.product.price * it.quantity for it in items)
+        prods = list(self.applicable_products.all())
+        if prods:
+            return sum(p.price for p in prods)
+        return Decimal("540.00")
+
+    @property
+    def bundle_discounted_price(self):
+        reg = self.bundle_regular_price
+        if self.discount_type == "percentage":
+            disc = (reg * (self.discount_value / Decimal("100.00"))).quantize(Decimal("0.01"))
+            if self.max_discount_cap and disc > self.max_discount_cap:
+                disc = self.max_discount_cap
+            return max(Decimal("0.00"), reg - disc)
+        elif self.discount_type == "fixed":
+            return max(Decimal("0.00"), reg - self.discount_value)
+        return reg
+
+    @property
+    def bundle_savings(self):
+        return max(Decimal("0.00"), self.bundle_regular_price - self.bundle_discounted_price)
+
+    @property
     def image_url(self):
+        if hasattr(self, "image_data_url") and self.image_data_url and self.image_data_url.strip():
+            return self.image_data_url.strip()
         if self.image:
             try:
                 url = self.image.url
@@ -539,87 +606,123 @@ class ComboOffer(models.Model):
                 pass
             name = str(self.image).strip()
             if name:
-                if name.startswith("http://") or name.startswith("https://") or name.startswith("/"):
+                if name.startswith("http://") or name.startswith("https://") or name.startswith("/") or name.startswith("data:"):
                     return name
                 return f"/media/{name}"
+        # If combo bundle has a single product, use that product's image
+        items = list(self.bundle_items.select_related("product").all()[:2])
+        if len(items) == 1 and hasattr(items[0].product, "image_url"):
+            return items[0].product.image_url
+        prods = list(self.applicable_products.all()[:2])
+        if len(prods) == 1 and hasattr(prods[0], "image_url"):
+            return prods[0].image_url
         return "/static/main/images/combos/cans_of_assortment.png"
 
     def evaluate_cart(self, cart_items, subtotal=None):
         if not self.is_valid_status:
             return False, Decimal("0.00"), {}
 
-        prods = list(self.applicable_products.all())
-        prod_ids = {p.id for p in prods}
-        cats = list(self.applicable_categories.all())
-        cat_slugs = {c.slug.lower() for c in cats}
-        cat_names = {c.name.lower() for c in cats}
-
-        eligible_items = []
-        eligible_subtotal = Decimal("0.00")
+        items = list(self.bundle_items.select_related("product").all())
+        cart_product_qtys = {}
         for it in cart_items:
             prod = it.get("product")
-            if not prod:
-                continue
-
-            is_eligible = True
-            if prods:
-                is_eligible = prod.id in prod_ids
-            elif cats:
-                prod_cat = (getattr(prod, "category", "") or "").lower().strip()
-                prod_cat_slug = (getattr(prod, "category_slug", "") or "").lower().strip()
-                is_eligible = (
-                    prod_cat in cat_slugs
-                    or prod_cat in cat_names
-                    or prod_cat_slug in cat_slugs
-                )
-
-            if is_eligible:
-                eligible_items.append(it)
-                qty = it.get("quantity", 1)
-                price = getattr(prod, "price", Decimal("0.00"))
-                eligible_subtotal += Decimal(str(price)) * int(qty)
-
-        if not eligible_items:
-            return False, Decimal("0.00"), {}
-
-        total_eligible_qty = sum(it.get("quantity", 1) for it in eligible_items)
-        distinct_eligible_count = len({it["product"].id for it in eligible_items})
+            if prod:
+                cart_product_qtys[prod.id] = cart_product_qtys.get(prod.id, 0) + it.get("quantity", 1)
 
         qualifies = False
-        if self.offer_type == "multiple_products":
-            if (
-                total_eligible_qty >= self.min_quantity
-                and distinct_eligible_count >= self.min_distinct_products
-                and eligible_subtotal >= self.min_order_amount
-            ):
-                qualifies = True
-        elif self.offer_type == "single_quantity":
-            has_single_meet = any(it.get("quantity", 1) >= self.min_quantity for it in eligible_items)
-            if (has_single_meet or total_eligible_qty >= self.min_quantity) and eligible_subtotal >= self.min_order_amount:
-                qualifies = True
-        elif self.offer_type == "price_based":
-            if eligible_subtotal >= self.min_order_amount:
-                qualifies = True
+        bundle_price = Decimal("0.00")
 
-        if not qualifies:
+        if items:
+            # Bundle requirements check: cart must contain every bundle product with at least required quantity
+            meets_all = True
+            for b_item in items:
+                in_cart_qty = cart_product_qtys.get(b_item.product_id, 0)
+                if in_cart_qty < b_item.quantity:
+                    meets_all = False
+                    break
+            if meets_all:
+                qualifies = True
+                bundle_price = sum(it.product.price * it.quantity for it in items)
+        else:
+            # Fallback for combos without bundle items defined
+            prods = list(self.applicable_products.all())
+            prod_ids = {p.id for p in prods}
+            cats = list(self.applicable_categories.all())
+            cat_slugs = {c.slug.lower() for c in cats}
+            cat_names = {c.name.lower() for c in cats}
+
+            eligible_items = []
+            eligible_subtotal = Decimal("0.00")
+            for it in cart_items:
+                prod = it.get("product")
+                if not prod:
+                    continue
+                is_eligible = True
+                if prods:
+                    is_eligible = prod.id in prod_ids
+                elif cats:
+                    prod_cat = (getattr(prod, "category", "") or "").lower().strip()
+                    prod_cat_slug = (getattr(prod, "category_slug", "") or "").lower().strip()
+                    is_eligible = (
+                        prod_cat in cat_slugs
+                        or prod_cat in cat_names
+                        or prod_cat_slug in cat_slugs
+                    )
+                if is_eligible:
+                    eligible_items.append(it)
+                    qty = it.get("quantity", 1)
+                    price = getattr(prod, "price", Decimal("0.00"))
+                    eligible_subtotal += Decimal(str(price)) * int(qty)
+
+            if eligible_items:
+                total_eligible_qty = sum(it.get("quantity", 1) for it in eligible_items)
+                distinct_eligible_count = len({it["product"].id for it in eligible_items})
+                min_q = self.min_quantity or 6
+                min_d = self.min_distinct_products or 6
+                if total_eligible_qty >= min_q and distinct_eligible_count >= min_d:
+                    qualifies = True
+                    bundle_price = eligible_subtotal
+
+        if not qualifies or bundle_price <= Decimal("0.00"):
             return False, Decimal("0.00"), {}
 
         if self.discount_type == "percentage":
-            discount = (eligible_subtotal * (self.discount_value / Decimal("100"))).quantize(Decimal("0.01"))
+            discount = (bundle_price * (self.discount_value / Decimal("100"))).quantize(Decimal("0.01"))
             if self.max_discount_cap and self.max_discount_cap > Decimal("0.00"):
                 discount = min(discount, self.max_discount_cap)
         else:
-            discount = min(eligible_subtotal, self.discount_value)
+            discount = min(bundle_price, self.discount_value)
 
         discount = max(Decimal("0.00"), discount)
+        eligible_pids = [it.product_id for it in items] if items else [it["product"].id for it in eligible_items]
         return True, discount, {
             "combo_id": self.id,
             "name": self.name,
             "badge_text": self.badge_text or self.name,
-            "distinct_count": distinct_eligible_count,
-            "total_qty": total_eligible_qty,
-            "eligible_product_ids": [it["product"].id for it in eligible_items],
+            "distinct_count": len(cart_product_qtys),
+            "total_qty": sum(cart_product_qtys.values()),
+            "bundle_items": [f"{it.quantity}× {it.product.name}" for it in items],
+            "eligible_product_ids": eligible_pids,
+            "regular_price": bundle_price,
+            "final_price": max(Decimal("0.00"), bundle_price - discount),
         }
+
+
+class ComboBundleItem(models.Model):
+    combo_offer = models.ForeignKey(
+        ComboOffer, on_delete=models.CASCADE, related_name="bundle_items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="combo_bundle_items"
+    )
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["id"]
+        unique_together = ("combo_offer", "product")
+
+    def __str__(self):
+        return f"{self.quantity}× {self.product.name} in {self.combo_offer.name}"
 
 
 class Order(models.Model):

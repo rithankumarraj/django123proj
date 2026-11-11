@@ -677,47 +677,31 @@ class CouponForm(forms.ModelForm):
 
 
 class ComboOfferForm(forms.ModelForm):
-    applicable_products = forms.ModelMultipleChoiceField(
-        queryset=Product.objects.none(),
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"class": "product-checkbox"}),
-        label="Selective Products",
-        help_text="Select specific products or leave unselected for all products.",
-    )
-
     class Meta:
         model = ComboOffer
         fields = [
             "name",
-            "offer_type",
             "image",
-            "applicable_products",
             "discount_type",
             "discount_value",
             "max_discount_cap",
-            "min_order_amount",
-            "min_quantity",
-            "min_distinct_products",
             "usage_limit",
             "expire_date",
-            "badge_text",
+            "show_in_announcement",
+            "announcement_text",
             "description",
             "is_active",
         ]
         labels = {
-            "name": "Combo Name",
-            "offer_type": "Offer Type",
+            "name": "Combo Bundle Name",
             "image": "Combo Pack Image",
-            "applicable_products": "Selective Products",
             "discount_type": "Discount Type",
             "discount_value": "Discount Value",
             "max_discount_cap": "Max Discount CAP (₹)",
-            "min_order_amount": "Minimum Order Amount (₹)",
-            "min_quantity": "Minimum Items Quantity",
-            "min_distinct_products": "Minimum Distinct Products (for Assortment)",
             "usage_limit": "Usage Limit",
             "expire_date": "Expiry Date",
-            "badge_text": "Badge Display Text",
+            "show_in_announcement": "Show in Announcement Bar",
+            "announcement_text": "Announcement Banner Text",
             "description": "Offer Description",
             "is_active": "Offer is Active",
         }
@@ -725,12 +709,7 @@ class ComboOfferForm(forms.ModelForm):
             "name": forms.TextInput(attrs={
                 "class": "form-control",
                 "id": "id_combo_name",
-                "placeholder": "e.g. Cans of Assortment",
-                "required": True,
-            }),
-            "offer_type": forms.Select(attrs={
-                "class": "form-control",
-                "id": "id_combo_offer_type",
+                "placeholder": "e.g. Lime Blast, Cans of Assortment",
                 "required": True,
             }),
             "image": forms.FileInput(attrs={
@@ -758,25 +737,6 @@ class ComboOfferForm(forms.ModelForm):
                 "min": "0",
                 "placeholder": "e.g. 100.00 (optional)",
             }),
-            "min_order_amount": forms.NumberInput(attrs={
-                "class": "form-control",
-                "id": "id_combo_min_order",
-                "step": "0.01",
-                "min": "0",
-                "placeholder": "6.00",
-            }),
-            "min_quantity": forms.NumberInput(attrs={
-                "class": "form-control",
-                "id": "id_combo_min_qty",
-                "min": "1",
-                "placeholder": "6",
-            }),
-            "min_distinct_products": forms.NumberInput(attrs={
-                "class": "form-control",
-                "id": "id_combo_min_distinct",
-                "min": "1",
-                "placeholder": "6",
-            }),
             "usage_limit": forms.NumberInput(attrs={
                 "class": "form-control",
                 "id": "id_combo_usage_limit",
@@ -788,16 +748,11 @@ class ComboOfferForm(forms.ModelForm):
                 "id": "id_combo_expire_date",
                 "type": "date",
             }),
-            "badge_text": forms.TextInput(attrs={
-                "class": "form-control",
-                "id": "id_combo_badge_text",
-                "placeholder": "e.g. Cans of Assortment",
-            }),
             "description": forms.Textarea(attrs={
                 "class": "form-control",
                 "id": "id_combo_description",
                 "rows": 2,
-                "placeholder": "e.g. Mix and match 6 different cans to unlock special combo pricing!",
+                "placeholder": "e.g. Mix and match our signature flavours for the ultimate tasting experience!",
             }),
             "is_active": forms.CheckboxInput(attrs={
                 "class": "form-check-input",
@@ -807,18 +762,7 @@ class ComboOfferForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from decimal import Decimal
-        if "applicable_products" in self.fields:
-            self.fields["applicable_products"].queryset = Product.objects.filter(available=True).order_by("id")
         if not self.instance.pk:
-            if "min_order_amount" in self.fields:
-                self.fields["min_order_amount"].initial = Decimal("6.00")
-            if "min_quantity" in self.fields:
-                self.fields["min_quantity"].initial = 6
-            if "min_distinct_products" in self.fields:
-                self.fields["min_distinct_products"].initial = 6
-            if "badge_text" in self.fields:
-                self.fields["badge_text"].initial = "Cans of Assortment"
             if "is_active" in self.fields:
                 self.fields["is_active"].initial = True
 
@@ -841,4 +785,23 @@ class ComboOfferForm(forms.ModelForm):
             if dval <= 0:
                 self.add_error("discount_value", "Discount value must be greater than 0.")
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.offer_type = "bundle"
+        uploaded = self.cleaned_data.get("image")
+        if uploaded:
+            try:
+                uploaded.seek(0)
+                data = uploaded.read()
+                if data:
+                    import base64
+                    mime = getattr(uploaded, "content_type", "image/png") or "image/png"
+                    instance.image_data_url = f"data:{mime};base64,{base64.b64encode(data).decode('utf-8')}"
+            except Exception:
+                pass
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 

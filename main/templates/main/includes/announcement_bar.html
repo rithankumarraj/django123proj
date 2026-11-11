@@ -1,0 +1,66 @@
+{% load static %}
+{% if active_combos %}
+<div class="combo-announcement-bar" id="comboAnnouncementBar" role="region" aria-label="Combo Deals Announcement">
+  <div class="announcement-container">
+    <button type="button" class="announcement-nav-btn announcement-prev" id="announcementPrevBtn" aria-label="Previous Deal">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <div class="announcement-slider-viewport">
+      <div class="announcement-slider-track" id="announcementTrack">
+        {% for combo in active_combos %}
+          <div class="announcement-slide {% if forloop.first %}is-active{% endif %}"
+               data-slide-index="{{ forloop.counter0 }}"
+               data-combo-id="{{ combo.id }}"
+               onclick="window.showMatchingComboOffer('{{ combo.id }}')"
+               title="Click to view {{ combo.name }} combo deal"
+          >
+            <span class="announcement-badge">
+              <span class="announcement-sparkle">✨</span>
+              <span>COMBO DEAL</span>
+            </span>
+            <span class="announcement-title">{{ combo.name }}</span>
+            <span class="announcement-divider">•</span>
+            <span class="announcement-discount">{{ combo.discount_display }}</span>
+            <span class="announcement-desc">
+              {% if combo.announcement_text %}
+                {{ combo.announcement_text }}
+              {% elif combo.description %}
+                {{ combo.description }}
+              {% else %}
+                Mix & match {{ combo.bundle_items_display }} for instant savings!
+              {% endif %}
+            </span>
+            <span class="announcement-cta">
+              <span>View Combo</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="button" class="announcement-nav-btn announcement-next" id="announcementNextBtn" aria-label="Next Deal">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  {% if active_combos|length > 1 %}
+    <div class="announcement-dots" id="announcementDots">
+      {% for combo in active_combos %}
+        <button type="button" class="announcement-dot {% if forloop.first %}is-active{% endif %}"
+                data-dot-index="{{ forloop.counter0 }}"
+                aria-label="Go to slide {{ forloop.counter }}"
+                onclick="window.goToAnnouncementSlide({{ forloop.counter0 }})"></button>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endif %}

@@ -459,7 +459,9 @@ def _evaluate_cart_combos(cart_items, subtotal=None):
     if not cart_items:
         return None, Decimal("0.00"), {}
 
-    active_combos = ComboOffer.objects.filter(is_active=True).prefetch_related("applicable_categories")
+    active_combos = ComboOffer.objects.filter(is_active=True).prefetch_related(
+        "bundle_items__product", "applicable_products", "applicable_categories"
+    )
     valid_matches = []
     for combo in active_combos:
         qualifies, discount, details = combo.evaluate_cart(cart_items, subtotal)
@@ -538,41 +540,35 @@ def home(request):
 
     active_combos = list(
         ComboOffer.objects.filter(is_active=True)
-        .prefetch_related("applicable_products", "applicable_categories")
+        .prefetch_related("bundle_items__product", "applicable_products", "applicable_categories")
         .order_by("-created_at")
     )
     combo_items = []
     for combo in active_combos:
-        req_qty = combo.min_quantity or 6
-        if combo.applicable_products.exists():
-            sample_prods = list(combo.applicable_products.filter(available=True)[:req_qty])
-            if len(sample_prods) < req_qty:
-                extra = [p for p in product_records if p not in sample_prods]
-                sample_prods = (sample_prods + extra)[:req_qty]
-        else:
-            sample_prods = list(product_records[:req_qty])
-        sample_sum = sum(p.price for p in sample_prods) if sample_prods else Decimal("540.00")
-        sample_cart_items = [{"product": p, "quantity": 1, "line_total": p.price} for p in sample_prods]
-        _, c_disc, _ = combo.evaluate_cart(sample_cart_items, sample_sum)
-        final_price = max(Decimal("0.00"), sample_sum - c_disc)
+        bundle_items = list(combo.bundle_items.select_related("product").all())
+        total_cans = combo.total_bundle_cans
+        reg_price = combo.bundle_regular_price
+        disc_price = combo.bundle_discounted_price
+        summary_str = combo.bundle_items_display
 
         combo_items.append({
             "id": f"combo_{combo.id}",
+            "combo_id": combo.id,
             "name": combo.name,
-            "description": combo.description or f"Mix and match any {req_qty} different cans to unlock {combo.discount_display} savings!",
-            "price": f"{final_price:.0f}",
-            "original_price": f"{sample_sum:.0f}",
+            "description": combo.description or f"Includes {summary_str} with {combo.discount_display} instant savings!",
+            "bundle_items_summary": summary_str,
+            "price": f"{disc_price:.0f}",
+            "original_price": f"{reg_price:.0f}",
             "discount_display": combo.discount_display,
-            "volume": f"{req_qty} × 330 ml Pack",
+            "volume": f"{total_cans} × 330 ml Bundle",
             "image": combo.image_url,
             "category": "combo",
-            "category_display": "Combo Offer",
+            "category_display": "Combo Bundle",
             "is_wishlisted": False,
             "wishlist_url": "",
             "product_url": reverse("home") + "#shop",
-            "add_to_cart_url": reverse("add_assortment_combo_to_cart"),
+            "add_to_cart_url": reverse("add_bundle_to_cart", kwargs={"combo_id": combo.id}),
             "is_combo": True,
-            "combo_id": combo.id,
         })
 
     display_products = products + combo_items
@@ -2848,6 +2844,53 @@ def api_remove_coupon(request):
     return JsonResponse({"valid": True, "message": "Coupon removed successfully."})
 
 
+def save_bundle_items_from_post(combo, post_data):
+    from main.models import ComboBundleItem, Product
+    selected_pids = []
+    raw_pids = post_data.getlist("bundle_product_ids") or post_data.getlist("applicable_products")
+    for raw in raw_pids:
+        try:
+            pid = int(raw)
+            if pid > 0 and pid not in selected_pids:
+                selected_pids.append(pid)
+        except (ValueError, TypeError):
+            continue
+
+    for key, val in post_data.items():
+        if key.startswith("product_qty_"):
+            try:
+                pid = int(key.replace("product_qty_", ""))
+                qty = int(val)
+                if qty > 0 and pid not in selected_pids:
+                    if not raw_pids or str(pid) in raw_pids:
+                        selected_pids.append(pid)
+            except (ValueError, TypeError):
+                continue
+
+    current_items = {it.product_id: it for it in combo.bundle_items.all()}
+    kept_ids = set()
+    for pid in selected_pids:
+        raw_qty = post_data.get(f"product_qty_{pid}", "1")
+        try:
+            qty = max(1, int(raw_qty))
+        except (ValueError, TypeError):
+            qty = 1
+        if pid in current_items:
+            item = current_items[pid]
+            if item.quantity != qty:
+                item.quantity = qty
+                item.save(update_fields=["quantity"])
+        else:
+            ComboBundleItem.objects.create(combo_offer=combo, product_id=pid, quantity=qty)
+        kept_ids.add(pid)
+
+    for pid, item in current_items.items():
+        if pid not in kept_ids:
+            item.delete()
+
+    combo.applicable_products.set(Product.objects.filter(id__in=kept_ids))
+
+
 @login_required
 @user_passes_test(lambda user: user.is_staff)
 def admin_combos(request):
@@ -2856,6 +2899,7 @@ def admin_combos(request):
         form = ComboOfferForm(request.POST, request.FILES)
         if form.is_valid():
             combo = form.save()
+            save_bundle_items_from_post(combo, request.POST)
             messages.success(request, f"Combo offer '{combo.name}' created successfully!")
             return redirect("admin_combos")
         else:
@@ -2867,7 +2911,7 @@ def admin_combos(request):
         form = ComboOfferForm()
 
     combos = (
-        ComboOffer.objects.prefetch_related("applicable_products", "applicable_categories")
+        ComboOffer.objects.prefetch_related("bundle_items__product", "applicable_products", "applicable_categories")
         .all()
         .order_by("-created_at")
     )
@@ -2928,6 +2972,7 @@ def admin_edit_combo(request, combo_id):
         form = ComboOfferForm(request.POST, request.FILES, instance=combo)
         if form.is_valid():
             updated = form.save()
+            save_bundle_items_from_post(updated, request.POST)
             messages.success(request, f"Combo offer '{updated.name}' updated successfully!")
             return redirect("admin_combos")
         else:
@@ -2955,6 +3000,50 @@ def combos_showcase(request):
     Redirects to the homepage shop section.
     """
     return redirect(reverse("home") + "#shop")
+
+
+@require_POST
+def add_bundle_to_cart(request, combo_id):
+    """
+    Adds the bundle's component products and their required quantities directly to the cart.
+    The cart will automatically recognize and implement the combo bundle discount!
+    """
+    combo = get_object_or_404(ComboOffer, pk=combo_id, is_active=True)
+    cart = request.session.get(CART_SESSION_KEY, {})
+    if not isinstance(cart, dict):
+        cart = {}
+
+    bundle_items = list(combo.bundle_items.select_related("product").all())
+    added_names = []
+    if bundle_items:
+        for b_item in bundle_items:
+            pid_str = str(b_item.product_id)
+            current_qty = cart.get(pid_str, 0)
+            cart[pid_str] = current_qty + b_item.quantity
+            added_names.append(f"{b_item.quantity}× {b_item.product.name}")
+    else:
+        prods = list(combo.applicable_products.filter(available=True)[:6])
+        if not prods:
+            prods = list(Product.objects.filter(available=True).order_by("id")[:6])
+        for p in prods:
+            pid_str = str(p.id)
+            cart[pid_str] = cart.get(pid_str, 0) + 1
+            added_names.append(f"1× {p.name}")
+
+    request.session[CART_SESSION_KEY] = cart
+    request.session.modified = True
+
+    summary_str = ", ".join(added_names)
+    msg = f"✨ Added {combo.name} items ({summary_str}) to your cart! Combo bundle discount applied."
+    if request.headers.get("Accept") == "application/json" or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "success": True,
+            "cart_count": _cart_quantity(request),
+            "redirect_url": reverse("cart"),
+            "message": msg,
+        })
+    messages.success(request, msg)
+    return redirect("cart")
 
 
 @require_POST

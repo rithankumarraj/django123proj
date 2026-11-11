@@ -20,23 +20,22 @@ if os.environ.get("VERCEL") == "1":
         from django.core.management import call_command
         call_command("migrate", interactive=False)
         from decimal import Decimal
-        from main.models import ComboOffer
-        ComboOffer.objects.get_or_create(
+        from main.models import ComboOffer, ComboBundleItem, Product
+        combo, _ = ComboOffer.objects.get_or_create(
             name="Cans of Assortment",
             defaults={
-                "offer_type": "multiple_products",
+                "offer_type": "bundle",
                 "discount_type": "percentage",
                 "discount_value": Decimal("15.00"),
                 "max_discount_cap": Decimal("100.00"),
-                "min_order_amount": Decimal("6.00"),
-                "min_quantity": 6,
-                "min_distinct_products": 6,
-                "badge_text": "Cans of Assortment",
                 "image": "combos/cans_of_assortment.png",
-                "description": "Mix & match any 6 different cans to unlock the Cans of Assortment combo offer with 15% instant discount!",
+                "description": "Mix & match our 6 handcrafted flavours to unlock the Cans of Assortment combo bundle with 15% instant discount!",
                 "is_active": True,
             },
         )
+        if combo and not combo.bundle_items.exists():
+            for prod in Product.objects.filter(available=True).order_by("id")[:6]:
+                ComboBundleItem.objects.get_or_create(combo_offer=combo, product=prod, defaults={"quantity": 1})
     except Exception as exc:
         import logging
         logging.getLogger("django").warning("Vercel auto-migration warning: %s", exc)

@@ -1,8 +1,8 @@
 {% extends "main/admin_base.html" %}
 
-{% block title %}Combo Offers & Assortments | Admin{% endblock %}
-{% block page_heading %}Combo Offers & Assortments{% endblock %}
-{% block page_description %}Create and manage multi-product combo packs, mix-and-match assortment deals, and quantity-based discounts.{% endblock %}
+{% block title %}Combo Offers & Bundles | Admin{% endblock %}
+{% block page_heading %}Combo Offers & Bundles{% endblock %}
+{% block page_description %}Configure bundle deals, component cans and quantities, instant discounts, and top announcement bar slides.{% endblock %}
 
 {% block topbar_actions %}
   <a href="{% url 'combos_showcase' %}" target="_blank" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
@@ -11,7 +11,7 @@
       <polyline points="15 3 21 3 21 9"></polyline>
       <line x1="10" y1="14" x2="21" y2="3"></line>
     </svg>
-    <span>View Showcase ↗</span>
+    <span>View in Store ↗</span>
   </a>
   <button type="button" class="btn-primary" onclick="openComboModal()" style="display: inline-flex; align-items: center; gap: 8px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -68,30 +68,23 @@
       border: 1px solid rgba(245, 158, 11, 0.35);
       color: #fbbf24;
     }
-    .offer-type-chip {
+
+    .bundle-item-chip {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 8px;
+      padding: 2px 7px;
       font-size: 0.72rem;
-      font-weight: 700;
       border-radius: 6px;
-      letter-spacing: 0.02em;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.28);
+      color: #93c5fd;
+      margin: 1px 2px;
+      white-space: nowrap;
     }
-    .offer-type-multiple {
-      background: rgba(168, 85, 247, 0.15);
-      border: 1px solid rgba(168, 85, 247, 0.35);
-      color: #c084fc;
-    }
-    .offer-type-single {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.35);
+    .bundle-item-chip strong {
       color: #60a5fa;
-    }
-    .offer-type-price {
-      background: rgba(47, 207, 122, 0.15);
-      border: 1px solid rgba(47, 207, 122, 0.35);
-      color: #2fcf7a;
+      font-weight: 800;
     }
 
     .discount-pill {
@@ -112,28 +105,6 @@
       background: rgba(47, 207, 122, 0.15);
       border: 1px solid rgba(47, 207, 122, 0.35);
       color: #2fcf7a;
-    }
-
-    .cat-chip {
-      display: inline-block;
-      padding: 2px 7px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.8);
-      margin: 1px 2px;
-    }
-    .cat-all-chip {
-      display: inline-block;
-      padding: 2px 8px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      border-radius: 6px;
-      background: rgba(90, 163, 255, 0.12);
-      border: 1px solid rgba(90, 163, 255, 0.25);
-      color: #5aa3ff;
     }
 
     /* Modal Overlay */
@@ -233,22 +204,45 @@
       margin-top: 4px;
       line-height: 1.4;
     }
-    .categories-selector-box {
-      background: rgba(0, 0, 0, 0.25);
+
+    .bundle-selector-box {
+      background: rgba(0, 0, 0, 0.28);
       border: 1px solid var(--admin-line);
-      border-radius: 10px;
-      padding: 12px 14px;
-      max-height: 140px;
+      border-radius: 12px;
+      padding: 12px;
+      max-height: 220px;
       overflow-y: auto;
     }
-    .category-checkbox-item {
+    .bundle-product-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
       margin-bottom: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .bundle-product-row.is-active {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    .bundle-qty-input {
+      width: 60px;
+      height: 32px;
+      padding: 2px 6px;
+      text-align: center;
+      font-weight: 700;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--admin-line);
+      color: #fff;
       font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.85);
-      cursor: pointer;
+    }
+    .bundle-qty-input:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
     }
   </style>
 
@@ -291,7 +285,7 @@
         <span style="font-size: 1.25rem;">🥫</span>
         <div>
           <h2 class="admin-panel-title" style="margin: 0;">Active & Configured Combos</h2>
-          <div style="font-size: 0.78rem; color: rgba(255,255,255,0.5);">Manage your combo offers, assortment rules, and discount caps.</div>
+          <div style="font-size: 0.78rem; color: rgba(255,255,255,0.5);">Manage your bundle deals, product quantities, discount caps, and announcement slides.</div>
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
@@ -304,11 +298,9 @@
       <table class="admin-table" id="combosTable">
         <thead>
           <tr>
-            <th>Combo Name</th>
-            <th>Offer Type</th>
-            <th>Applicable Products</th>
+            <th>Combo Bundle</th>
+            <th>Bundle Items & Quantities</th>
             <th>Discount / CAP</th>
-            <th>Min Order / Qty</th>
             <th>Expiry Date</th>
             <th>Uses / Limit</th>
             <th>Status</th>
@@ -321,51 +313,48 @@
                 data-name="{{ combo.name|lower }}"
                 data-id="{{ combo.id }}"
                 data-combo-name="{{ combo.name|escape }}"
-                data-offer-type="{{ combo.offer_type }}"
-                data-badge-text="{{ combo.badge_text|escape }}"
                 data-image-url="{{ combo.image_url }}"
                 data-discount-type="{{ combo.discount_type }}"
                 data-discount-value="{{ combo.discount_value }}"
                 data-max-cap="{{ combo.max_discount_cap|default:'' }}"
-                data-min-order="{{ combo.min_order_amount }}"
-                data-min-qty="{{ combo.min_quantity }}"
-                data-min-distinct="{{ combo.min_distinct_products }}"
                 data-usage-limit="{{ combo.usage_limit|default:'' }}"
                 data-expire-date="{{ combo.expire_date|date:'Y-m-d'|default:'' }}"
                 data-description="{{ combo.description|escape }}"
+                data-show-announcement="{{ combo.show_in_announcement|yesno:'true,false' }}"
+                data-announcement-text="{{ combo.announcement_text|default:''|escape }}"
                 data-is-active="{{ combo.is_active|yesno:'true,false' }}"
-                data-products="[{% for p in combo.applicable_products.all %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+                data-bundle-items='[{% for it in combo.bundle_items.all %}{"id": {{ it.product_id }}, "qty": {{ it.quantity }}}{% if not forloop.last %},{% endif %}{% endfor %}]'
             >
               <td>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" onerror="this.src='/static/main/images/combos/cans_of_assortment.png'" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
-                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
                     <span class="combo-name-badge">{{ combo.name }}</span>
-                    {% if combo.badge_text and combo.badge_text != combo.name %}
-                      <span style="font-size: 0.72rem; color: rgba(255,255,255,0.5);">Badge: {{ combo.badge_text }}</span>
+                    {% if combo.show_in_announcement %}
+                      <span style="font-size: 0.7rem; color: #fbbf24;">📢 Slide Active</span>
                     {% endif %}
                   </div>
                 </div>
               </td>
-              <td>
-                {% if combo.offer_type == 'multiple_products' %}
-                  <span class="offer-type-chip offer-type-multiple">Multiple Products</span>
-                {% elif combo.offer_type == 'single_quantity' %}
-                  <span class="offer-type-chip offer-type-single">Single Quantity</span>
-                {% else %}
-                  <span class="offer-type-chip offer-type-price">Price Based</span>
-                {% endif %}
-              </td>
-              <td style="max-width: 220px;">
-                {% with prods=combo.applicable_products.all %}
-                  {% if prods %}
-                    {% for p in prods %}
-                      <span class="cat-chip">{{ p.name }}</span>
+              <td style="max-width: 280px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 3px;">
+                  {% for item in combo.bundle_items.all %}
+                    <span class="bundle-item-chip">
+                      <strong>{{ item.quantity }}×</strong> {{ item.product.name }}
+                    </span>
+                  {% empty %}
+                    {% for p in combo.applicable_products.all %}
+                      <span class="bundle-item-chip">
+                        <strong>1×</strong> {{ p.name }}
+                      </span>
+                    {% empty %}
+                      <span style="font-size: 0.74rem; color: rgba(255,255,255,0.5);">All Products (6 Cans)</span>
                     {% endfor %}
-                  {% else %}
-                    <span class="cat-all-chip">All Products</span>
-                  {% endif %}
-                {% endwith %}
+                  {% endfor %}
+                </div>
+                <div style="font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 4px;">
+                  Total: {{ combo.total_bundle_cans }} cans • ₹{{ combo.bundle_discounted_price|floatformat:0 }} (Reg ₹{{ combo.bundle_regular_price|floatformat:0 }})
+                </div>
               </td>
               <td>
                 <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -376,14 +365,6 @@
                     {% endif %}
                   {% else %}
                     <span class="discount-pill discount-pill-fixed">₹{{ combo.discount_value|floatformat:2 }} OFF</span>
-                  {% endif %}
-                </div>
-              </td>
-              <td>
-                <div style="font-size: 0.8rem; line-height: 1.3;">
-                  <div>Min: <strong>₹{{ combo.min_order_amount|floatformat:2 }}</strong></div>
-                  {% if combo.min_quantity %}
-                    <div style="font-size: 0.72rem; color: rgba(255,255,255,0.55);">Qty ≥ {{ combo.min_quantity }}{% if combo.min_distinct_products %} ({{ combo.min_distinct_products }} distinct){% endif %}</div>
                   {% endif %}
                 </div>
               </td>
@@ -437,7 +418,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="9" style="text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.45);">
+              <td colspan="7" style="text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.45);">
                 No combo offers configured yet. Click "Create New Combo" above to add your first deal!
               </td>
             </tr>
@@ -451,129 +432,110 @@
   <div class="admin-modal-overlay {% if show_modal %}active{% endif %}" id="comboModal">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header">
-        <h3 class="admin-modal-title">Create New Combo Offer</h3>
+        <h3 class="admin-modal-title">Create New Combo Bundle</h3>
         <button type="button" class="admin-modal-close" onclick="closeComboModal()">&times;</button>
       </div>
       <form method="post" action="{% url 'admin_combos' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="admin-modal-body">
           <div class="form-grid">
-            <!-- 1. Offer Type Dropdown -->
-            <div>
-              <label for="{{ form.offer_type.id_for_label }}" class="form-label">Offer Type *</label>
-              {{ form.offer_type }}
-              <small class="form-help">Select multiple products combo, single quantity, or price based offer.</small>
-            </div>
-
-            <!-- 2. Combo Name -->
-            <div>
-              <label for="{{ form.name.id_for_label }}" class="form-label">Combo Name *</label>
+            <!-- 1. Combo Name -->
+            <div class="form-grid-full">
+              <label for="{{ form.name.id_for_label }}" class="form-label">Combo Bundle Name *</label>
               {{ form.name }}
-              <small class="form-help">e.g. Cans of Assortment, Weekend Blast</small>
+              <small class="form-help">e.g. Cans of Assortment, Lime Blast, Colafied 6-Pack</small>
             </div>
 
-            <!-- Combo Pack Image Upload -->
-            <div>
+            <!-- 2. Combo Pack Image Upload -->
+            <div class="form-grid-full">
               <label for="{{ form.image.id_for_label }}" class="form-label">Combo Pack Image</label>
               <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                 <img id="create_combo_image_preview" src="/static/main/images/combos/cans_of_assortment.png" alt="Preview"
-                  onerror="this.src='/static/main/images/combos/cans_of_assortment.png'"
+                  onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'"
                   style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 2px; display: none;">
                 <span id="create_combo_image_hint" style="font-size: 0.78rem; color: rgba(255,255,255,0.6); display: none;">Image Preview</span>
               </div>
               {{ form.image }}
-              <small class="form-help">Upload combo pack photo (e.g. 6-can shrink wrap pack).</small>
+              <small class="form-help">Upload combo pack photo (e.g. 6-can shrink wrap pack). Saved securely to eliminate image missing errors.</small>
             </div>
 
-            <!-- 3. Badge Text -->
-            <div>
-              <label for="{{ form.badge_text.id_for_label }}" class="form-label">Badge Text</label>
-              {{ form.badge_text }}
-              <small class="form-help">Displayed on item cards & checkout tags.</small>
-            </div>
-
-            <!-- 4. Selective Products -->
-            <div>
-              <label class="form-label">Selective Products</label>
-              <div class="categories-selector-box" style="max-height: 180px; overflow-y: auto;">
+            <!-- 3. Bundle Products & Quantities -->
+            <div class="form-grid-full">
+              <label class="form-label">Select Bundle Products & Quantities *</label>
+              <div class="bundle-selector-box">
                 {% for prod in all_products %}
-                  <label class="category-checkbox-item">
-                    <input type="checkbox" name="applicable_products" value="{{ prod.id }}">
-                    <span>{{ prod.name }} ({{ prod.volume }})</span>
-                  </label>
+                  <div class="bundle-product-row" id="row_create_prod_{{ prod.id }}">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-size: 0.85rem; color: #fff; flex: 1;">
+                      <input type="checkbox" name="bundle_product_ids" value="{{ prod.id }}" id="create_prod_{{ prod.id }}" class="create-bundle-check" onchange="handleBundleCheckChange(this, 'create_qty_{{ prod.id }}', 'row_create_prod_{{ prod.id }}')">
+                      <span>{{ prod.name }} <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">({{ prod.volume }}) - ₹{{ prod.price }}</span></span>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span style="font-size: 0.72rem; color: rgba(255,255,255,0.6); text-transform: uppercase;">Qty:</span>
+                      <input type="number" name="product_qty_{{ prod.id }}" id="create_qty_{{ prod.id }}" value="1" min="1" max="99" class="bundle-qty-input">
+                    </div>
+                  </div>
                 {% endfor %}
               </div>
-              <small class="form-help">Leave unchecked to apply to all products.</small>
+              <small class="form-help">Specify which cans and the exact count included in this bundle (e.g. 6× Fresh Lime, or 1× of each of 6 cans).</small>
             </div>
 
-            <!-- 5. Discount Type Dropdown -->
+            <!-- 4. Discount Type Dropdown -->
             <div>
               <label for="{{ form.discount_type.id_for_label }}" class="form-label">Discount Type *</label>
               {{ form.discount_type }}
               <small class="form-help">Percentage (%) or Fixed Price (₹).</small>
             </div>
 
-            <!-- 6. Discount Value -->
+            <!-- 5. Discount Value -->
             <div>
               <label for="{{ form.discount_value.id_for_label }}" class="form-label">Discount Value *</label>
               {{ form.discount_value }}
-              <small class="form-help">e.g. 15 for 15% or 50 for ₹50.</small>
+              <small class="form-help">e.g. 15 for 15% or 50 for ₹50 off.</small>
             </div>
 
-            <!-- 7. Max Discount CAP -->
+            <!-- 6. Max Discount CAP -->
             <div>
               <label for="{{ form.max_discount_cap.id_for_label }}" class="form-label">Max Discount CAP (₹)</label>
               {{ form.max_discount_cap }}
               <small class="form-help">Optional ceiling for percentage discounts (e.g. 100.00).</small>
             </div>
 
-            <!-- 8. Minimum Order Amount (default 6) -->
-            <div>
-              <label for="{{ form.min_order_amount.id_for_label }}" class="form-label">Minimum Order Amount (₹) *</label>
-              {{ form.min_order_amount }}
-              <small class="form-help">Default 6.00.</small>
-            </div>
-
-            <!-- 9. Minimum Quantity -->
-            <div>
-              <label for="{{ form.min_quantity.id_for_label }}" class="form-label">Minimum Quantity *</label>
-              {{ form.min_quantity }}
-              <small class="form-help">Minimum total cans/items required (default 6).</small>
-            </div>
-
-            <!-- 10. Minimum Distinct Products -->
-            <div>
-              <label for="{{ form.min_distinct_products.id_for_label }}" class="form-label">Min Distinct Products (for Assortment)</label>
-              {{ form.min_distinct_products }}
-              <small class="form-help">Require each can to be different (default 6).</small>
-            </div>
-
-            <!-- 11. Usage Limit -->
+            <!-- 7. Usage Limit -->
             <div>
               <label for="{{ form.usage_limit.id_for_label }}" class="form-label">Usage Limit</label>
               {{ form.usage_limit }}
               <small class="form-help">Leave blank for unlimited uses.</small>
             </div>
 
-            <!-- 12. Expiry Date -->
-            <div>
+            <!-- 8. Expiry Date -->
+            <div class="form-grid-full">
               <label for="{{ form.expire_date.id_for_label }}" class="form-label">Expiry Date</label>
               {{ form.expire_date }}
-              <small class="form-help">Optional expiry date for creating.</small>
+              <small class="form-help">Optional expiry date for this bundle deal.</small>
             </div>
 
-            <!-- 13. Description -->
+            <!-- 9. Announcement Bar Slide Feature -->
+            <div class="form-grid-full" style="background: rgba(245, 158, 11, 0.07); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 14px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: #fbbf24; font-weight: 700; margin-bottom: 8px;">
+                <input type="checkbox" name="show_in_announcement" id="create_show_announcement" class="form-check-input" checked>
+                <span>📢 Show in Homepage Top Announcement Slide</span>
+              </label>
+              <input type="text" name="announcement_text" id="create_announcement_text" class="form-control" placeholder="e.g. 15% Instant Savings • Mix & match 6 handcrafted cans to unlock combo deal!" style="font-size: 0.82rem;">
+              <small class="form-help" style="color: rgba(251, 191, 36, 0.75);">Visitors can click this announcement slide at the top of the homepage to jump directly to this combo offer.</small>
+            </div>
+
+            <!-- 10. Description -->
             <div class="form-grid-full">
               <label for="{{ form.description.id_for_label }}" class="form-label">Offer Description</label>
               {{ form.description }}
-              <small class="form-help">Explains the promo details on the public showcase page.</small>
+              <small class="form-help">Displays on the homepage shop switcher and combo details.</small>
             </div>
 
-            <!-- 14. Active Checkbox -->
+            <!-- 11. Active Checkbox -->
             <div class="form-grid-full">
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: #fff;">
                 {{ form.is_active }}
-                <span>Activate this combo offer immediately</span>
+                <span>Activate this combo bundle immediately</span>
               </label>
             </div>
           </div>
@@ -590,66 +552,54 @@
   <div class="admin-modal-overlay" id="editComboModal">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header">
-        <h3 class="admin-modal-title">Edit Combo Offer</h3>
+        <h3 class="admin-modal-title">Edit Combo Bundle</h3>
         <button type="button" class="admin-modal-close" onclick="closeEditComboModal()">&times;</button>
       </div>
       <form id="editComboForm" method="post" action="" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="admin-modal-body">
           <div class="form-grid">
-            <!-- 1. Offer Type Dropdown -->
-            <div>
-              <label for="edit_combo_offer_type" class="form-label">Offer Type *</label>
-              <select name="offer_type" id="edit_combo_offer_type" class="form-control" required>
-                <option value="multiple_products">Multiple Products Combo</option>
-                <option value="single_quantity">Single Quantity Offer</option>
-                <option value="price_based">Price Based Offer</option>
-              </select>
-              <small class="form-help">Select multiple products combo, single quantity, or price based offer.</small>
-            </div>
-
-            <!-- 2. Combo Name -->
-            <div>
-              <label for="edit_combo_name" class="form-label">Combo Name *</label>
+            <!-- 1. Combo Name -->
+            <div class="form-grid-full">
+              <label for="edit_combo_name" class="form-label">Combo Bundle Name *</label>
               <input type="text" name="name" id="edit_combo_name" class="form-control" required>
-              <small class="form-help">e.g. Cans of Assortment, Weekend Blast</small>
+              <small class="form-help">e.g. Cans of Assortment, Lime Blast</small>
             </div>
 
-            <!-- Combo Pack Image Upload -->
-            <div>
+            <!-- 2. Combo Pack Image Upload -->
+            <div class="form-grid-full">
               <label for="edit_combo_image" class="form-label">Combo Pack Image</label>
               <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <img id="edit_combo_image_preview" src="" alt="Current pack image"
-                  onerror="this.src='/static/main/images/combos/cans_of_assortment.png'"
+                <img id="edit_combo_image_preview" src="/static/main/images/combos/cans_of_assortment.png" alt="Current pack image"
+                  onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'"
                   style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 2px;">
                 <span id="edit_combo_image_hint" style="font-size: 0.78rem; color: rgba(255,255,255,0.6);">Current Image (Upload new to replace)</span>
               </div>
               <input type="file" name="image" id="edit_combo_image" class="form-control" accept="image/*">
-              <small class="form-help">Leave empty to keep current image.</small>
+              <small class="form-help">Leave empty to keep current image. Uploading stores permanently to prevent broken images.</small>
             </div>
 
-            <!-- 3. Badge Text -->
-            <div>
-              <label for="edit_combo_badge_text" class="form-label">Badge Text</label>
-              <input type="text" name="badge_text" id="edit_combo_badge_text" class="form-control">
-              <small class="form-help">Displayed on item cards & checkout tags.</small>
-            </div>
-
-            <!-- 4. Selective Products -->
-            <div>
-              <label class="form-label">Selective Products</label>
-              <div class="categories-selector-box" style="max-height: 180px; overflow-y: auto;">
+            <!-- 3. Bundle Products & Quantities -->
+            <div class="form-grid-full">
+              <label class="form-label">Select Bundle Products & Quantities *</label>
+              <div class="bundle-selector-box">
                 {% for prod in all_products %}
-                  <label class="category-checkbox-item">
-                    <input type="checkbox" name="applicable_products" value="{{ prod.id }}" class="edit-product-checkbox" id="edit_prod_{{ prod.id }}">
-                    <span>{{ prod.name }} ({{ prod.volume }})</span>
-                  </label>
+                  <div class="bundle-product-row" id="row_edit_prod_{{ prod.id }}">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-size: 0.85rem; color: #fff; flex: 1;">
+                      <input type="checkbox" name="bundle_product_ids" value="{{ prod.id }}" class="edit-bundle-check" id="edit_prod_{{ prod.id }}" onchange="handleBundleCheckChange(this, 'edit_qty_{{ prod.id }}', 'row_edit_prod_{{ prod.id }}')">
+                      <span>{{ prod.name }} <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">({{ prod.volume }}) - ₹{{ prod.price }}</span></span>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span style="font-size: 0.72rem; color: rgba(255,255,255,0.6); text-transform: uppercase;">Qty:</span>
+                      <input type="number" name="product_qty_{{ prod.id }}" id="edit_qty_{{ prod.id }}" value="1" min="1" max="99" class="bundle-qty-input edit-qty-input">
+                    </div>
+                  </div>
                 {% endfor %}
               </div>
-              <small class="form-help">Leave unchecked to apply to all products.</small>
+              <small class="form-help">Select which products and how many cans are included in this bundle deal.</small>
             </div>
 
-            <!-- 5. Discount Type Dropdown -->
+            <!-- 4. Discount Type Dropdown -->
             <div>
               <label for="edit_combo_discount_type" class="form-label">Discount Type *</label>
               <select name="discount_type" id="edit_combo_discount_type" class="form-control" required>
@@ -659,63 +609,52 @@
               <small class="form-help">Percentage (%) or Fixed Price (₹).</small>
             </div>
 
-            <!-- 6. Discount Value -->
+            <!-- 5. Discount Value -->
             <div>
               <label for="edit_combo_discount_value" class="form-label">Discount Value *</label>
               <input type="number" step="0.01" min="0.01" name="discount_value" id="edit_combo_discount_value" class="form-control" required>
               <small class="form-help">e.g. 15 for 15% or 50 for ₹50.</small>
             </div>
 
-            <!-- 7. Max Discount CAP -->
+            <!-- 6. Max Discount CAP -->
             <div>
               <label for="edit_combo_max_discount_cap" class="form-label">Max Discount CAP (₹)</label>
               <input type="number" step="0.01" min="0" name="max_discount_cap" id="edit_combo_max_discount_cap" class="form-control">
               <small class="form-help">Optional ceiling for percentage discounts (e.g. 100.00).</small>
             </div>
 
-            <!-- 8. Minimum Order Amount -->
-            <div>
-              <label for="edit_combo_min_order_amount" class="form-label">Minimum Order Amount (₹) *</label>
-              <input type="number" step="0.01" min="0" name="min_order_amount" id="edit_combo_min_order_amount" class="form-control" required>
-              <small class="form-help">Default 6.00.</small>
-            </div>
-
-            <!-- 9. Minimum Quantity -->
-            <div>
-              <label for="edit_combo_min_quantity" class="form-label">Minimum Quantity *</label>
-              <input type="number" min="1" name="min_quantity" id="edit_combo_min_quantity" class="form-control" required>
-              <small class="form-help">Minimum total cans/items required (default 6).</small>
-            </div>
-
-            <!-- 10. Minimum Distinct Products -->
-            <div>
-              <label for="edit_combo_min_distinct_products" class="form-label">Min Distinct Products (for Assortment)</label>
-              <input type="number" min="1" name="min_distinct_products" id="edit_combo_min_distinct_products" class="form-control">
-              <small class="form-help">Require each can to be different (default 6).</small>
-            </div>
-
-            <!-- 11. Usage Limit -->
+            <!-- 7. Usage Limit -->
             <div>
               <label for="edit_combo_usage_limit" class="form-label">Usage Limit</label>
               <input type="number" min="1" name="usage_limit" id="edit_combo_usage_limit" class="form-control">
               <small class="form-help">Leave blank for unlimited uses.</small>
             </div>
 
-            <!-- 12. Expiry Date -->
-            <div>
+            <!-- 8. Expiry Date -->
+            <div class="form-grid-full">
               <label for="edit_combo_expire_date" class="form-label">Expiry Date</label>
               <input type="date" name="expire_date" id="edit_combo_expire_date" class="form-control">
               <small class="form-help">Optional expiry date.</small>
             </div>
 
-            <!-- 13. Description -->
+            <!-- 9. Announcement Bar Slide Feature -->
+            <div class="form-grid-full" style="background: rgba(245, 158, 11, 0.07); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 14px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: #fbbf24; font-weight: 700; margin-bottom: 8px;">
+                <input type="checkbox" name="show_in_announcement" id="edit_show_announcement" class="form-check-input">
+                <span>📢 Show in Homepage Top Announcement Slide</span>
+              </label>
+              <input type="text" name="announcement_text" id="edit_announcement_text" class="form-control" placeholder="e.g. 15% Instant Savings • Mix & match 6 handcrafted cans to unlock combo deal!" style="font-size: 0.82rem;">
+              <small class="form-help" style="color: rgba(251, 191, 36, 0.75);">Displayed on the sliding announcement bar above the navbar.</small>
+            </div>
+
+            <!-- 10. Description -->
             <div class="form-grid-full">
               <label for="edit_combo_description" class="form-label">Offer Description</label>
               <textarea name="description" id="edit_combo_description" class="form-control" rows="2"></textarea>
               <small class="form-help">Explains promo details on homepage shop switcher.</small>
             </div>
 
-            <!-- 14. Active Checkbox -->
+            <!-- 11. Active Checkbox -->
             <div class="form-grid-full">
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: #fff;">
                 <input type="checkbox" name="is_active" id="edit_combo_is_active" class="form-check-input">
@@ -733,6 +672,17 @@
   </div>
 
   <script>
+    function handleBundleCheckChange(checkbox, qtyInputId, rowId) {
+      var row = document.getElementById(rowId);
+      if (row) {
+        if (checkbox.checked) {
+          row.classList.add('is-active');
+        } else {
+          row.classList.remove('is-active');
+        }
+      }
+    }
+
     function openComboModal() {
       var modal = document.getElementById('comboModal');
       if (modal) modal.classList.add('active');
@@ -741,6 +691,7 @@
       var modal = document.getElementById('comboModal');
       if (modal) modal.classList.remove('active');
     }
+
     function openEditComboModal(comboId) {
       var row = document.getElementById('combo-row-' + comboId);
       if (!row) return;
@@ -749,8 +700,6 @@
       form.action = '/admin-profile/combos/' + comboId + '/edit/';
 
       document.getElementById('edit_combo_name').value = row.getAttribute('data-combo-name') || '';
-      document.getElementById('edit_combo_offer_type').value = row.getAttribute('data-offer-type') || 'multiple_products';
-      document.getElementById('edit_combo_badge_text').value = row.getAttribute('data-badge-text') || '';
       var imgUrl = row.getAttribute('data-image-url') || '/static/main/images/combos/cans_of_assortment.png';
       var preview = document.getElementById('edit_combo_image_preview');
       if (preview) {
@@ -768,32 +717,59 @@
       document.getElementById('edit_combo_discount_type').value = row.getAttribute('data-discount-type') || 'percentage';
       document.getElementById('edit_combo_discount_value').value = row.getAttribute('data-discount-value') || '';
       document.getElementById('edit_combo_max_discount_cap').value = row.getAttribute('data-max-cap') || '';
-      document.getElementById('edit_combo_min_order_amount').value = row.getAttribute('data-min-order') || '6.00';
-      document.getElementById('edit_combo_min_quantity').value = row.getAttribute('data-min-qty') || '6';
-      document.getElementById('edit_combo_min_distinct_products').value = row.getAttribute('data-min-distinct') || '6';
       document.getElementById('edit_combo_usage_limit').value = row.getAttribute('data-usage-limit') || '';
       document.getElementById('edit_combo_expire_date').value = row.getAttribute('data-expire-date') || '';
       document.getElementById('edit_combo_description').value = row.getAttribute('data-description') || '';
       document.getElementById('edit_combo_is_active').checked = row.getAttribute('data-is-active') === 'true';
 
-      var selectedProductIds = [];
+      var showAnnounce = row.getAttribute('data-show-announcement') === 'true';
+      var editAnnounceCb = document.getElementById('edit_show_announcement');
+      if (editAnnounceCb) editAnnounceCb.checked = showAnnounce;
+
+      var announceText = row.getAttribute('data-announcement-text') || '';
+      var editAnnounceInput = document.getElementById('edit_announcement_text');
+      if (editAnnounceInput) editAnnounceInput.value = announceText;
+
+      // Reset all edit bundle checkboxes & quantities
+      var editCheckboxes = document.querySelectorAll('.edit-bundle-check');
+      editCheckboxes.forEach(function(cb) {
+        cb.checked = false;
+        var r = document.getElementById('row_edit_prod_' + cb.value);
+        if (r) r.classList.remove('is-active');
+        var qtyInput = document.getElementById('edit_qty_' + cb.value);
+        if (qtyInput) qtyInput.value = '1';
+      });
+
+      // Populate bundle items & quantities from JSON
+      var bundleItems = [];
       try {
-        selectedProductIds = JSON.parse(row.getAttribute('data-products') || '[]');
+        bundleItems = JSON.parse(row.getAttribute('data-bundle-items') || '[]');
       } catch(e) {}
 
-      var prodCheckboxes = document.querySelectorAll('.edit-product-checkbox');
-      prodCheckboxes.forEach(function(cb) {
-        var pid = parseInt(cb.value, 10);
-        cb.checked = selectedProductIds.indexOf(pid) !== -1;
+      bundleItems.forEach(function(item) {
+        var pid = item.id;
+        var qty = item.qty || 1;
+        var cb = document.getElementById('edit_prod_' + pid);
+        if (cb) {
+          cb.checked = true;
+          var r = document.getElementById('row_edit_prod_' + pid);
+          if (r) r.classList.add('is-active');
+        }
+        var qtyInput = document.getElementById('edit_qty_' + pid);
+        if (qtyInput) {
+          qtyInput.value = qty;
+        }
       });
 
       var modal = document.getElementById('editComboModal');
       if (modal) modal.classList.add('active');
     }
+
     function closeEditComboModal() {
       var modal = document.getElementById('editComboModal');
       if (modal) modal.classList.remove('active');
     }
+
     function filterCombosTable() {
       var q = (document.getElementById('comboSearchInput').value || '').toLowerCase().trim();
       var rows = document.querySelectorAll('#combosTable tbody tr.combo-row');
@@ -846,4 +822,3 @@
     });
   </script>
 {% endblock %}
-
