@@ -1592,11 +1592,13 @@ def payment_page(request, payment_reference):
             else:
                 action = raw_action.strip().lower()
 
-            event_types = {
-                "confirm": "payment.succeeded",
-                "cancel": "payment.failed",
-            }
-            event_type = event_types.get(action)
+            if action in {"confirm", "confirm demo payment", "confirm_payment", "payment.succeeded", "success"} or "confirm" in action or "pay" in action or "success" in action:
+                event_type = "payment.succeeded"
+            elif action in {"cancel", "cancel payment", "payment.failed", "failed", "cancelled"} or "cancel" in action or "fail" in action:
+                event_type = "payment.failed"
+            else:
+                event_type = None
+
             if event_type is None:
                 return HttpResponseBadRequest("Invalid payment action.")
 

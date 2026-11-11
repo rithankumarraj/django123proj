@@ -27,6 +27,10 @@ if (switcher && productData.length) {
         const update = () => {
             const isCombo = Boolean(product.is_combo);
             image.src = product.image;
+            image.onerror = function() {
+                this.onerror = null;
+                this.src = '/static/main/images/combos/cans_of_assortment.png';
+            };
             image.alt = product.name;
             if (imageLink) {
                 imageLink.href = tiles[index].dataset.productUrl;

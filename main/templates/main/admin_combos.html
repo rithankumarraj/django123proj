@@ -338,7 +338,7 @@
             >
               <td>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
+                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" onerror="this.src='/static/main/images/combos/cans_of_assortment.png'" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
                   <div style="display: flex; flex-direction: column; gap: 4px;">
                     <span class="combo-name-badge">{{ combo.name }}</span>
                     {% if combo.badge_text and combo.badge_text != combo.name %}
@@ -475,6 +475,12 @@
             <!-- Combo Pack Image Upload -->
             <div>
               <label for="{{ form.image.id_for_label }}" class="form-label">Combo Pack Image</label>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <img id="create_combo_image_preview" src="/static/main/images/combos/cans_of_assortment.png" alt="Preview"
+                  onerror="this.src='/static/main/images/combos/cans_of_assortment.png'"
+                  style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 2px; display: none;">
+                <span id="create_combo_image_hint" style="font-size: 0.78rem; color: rgba(255,255,255,0.6); display: none;">Image Preview</span>
+              </div>
               {{ form.image }}
               <small class="form-help">Upload combo pack photo (e.g. 6-can shrink wrap pack).</small>
             </div>
@@ -614,8 +620,9 @@
               <label for="edit_combo_image" class="form-label">Combo Pack Image</label>
               <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                 <img id="edit_combo_image_preview" src="" alt="Current pack image"
+                  onerror="this.src='/static/main/images/combos/cans_of_assortment.png'"
                   style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 2px;">
-                <span style="font-size: 0.78rem; color: rgba(255,255,255,0.6);">Current Image (Upload new to replace)</span>
+                <span id="edit_combo_image_hint" style="font-size: 0.78rem; color: rgba(255,255,255,0.6);">Current Image (Upload new to replace)</span>
               </div>
               <input type="file" name="image" id="edit_combo_image" class="form-control" accept="image/*">
               <small class="form-help">Leave empty to keep current image.</small>
@@ -744,7 +751,20 @@
       document.getElementById('edit_combo_name').value = row.getAttribute('data-combo-name') || '';
       document.getElementById('edit_combo_offer_type').value = row.getAttribute('data-offer-type') || 'multiple_products';
       document.getElementById('edit_combo_badge_text').value = row.getAttribute('data-badge-text') || '';
-      document.getElementById('edit_combo_image_preview').src = row.getAttribute('data-image-url') || '';
+      var imgUrl = row.getAttribute('data-image-url') || '/static/main/images/combos/cans_of_assortment.png';
+      var preview = document.getElementById('edit_combo_image_preview');
+      if (preview) {
+        preview.src = imgUrl;
+      }
+      var hint = document.getElementById('edit_combo_image_hint');
+      if (hint) {
+        hint.textContent = 'Current Image (Upload new to replace)';
+        hint.style.color = 'rgba(255,255,255,0.6)';
+      }
+      var fileInput = document.getElementById('edit_combo_image');
+      if (fileInput) {
+        fileInput.value = '';
+      }
       document.getElementById('edit_combo_discount_type').value = row.getAttribute('data-discount-type') || 'percentage';
       document.getElementById('edit_combo_discount_value').value = row.getAttribute('data-discount-value') || '';
       document.getElementById('edit_combo_max_discount_cap').value = row.getAttribute('data-max-cap') || '';
@@ -786,6 +806,44 @@
         }
       });
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var editImgInput = document.getElementById('edit_combo_image');
+      if (editImgInput) {
+        editImgInput.addEventListener('change', function () {
+          if (this.files && this.files[0]) {
+            var prev = document.getElementById('edit_combo_image_preview');
+            var hint = document.getElementById('edit_combo_image_hint');
+            if (prev) {
+              prev.src = URL.createObjectURL(this.files[0]);
+            }
+            if (hint) {
+              hint.textContent = 'Selected: ' + this.files[0].name;
+              hint.style.color = '#4ade80';
+            }
+          }
+        });
+      }
+
+      var createImgInput = document.getElementById('id_combo_image') || document.querySelector('#comboModal input[type="file"][name="image"]');
+      if (createImgInput) {
+        createImgInput.addEventListener('change', function () {
+          if (this.files && this.files[0]) {
+            var prev = document.getElementById('create_combo_image_preview');
+            var hint = document.getElementById('create_combo_image_hint');
+            if (prev) {
+              prev.src = URL.createObjectURL(this.files[0]);
+              prev.style.display = 'block';
+            }
+            if (hint) {
+              hint.textContent = 'Selected: ' + this.files[0].name;
+              hint.style.display = 'inline';
+              hint.style.color = '#4ade80';
+            }
+          }
+        });
+      }
+    });
   </script>
 {% endblock %}
 

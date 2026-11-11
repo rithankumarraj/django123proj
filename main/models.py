@@ -532,9 +532,16 @@ class ComboOffer(models.Model):
     def image_url(self):
         if self.image:
             try:
-                return self.image.url
+                url = self.image.url
+                if url:
+                    return url
             except Exception:
                 pass
+            name = str(self.image).strip()
+            if name:
+                if name.startswith("http://") or name.startswith("https://") or name.startswith("/"):
+                    return name
+                return f"/media/{name}"
         return "/static/main/images/combos/cans_of_assortment.png"
 
     def evaluate_cart(self, cart_items, subtotal=None):
