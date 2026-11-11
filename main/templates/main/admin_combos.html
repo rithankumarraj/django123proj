@@ -306,7 +306,7 @@
           <tr>
             <th>Combo Name</th>
             <th>Offer Type</th>
-            <th>Categories</th>
+            <th>Applicable Products</th>
             <th>Discount / CAP</th>
             <th>Min Order / Qty</th>
             <th>Expiry Date</th>
@@ -317,10 +317,28 @@
         </thead>
         <tbody>
           {% for combo in combos %}
-            <tr class="combo-row" data-name="{{ combo.name|lower }}">
+            <tr class="combo-row" id="combo-row-{{ combo.id }}"
+                data-name="{{ combo.name|lower }}"
+                data-id="{{ combo.id }}"
+                data-combo-name="{{ combo.name|escape }}"
+                data-offer-type="{{ combo.offer_type }}"
+                data-badge-text="{{ combo.badge_text|escape }}"
+                data-image-url="{{ combo.image_url }}"
+                data-discount-type="{{ combo.discount_type }}"
+                data-discount-value="{{ combo.discount_value }}"
+                data-max-cap="{{ combo.max_discount_cap|default:'' }}"
+                data-min-order="{{ combo.min_order_amount }}"
+                data-min-qty="{{ combo.min_quantity }}"
+                data-min-distinct="{{ combo.min_distinct_products }}"
+                data-usage-limit="{{ combo.usage_limit|default:'' }}"
+                data-expire-date="{{ combo.expire_date|date:'Y-m-d'|default:'' }}"
+                data-description="{{ combo.description|escape }}"
+                data-is-active="{{ combo.is_active|yesno:'true,false' }}"
+                data-products="[{% for p in combo.applicable_products.all %}{{ p.id }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+            >
               <td>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #000; border: 1px solid rgba(255,255,255,0.12); padding: 2px;">
+                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
                   <div style="display: flex; flex-direction: column; gap: 4px;">
                     <span class="combo-name-badge">{{ combo.name }}</span>
                     {% if combo.badge_text and combo.badge_text != combo.name %}
@@ -338,14 +356,14 @@
                   <span class="offer-type-chip offer-type-price">Price Based</span>
                 {% endif %}
               </td>
-              <td style="max-width: 180px;">
-                {% with cats=combo.applicable_categories.all %}
-                  {% if cats %}
-                    {% for c in cats %}
-                      <span class="cat-chip">{{ c.name }}</span>
+              <td style="max-width: 220px;">
+                {% with prods=combo.applicable_products.all %}
+                  {% if prods %}
+                    {% for p in prods %}
+                      <span class="cat-chip">{{ p.name }}</span>
                     {% endfor %}
                   {% else %}
-                    <span class="cat-all-chip">All Categories</span>
+                    <span class="cat-all-chip">All Products</span>
                   {% endif %}
                 {% endwith %}
               </td>
@@ -395,6 +413,11 @@
               </td>
               <td style="text-align: right;">
                 <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  <button type="button" class="btn-sm btn-outline-info"
+                    onclick="openEditComboModal({{ combo.id }})"
+                    style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); background: transparent;">
+                    Edit
+                  </button>
                   <form method="post" action="{% url 'admin_toggle_combo' combo.id %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn-sm {% if combo.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
@@ -463,19 +486,18 @@
               <small class="form-help">Displayed on item cards & checkout tags.</small>
             </div>
 
-            <!-- 4. Selective Categories -->
+            <!-- 4. Selective Products -->
             <div>
-              <label class="form-label">Selective Categories</label>
-              <div class="categories-selector-box">
-                {% for pk, choice in form.applicable_categories.field.choices %}
+              <label class="form-label">Selective Products</label>
+              <div class="categories-selector-box" style="max-height: 180px; overflow-y: auto;">
+                {% for prod in all_products %}
                   <label class="category-checkbox-item">
-                    <input type="checkbox" name="applicable_categories" value="{{ pk }}"
-                      {% if pk in form.applicable_categories.value %}checked{% endif %}>
-                    <span>{{ choice }}</span>
+                    <input type="checkbox" name="applicable_products" value="{{ prod.id }}">
+                    <span>{{ prod.name }} ({{ prod.volume }})</span>
                   </label>
                 {% endfor %}
               </div>
-              <small class="form-help">Leave unchecked to apply to all categories.</small>
+              <small class="form-help">Leave unchecked to apply to all products.</small>
             </div>
 
             <!-- 5. Discount Type Dropdown -->
@@ -558,6 +580,151 @@
     </div>
   </div>
 
+  <!-- Edit Combo Modal -->
+  <div class="admin-modal-overlay" id="editComboModal">
+    <div class="admin-modal-dialog">
+      <div class="admin-modal-header">
+        <h3 class="admin-modal-title">Edit Combo Offer</h3>
+        <button type="button" class="admin-modal-close" onclick="closeEditComboModal()">&times;</button>
+      </div>
+      <form id="editComboForm" method="post" action="" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="admin-modal-body">
+          <div class="form-grid">
+            <!-- 1. Offer Type Dropdown -->
+            <div>
+              <label for="edit_combo_offer_type" class="form-label">Offer Type *</label>
+              <select name="offer_type" id="edit_combo_offer_type" class="form-control" required>
+                <option value="multiple_products">Multiple Products Combo</option>
+                <option value="single_quantity">Single Quantity Offer</option>
+                <option value="price_based">Price Based Offer</option>
+              </select>
+              <small class="form-help">Select multiple products combo, single quantity, or price based offer.</small>
+            </div>
+
+            <!-- 2. Combo Name -->
+            <div>
+              <label for="edit_combo_name" class="form-label">Combo Name *</label>
+              <input type="text" name="name" id="edit_combo_name" class="form-control" required>
+              <small class="form-help">e.g. Cans of Assortment, Weekend Blast</small>
+            </div>
+
+            <!-- Combo Pack Image Upload -->
+            <div>
+              <label for="edit_combo_image" class="form-label">Combo Pack Image</label>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <img id="edit_combo_image_preview" src="" alt="Current pack image"
+                  style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 2px;">
+                <span style="font-size: 0.78rem; color: rgba(255,255,255,0.6);">Current Image (Upload new to replace)</span>
+              </div>
+              <input type="file" name="image" id="edit_combo_image" class="form-control" accept="image/*">
+              <small class="form-help">Leave empty to keep current image.</small>
+            </div>
+
+            <!-- 3. Badge Text -->
+            <div>
+              <label for="edit_combo_badge_text" class="form-label">Badge Text</label>
+              <input type="text" name="badge_text" id="edit_combo_badge_text" class="form-control">
+              <small class="form-help">Displayed on item cards & checkout tags.</small>
+            </div>
+
+            <!-- 4. Selective Products -->
+            <div>
+              <label class="form-label">Selective Products</label>
+              <div class="categories-selector-box" style="max-height: 180px; overflow-y: auto;">
+                {% for prod in all_products %}
+                  <label class="category-checkbox-item">
+                    <input type="checkbox" name="applicable_products" value="{{ prod.id }}" class="edit-product-checkbox" id="edit_prod_{{ prod.id }}">
+                    <span>{{ prod.name }} ({{ prod.volume }})</span>
+                  </label>
+                {% endfor %}
+              </div>
+              <small class="form-help">Leave unchecked to apply to all products.</small>
+            </div>
+
+            <!-- 5. Discount Type Dropdown -->
+            <div>
+              <label for="edit_combo_discount_type" class="form-label">Discount Type *</label>
+              <select name="discount_type" id="edit_combo_discount_type" class="form-control" required>
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Price (₹)</option>
+              </select>
+              <small class="form-help">Percentage (%) or Fixed Price (₹).</small>
+            </div>
+
+            <!-- 6. Discount Value -->
+            <div>
+              <label for="edit_combo_discount_value" class="form-label">Discount Value *</label>
+              <input type="number" step="0.01" min="0.01" name="discount_value" id="edit_combo_discount_value" class="form-control" required>
+              <small class="form-help">e.g. 15 for 15% or 50 for ₹50.</small>
+            </div>
+
+            <!-- 7. Max Discount CAP -->
+            <div>
+              <label for="edit_combo_max_discount_cap" class="form-label">Max Discount CAP (₹)</label>
+              <input type="number" step="0.01" min="0" name="max_discount_cap" id="edit_combo_max_discount_cap" class="form-control">
+              <small class="form-help">Optional ceiling for percentage discounts (e.g. 100.00).</small>
+            </div>
+
+            <!-- 8. Minimum Order Amount -->
+            <div>
+              <label for="edit_combo_min_order_amount" class="form-label">Minimum Order Amount (₹) *</label>
+              <input type="number" step="0.01" min="0" name="min_order_amount" id="edit_combo_min_order_amount" class="form-control" required>
+              <small class="form-help">Default 6.00.</small>
+            </div>
+
+            <!-- 9. Minimum Quantity -->
+            <div>
+              <label for="edit_combo_min_quantity" class="form-label">Minimum Quantity *</label>
+              <input type="number" min="1" name="min_quantity" id="edit_combo_min_quantity" class="form-control" required>
+              <small class="form-help">Minimum total cans/items required (default 6).</small>
+            </div>
+
+            <!-- 10. Minimum Distinct Products -->
+            <div>
+              <label for="edit_combo_min_distinct_products" class="form-label">Min Distinct Products (for Assortment)</label>
+              <input type="number" min="1" name="min_distinct_products" id="edit_combo_min_distinct_products" class="form-control">
+              <small class="form-help">Require each can to be different (default 6).</small>
+            </div>
+
+            <!-- 11. Usage Limit -->
+            <div>
+              <label for="edit_combo_usage_limit" class="form-label">Usage Limit</label>
+              <input type="number" min="1" name="usage_limit" id="edit_combo_usage_limit" class="form-control">
+              <small class="form-help">Leave blank for unlimited uses.</small>
+            </div>
+
+            <!-- 12. Expiry Date -->
+            <div>
+              <label for="edit_combo_expire_date" class="form-label">Expiry Date</label>
+              <input type="date" name="expire_date" id="edit_combo_expire_date" class="form-control">
+              <small class="form-help">Optional expiry date.</small>
+            </div>
+
+            <!-- 13. Description -->
+            <div class="form-grid-full">
+              <label for="edit_combo_description" class="form-label">Offer Description</label>
+              <textarea name="description" id="edit_combo_description" class="form-control" rows="2"></textarea>
+              <small class="form-help">Explains promo details on homepage shop switcher.</small>
+            </div>
+
+            <!-- 14. Active Checkbox -->
+            <div class="form-grid-full">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: #fff;">
+                <input type="checkbox" name="is_active" id="edit_combo_is_active" class="form-check-input">
+                <span>Offer is Active</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeEditComboModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     function openComboModal() {
       var modal = document.getElementById('comboModal');
@@ -565,6 +732,46 @@
     }
     function closeComboModal() {
       var modal = document.getElementById('comboModal');
+      if (modal) modal.classList.remove('active');
+    }
+    function openEditComboModal(comboId) {
+      var row = document.getElementById('combo-row-' + comboId);
+      if (!row) return;
+
+      var form = document.getElementById('editComboForm');
+      form.action = '/admin-profile/combos/' + comboId + '/edit/';
+
+      document.getElementById('edit_combo_name').value = row.getAttribute('data-combo-name') || '';
+      document.getElementById('edit_combo_offer_type').value = row.getAttribute('data-offer-type') || 'multiple_products';
+      document.getElementById('edit_combo_badge_text').value = row.getAttribute('data-badge-text') || '';
+      document.getElementById('edit_combo_image_preview').src = row.getAttribute('data-image-url') || '';
+      document.getElementById('edit_combo_discount_type').value = row.getAttribute('data-discount-type') || 'percentage';
+      document.getElementById('edit_combo_discount_value').value = row.getAttribute('data-discount-value') || '';
+      document.getElementById('edit_combo_max_discount_cap').value = row.getAttribute('data-max-cap') || '';
+      document.getElementById('edit_combo_min_order_amount').value = row.getAttribute('data-min-order') || '6.00';
+      document.getElementById('edit_combo_min_quantity').value = row.getAttribute('data-min-qty') || '6';
+      document.getElementById('edit_combo_min_distinct_products').value = row.getAttribute('data-min-distinct') || '6';
+      document.getElementById('edit_combo_usage_limit').value = row.getAttribute('data-usage-limit') || '';
+      document.getElementById('edit_combo_expire_date').value = row.getAttribute('data-expire-date') || '';
+      document.getElementById('edit_combo_description').value = row.getAttribute('data-description') || '';
+      document.getElementById('edit_combo_is_active').checked = row.getAttribute('data-is-active') === 'true';
+
+      var selectedProductIds = [];
+      try {
+        selectedProductIds = JSON.parse(row.getAttribute('data-products') || '[]');
+      } catch(e) {}
+
+      var prodCheckboxes = document.querySelectorAll('.edit-product-checkbox');
+      prodCheckboxes.forEach(function(cb) {
+        var pid = parseInt(cb.value, 10);
+        cb.checked = selectedProductIds.indexOf(pid) !== -1;
+      });
+
+      var modal = document.getElementById('editComboModal');
+      if (modal) modal.classList.add('active');
+    }
+    function closeEditComboModal() {
+      var modal = document.getElementById('editComboModal');
       if (modal) modal.classList.remove('active');
     }
     function filterCombosTable() {

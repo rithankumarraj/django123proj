@@ -677,12 +677,12 @@ class CouponForm(forms.ModelForm):
 
 
 class ComboOfferForm(forms.ModelForm):
-    applicable_categories = forms.ModelMultipleChoiceField(
-        queryset=ProductCategory.objects.all(),
+    applicable_products = forms.ModelMultipleChoiceField(
+        queryset=Product.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"class": "category-checkbox"}),
-        label="Selective Categories",
-        help_text="Select specific categories or leave unselected for all categories.",
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "product-checkbox"}),
+        label="Selective Products",
+        help_text="Select specific products or leave unselected for all products.",
     )
 
     class Meta:
@@ -691,7 +691,7 @@ class ComboOfferForm(forms.ModelForm):
             "name",
             "offer_type",
             "image",
-            "applicable_categories",
+            "applicable_products",
             "discount_type",
             "discount_value",
             "max_discount_cap",
@@ -708,7 +708,7 @@ class ComboOfferForm(forms.ModelForm):
             "name": "Combo Name",
             "offer_type": "Offer Type",
             "image": "Combo Pack Image",
-            "applicable_categories": "Selective Categories",
+            "applicable_products": "Selective Products",
             "discount_type": "Discount Type",
             "discount_value": "Discount Value",
             "max_discount_cap": "Max Discount CAP (₹)",
@@ -808,9 +808,8 @@ class ComboOfferForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from decimal import Decimal
-        for slug, name in [("cola", "Cola"), ("energy_drink", "Energy Drink"), ("others", "Others")]:
-            ProductCategory.objects.get_or_create(slug=slug, defaults={"name": name})
-        self.fields["applicable_categories"].queryset = ProductCategory.objects.all().order_by("name")
+        if "applicable_products" in self.fields:
+            self.fields["applicable_products"].queryset = Product.objects.filter(available=True).order_by("id")
         if not self.instance.pk:
             if "min_order_amount" in self.fields:
                 self.fields["min_order_amount"].initial = Decimal("6.00")

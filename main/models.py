@@ -393,6 +393,12 @@ class ComboOffer(models.Model):
         related_name="combo_offers",
         help_text="Selective categories this combo applies to. Leave empty for all categories.",
     )
+    applicable_products = models.ManyToManyField(
+        Product,
+        blank=True,
+        related_name="combo_offers",
+        help_text="Selective products this combo applies to. Leave empty for all products.",
+    )
     usage_limit = models.PositiveIntegerField(
         null=True,
         blank=True,
@@ -512,6 +518,13 @@ class ComboOffer(models.Model):
         return ", ".join(c.name for c in cats)
 
     @property
+    def products_display(self):
+        prods = list(self.applicable_products.all())
+        if not prods:
+            return "All Products"
+        return ", ".join(p.name for p in prods)
+
+    @property
     def offer_type_display(self):
         return dict(self.OFFER_TYPE_CHOICES).get(self.offer_type, self.offer_type.replace("_", " ").title())
 
@@ -528,6 +541,8 @@ class ComboOffer(models.Model):
         if not self.is_valid_status:
             return False, Decimal("0.00"), {}
 
+        prods = list(self.applicable_products.all())
+        prod_ids = {p.id for p in prods}
         cats = list(self.applicable_categories.all())
         cat_slugs = {c.slug.lower() for c in cats}
         cat_names = {c.name.lower() for c in cats}
@@ -538,14 +553,20 @@ class ComboOffer(models.Model):
             prod = it.get("product")
             if not prod:
                 continue
-            prod_cat = (getattr(prod, "category", "") or "").lower().strip()
-            prod_cat_slug = (getattr(prod, "category_slug", "") or "").lower().strip()
-            if (
-                not cats
-                or prod_cat in cat_slugs
-                or prod_cat in cat_names
-                or prod_cat_slug in cat_slugs
-            ):
+
+            is_eligible = True
+            if prods:
+                is_eligible = prod.id in prod_ids
+            elif cats:
+                prod_cat = (getattr(prod, "category", "") or "").lower().strip()
+                prod_cat_slug = (getattr(prod, "category_slug", "") or "").lower().strip()
+                is_eligible = (
+                    prod_cat in cat_slugs
+                    or prod_cat in cat_names
+                    or prod_cat_slug in cat_slugs
+                )
+
+            if is_eligible:
                 eligible_items.append(it)
                 qty = it.get("quantity", 1)
                 price = getattr(prod, "price", Decimal("0.00"))

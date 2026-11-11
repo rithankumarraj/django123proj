@@ -163,6 +163,11 @@ urlpatterns = [
         name="admin_toggle_combo",
     ),
     path(
+        "admin-profile/combos/<int:combo_id>/edit/",
+        views.admin_edit_combo,
+        name="admin_edit_combo",
+    ),
+    path(
         "admin-profile/combos/<int:combo_id>/delete/",
         views.admin_delete_combo,
         name="admin_delete_combo",

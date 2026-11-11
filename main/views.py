@@ -538,13 +538,19 @@ def home(request):
 
     active_combos = list(
         ComboOffer.objects.filter(is_active=True)
-        .prefetch_related("applicable_categories")
+        .prefetch_related("applicable_products", "applicable_categories")
         .order_by("-created_at")
     )
     combo_items = []
     for combo in active_combos:
         req_qty = combo.min_quantity or 6
-        sample_prods = list(product_records[:req_qty])
+        if combo.applicable_products.exists():
+            sample_prods = list(combo.applicable_products.filter(available=True)[:req_qty])
+            if len(sample_prods) < req_qty:
+                extra = [p for p in product_records if p not in sample_prods]
+                sample_prods = (sample_prods + extra)[:req_qty]
+        else:
+            sample_prods = list(product_records[:req_qty])
         sample_sum = sum(p.price for p in sample_prods) if sample_prods else Decimal("540.00")
         sample_cart_items = [{"product": p, "quantity": 1, "line_total": p.price} for p in sample_prods]
         _, c_disc, _ = combo.evaluate_cart(sample_cart_items, sample_sum)
@@ -2858,7 +2864,12 @@ def admin_combos(request):
     else:
         form = ComboOfferForm()
 
-    combos = ComboOffer.objects.prefetch_related("applicable_categories").all().order_by("-created_at")
+    combos = (
+        ComboOffer.objects.prefetch_related("applicable_products", "applicable_categories")
+        .all()
+        .order_by("-created_at")
+    )
+    all_products = list(Product.objects.filter(available=True).order_by("id"))
 
     combo_orders = (
         Order.objects.filter(
@@ -2879,6 +2890,7 @@ def admin_combos(request):
         "form": form,
         "show_modal": show_modal,
         "combos": combos,
+        "all_products": all_products,
         "combo_orders": combo_orders,
         "total_combos_count": total_combos_count,
         "active_combos_count": active_combos_count,
@@ -2908,6 +2920,23 @@ def admin_toggle_combo(request, combo_id):
 
 @login_required
 @user_passes_test(lambda user: user.is_staff)
+def admin_edit_combo(request, combo_id):
+    combo = get_object_or_404(ComboOffer, pk=combo_id)
+    if request.method == "POST":
+        form = ComboOfferForm(request.POST, request.FILES, instance=combo)
+        if form.is_valid():
+            updated = form.save()
+            messages.success(request, f"Combo offer '{updated.name}' updated successfully!")
+            return redirect("admin_combos")
+        else:
+            for field, errs in form.errors.items():
+                for e in errs:
+                    messages.error(request, f"{field.replace('_', ' ').capitalize()}: {e}")
+    return redirect("admin_combos")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
 @require_POST
 def admin_delete_combo(request, combo_id):
     combo = get_object_or_404(ComboOffer, pk=combo_id)
@@ -2930,10 +2959,24 @@ def combos_showcase(request):
 def add_assortment_combo_to_cart(request):
     """
     Quick 1-click curated action:
-    Adds 6 distinct available cans (1 each) to the cart, unlocking Cans of Assortment!
+    Adds the required distinct available cans to the cart, unlocking the combo offer!
     """
-    available_products = list(Product.objects.filter(available=True).order_by("id")[:6])
-    if len(available_products) < 6:
+    combo_id = request.POST.get("combo_id") or request.GET.get("combo_id")
+    combo = None
+    if combo_id:
+        combo = ComboOffer.objects.filter(pk=combo_id, is_active=True).first()
+    if not combo:
+        combo = ComboOffer.objects.filter(is_active=True, name__icontains="assortment").first()
+
+    req_qty = combo.min_quantity if (combo and combo.min_quantity) else 6
+    if combo and combo.applicable_products.exists():
+        available_products = list(combo.applicable_products.filter(available=True)[:req_qty])
+        if len(available_products) < req_qty:
+            extra = [p for p in Product.objects.filter(available=True).order_by("id") if p not in available_products]
+            available_products = (available_products + extra)[:req_qty]
+    else:
+        available_products = list(Product.objects.filter(available=True).order_by("id")[:req_qty])
+    if len(available_products) < req_qty:
         available_products = list(Product.objects.filter(available=True).order_by("id"))
 
     cart = request.session.get(CART_SESSION_KEY, {})

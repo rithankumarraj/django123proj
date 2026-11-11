@@ -4081,6 +4081,61 @@ class ComboOfferTests(TestCase):
         self.assertIsNotNone(new_combo)
         self.assertTrue(bool(new_combo.image))
 
+    def test_admin_combo_creation_with_selective_products(self):
+        self.client.force_login(self.admin)
+        selected_pids = [self.products[0].id, self.products[1].id, self.products[2].id]
+        response = self.client.post(
+            reverse("admin_combos"),
+            data={
+                "name": "Cola Trio Special",
+                "offer_type": "multiple_products",
+                "applicable_products": selected_pids,
+                "discount_type": "percentage",
+                "discount_value": "10.00",
+                "min_order_amount": "6.00",
+                "min_quantity": 3,
+                "min_distinct_products": 3,
+                "badge_text": "Trio Pack",
+                "is_active": True,
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        trio = ComboOffer.objects.filter(name="Cola Trio Special").first()
+        self.assertIsNotNone(trio)
+        self.assertEqual(trio.applicable_products.count(), 3)
+        self.assertIn(self.products[0].name, trio.products_display)
+
+    def test_admin_edit_combo_view(self):
+        self.client.force_login(self.admin)
+        # Edit the existing combo
+        edit_url = reverse("admin_edit_combo", kwargs={"combo_id": self.combo.id})
+        selected_pids = [self.products[0].id, self.products[1].id]
+        response = self.client.post(
+            edit_url,
+            data={
+                "name": "Cans of Assortment Updated",
+                "offer_type": "multiple_products",
+                "applicable_products": selected_pids,
+                "discount_type": "percentage",
+                "discount_value": "25.00",
+                "max_discount_cap": "150.00",
+                "min_order_amount": "6.00",
+                "min_quantity": 6,
+                "min_distinct_products": 6,
+                "badge_text": "Assortment Mega",
+                "description": "Updated promo description",
+                "is_active": True,
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.combo.refresh_from_db()
+        self.assertEqual(self.combo.name, "Cans of Assortment Updated")
+        self.assertEqual(self.combo.discount_value, Decimal("25.00"))
+        self.assertEqual(self.combo.badge_text, "Assortment Mega")
+        self.assertEqual(self.combo.applicable_products.count(), 2)
+
     def test_add_assortment_combo_to_cart_action(self):
         response = self.client.post(reverse("add_assortment_combo_to_cart"), follow=True)
         self.assertEqual(response.status_code, 200)
