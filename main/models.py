@@ -678,7 +678,7 @@ class ComboOffer(models.Model):
                 total_eligible_qty = sum(it.get("quantity", 1) for it in eligible_items)
                 distinct_eligible_count = len({it["product"].id for it in eligible_items})
                 min_q = self.min_quantity or 6
-                min_d = self.min_distinct_products or 6
+                min_d = min(len(prods), self.min_distinct_products or 1) if prods else (self.min_distinct_products or 6)
                 if total_eligible_qty >= min_q and distinct_eligible_count >= min_d:
                     qualifies = True
                     bundle_price = eligible_subtotal

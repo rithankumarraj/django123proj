@@ -4158,6 +4158,34 @@ class ComboOfferTests(TestCase):
         self.assertContains(response, "Cans of Assortment")
         self.assertContains(response, "COMBO OFFER APPLIED")
 
+    def test_single_flavor_bundle_lime_blast_applies_and_reflects_in_cart(self):
+        lime_combo = ComboOffer.objects.create(
+            name="lime blast",
+            discount_type="percentage",
+            discount_value=Decimal("15.00"),
+            max_discount_cap=Decimal("600.00"),
+            is_active=True,
+        )
+        from main.models import ComboBundleItem
+        ComboBundleItem.objects.create(combo_offer=lime_combo, product=self.products[0], quantity=6)
+
+        # User adds lime blast bundle to cart
+        add_url = reverse("add_bundle_to_cart", kwargs={"combo_id": lime_combo.id})
+        res_add = self.client.post(add_url, follow=True)
+        self.assertEqual(res_add.status_code, 200)
+
+        # Cart should have 6 of product[0]
+        cart = self.client.session.get("cart", {})
+        self.assertEqual(cart.get(str(self.products[0].id)), 6)
+
+        # Cart page should reflect combo discount
+        res_cart = self.client.get(reverse("cart"))
+        self.assertEqual(res_cart.status_code, 200)
+        self.assertContains(res_cart, "lime blast")
+        self.assertContains(res_cart, "COMBO OFFER APPLIED")
+        self.assertContains(res_cart, "cartComboRow")
+        self.assertContains(res_cart, "-₹81.00")
+
     def test_cart_checkout_saves_combo_offer_fields(self):
         session = self.client.session
         session["cart"] = {str(self.products[i].id): 1 for i in range(6)}

@@ -102,7 +102,9 @@ if (cartForm && saveStatus) {
             }
             if (total) total.textContent = formatMoney(result.cart_total);
 
-            if (typeof window.updateCartCalculations === 'function') {
+            if (typeof result.combo_active !== 'undefined' && typeof window.setCartComboData === 'function') {
+                window.setCartComboData(result.combo_active, result.combo_name, parseFloat(result.combo_discount) || 0, result.combo_eligible_ids || []);
+            } else if (typeof window.updateCartCalculations === 'function') {
                 window.updateCartCalculations();
             } else {
                 const checkoutTotal = document.querySelector('[data-cart-checkout-total]');

@@ -36,6 +36,16 @@ if os.environ.get("VERCEL") == "1":
         if combo and not combo.bundle_items.exists():
             for prod in Product.objects.filter(available=True).order_by("id")[:6]:
                 ComboBundleItem.objects.get_or_create(combo_offer=combo, product=prod, defaults={"quantity": 1})
+
+        for existing_combo in ComboOffer.objects.all():
+            if not existing_combo.bundle_items.exists():
+                prods = list(existing_combo.applicable_products.all())
+                if len(prods) == 1:
+                    qty = existing_combo.min_quantity or 6
+                    ComboBundleItem.objects.get_or_create(combo_offer=existing_combo, product=prods[0], defaults={"quantity": qty})
+                elif len(prods) > 1:
+                    for p in prods:
+                        ComboBundleItem.objects.get_or_create(combo_offer=existing_combo, product=p, defaults={"quantity": 1})
     except Exception as exc:
         import logging
         logging.getLogger("django").warning("Vercel auto-migration warning: %s", exc)

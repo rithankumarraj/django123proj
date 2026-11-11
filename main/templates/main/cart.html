@@ -912,17 +912,17 @@
               <div class="combo-unlocked-title" id="cartComboAlertTitle">{{ combo_name }}</div>
               <div class="combo-unlocked-text" id="cartComboAlertText">
                 {% if "assortment" in combo_name|lower %}
-                  You've unlocked the <strong>Cans of Assortment</strong> combo with 6 distinct cans! Instant discount applied.
+                  You've unlocked the <strong>Cans of Assortment</strong> combo bundle! Instant discount applied.
                 {% else %}
-                  You've unlocked the <strong>{{ combo_name }}</strong> combo offer!
+                  You've unlocked the <strong>{{ combo_name }}</strong> combo bundle! Instant discount applied.
                 {% endif %}
               </div>
             </div>
             <div class="combo-unlocked-amount" id="cartComboAlertSavings">-₹{{ combo_discount|floatformat:2 }}</div>
           </div>
 
-          <!-- Teaser if customer has 1 to 5 different cans -->
-          <div id="cartComboTeaser" class="combo-teaser-banner mb-3" style="{% if distinct_cans_count > 0 and distinct_cans_count < 6 %}display: flex;{% else %}display: none;{% endif %}">
+          <!-- Teaser if customer has 1 to 5 different cans and NO combo unlocked yet -->
+          <div id="cartComboTeaser" class="combo-teaser-banner mb-3" style="{% if not applied_combo and distinct_cans_count > 0 and distinct_cans_count < 6 %}display: flex;{% else %}display: none;{% endif %}">
             <span style="font-size: 1.3rem;">🥫</span>
             <div style="flex: 1;">
               <div style="font-size: 0.82rem; font-weight: 700; color: #fff;">Unlock "Cans of Assortment" (15% OFF)</div>
@@ -1207,17 +1207,31 @@
               <strong id="cartShippingFeeDisplay">₹{{ shipping_fee|floatformat:2 }}</strong>
             </div>
 
-            <div class="summary-row" id="cartOriginalTotalRow" style="display: none; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
-              <span style="font-weight: 600; color: rgba(255,255,255,0.75);">Grand Total</span>
+            <!-- Combo Discount Row -->
+            <div class="summary-row" id="cartComboRow" style="{% if applied_combo and combo_discount > 0 %}display: flex;{% else %}display: none;{% endif %} color: #fbbf24;">
+              <span style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <span>✨</span>
+                <span>Combo Deal (<span id="cartComboBadge">{{ combo_name }}</span>)</span>
+              </span>
+              <strong id="cartComboDisplay" style="color: #fbbf24; font-weight: 800;">-₹{{ combo_discount|floatformat:2 }}</strong>
+            </div>
+
+            <!-- Original Total before discounts -->
+            <div class="summary-row" id="cartOriginalTotalRow" style="{% if applied_combo and combo_discount > 0 or applied_coupon_code %}display: flex;{% else %}display: none;{% endif %} padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+              <span style="font-weight: 600; color: rgba(255,255,255,0.75);">Original Subtotal</span>
               <strong id="cartOriginalTotalDisplay" style="color: rgba(255,255,255,0.85); font-weight: 700;">₹{{ total_with_shipping|floatformat:2 }}</strong>
             </div>
+
+            <!-- Coupon Discount Row -->
             <div class="summary-row" id="cartDiscountRow" style="display: none; color: #4ade80;">
-              <span style="font-weight: 600;">Discount Amount (<span id="cartCouponBadge" style="font-family: monospace; font-weight: 700;"></span>)</span>
+              <span style="font-weight: 600;">Coupon Discount (<span id="cartCouponBadge" style="font-family: monospace; font-weight: 700;"></span>)</span>
               <strong id="cartDiscountDisplay" style="color: #4ade80; font-weight: 700;">-₹0.00</strong>
             </div>
+
+            <!-- Grand Total Row -->
             <div class="summary-row total-row">
-              <span id="cartTotalLabel" style="font-weight: 800;">Total</span>
-              <strong id="cartGrandTotalDisplay" style="font-size: 1.25rem;">₹{{ total_with_shipping|floatformat:2 }}</strong>
+              <span id="cartTotalLabel" style="font-weight: 800;">{% if applied_combo and combo_discount > 0 %}Discounted Total{% else %}Total{% endif %}</span>
+              <strong id="cartGrandTotalDisplay" style="font-size: 1.25rem; {% if applied_combo and combo_discount > 0 %}color: #4ade80;{% endif %}">₹{{ total_discounted_with_shipping|floatformat:2 }}</strong>
             </div>
           </div>
 
@@ -1225,7 +1239,7 @@
           <button type="submit" form="cart-checkout" class="cart-action-button cart-action-primary w-100 btn-pay"
             data-cart-checkout-total
             style="min-height: 52px; font-size: 1rem; font-weight: 800; border-radius: 14px; box-shadow: 0 4px 20px rgba(255,255,255,0.12);">
-            Continue to payment · ₹{{ total_with_shipping|floatformat:2 }}
+            Continue to payment · ₹{{ total_discounted_with_shipping|floatformat:2 }}
           </button>
 
           <div
@@ -1267,7 +1281,7 @@
 
   {% include "main/includes/footer.html" %}
 
-  <script src="{% static 'main/cart.js' %}?v=instant-cart-3" defer></script>
+  <script src="{% static 'main/cart.js' %}?v=instant-cart-4" defer></script>
   <script src="{% static 'main/address.js' %}" defer></script>
   <script>
     function initCartPage() {
@@ -1308,8 +1322,21 @@
 
       let cartCurrentDiscount = 0.0;
       let cartCurrentComboDiscount = parseFloat("{{ combo_discount|default:'0' }}") || 0.0;
-      let cartComboName = "{{ combo_name|default:'Cans of Assortment'|escapejs }}";
+      let cartComboName = "{{ combo_name|default:''|escapejs }}";
       let cartComboActive = {% if applied_combo and combo_discount > 0 %}true{% else %}false{% endif %};
+      let cartComboEligibleIds = [{% for pid in combo_eligible_ids %}{{ pid }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+      window.setCartComboData = function(active, name, discount, eligibleIds) {
+        cartComboActive = Boolean(active);
+        cartComboName = name || '';
+        cartCurrentComboDiscount = parseFloat(discount) || 0.0;
+        if (eligibleIds && Array.isArray(eligibleIds)) {
+          cartComboEligibleIds = eligibleIds;
+        }
+        if (window.updateCartCalculations) {
+          window.updateCartCalculations();
+        }
+      };
 
       const localStatesRaw = "{{ shipping_local_states|default:'Tamil Nadu, Kerala'|escapejs }}";
       const localFee = parseFloat("{{ shipping_fee_local|default:'50.00' }}") || 50.0;
@@ -1371,31 +1398,23 @@
           }
         }
 
-        // Combo Evaluation: if 6 or more distinct cans are in cart and subtotal >= 6
         const distinctItems = document.querySelectorAll('.cart-item').length;
-        if (distinctItems >= 6 && itemCount >= 6 && subtotal >= 6.0) {
-          cartComboActive = true;
-          cartComboName = 'Cans of Assortment';
-          // 15% discount
-          cartCurrentComboDiscount = Math.round(subtotal * 0.15 * 100) / 100;
-        } else if (distinctItems < 6) {
-          cartComboActive = false;
-          cartCurrentComboDiscount = 0.0;
-        }
 
         // Update item badges
         document.querySelectorAll('.badge-combo-item').forEach(function (badge) {
-          if (cartComboActive) {
+          const pid = parseInt(badge.id.replace('item-combo-badge-', ''), 10);
+          const isEligible = cartComboEligibleIds.length === 0 || cartComboEligibleIds.indexOf(pid) !== -1;
+          if (cartComboActive && isEligible) {
             badge.style.display = 'inline-flex';
-            badge.textContent = '✨ ' + cartComboName;
+            badge.textContent = '✨ ' + (cartComboName || 'Combo Deal');
           } else {
             badge.style.display = 'none';
           }
         });
 
-        // Update Teaser Banner
+        // Update Teaser Banner (Only show if NO combo is active AND cart has between 1 and 5 distinct drinks)
         if (cartComboTeaser) {
-          if (distinctItems > 0 && distinctItems < 6) {
+          if (!cartComboActive && distinctItems > 0 && distinctItems < 6) {
             cartComboTeaser.style.display = 'flex';
             if (cartComboTeaserMissing) {
               cartComboTeaserMissing.textContent = (6 - distinctItems);
@@ -1409,6 +1428,8 @@
         if (cartComboAlert) {
           if (cartComboActive && cartCurrentComboDiscount > 0) {
             cartComboAlert.style.display = 'flex';
+            const alertTitle = document.getElementById('cartComboAlertTitle');
+            if (alertTitle) alertTitle.textContent = cartComboName;
             if (cartComboAlertSavings) {
               cartComboAlertSavings.textContent = '-₹' + cartCurrentComboDiscount.toFixed(2);
             }
@@ -1417,13 +1438,16 @@
           }
         }
 
-        // Update Combo Summary Row
+        // Update Combo Summary Row in Order Summary
         if (cartComboRow) {
           if (cartComboActive && cartCurrentComboDiscount > 0) {
             cartComboRow.style.display = 'flex';
             if (cartComboDisplay) cartComboDisplay.textContent = '-₹' + cartCurrentComboDiscount.toFixed(2);
             if (cartComboBadge) cartComboBadge.textContent = cartComboName;
           } else {
+            cartComboRow.style.display = 'none';
+          }
+        }
             cartComboRow.style.display = 'none';
           }
         }
@@ -1485,7 +1509,8 @@
           if (isOnline) {
             checkoutTotalBtn.textContent = 'Continue to payment · ₹' + grandTotal.toFixed(2);
           } else {
-            checkoutTotalBtn.textContent = 'Place order (Cash on Delivery) · ₹' + rawGrandTotal.toFixed(2);
+            const codTotal = Math.max(0, rawGrandTotal - activeComboDiscount);
+            checkoutTotalBtn.textContent = 'Place order (Cash on Delivery) · ₹' + codTotal.toFixed(2);
           }
         }
         document.querySelectorAll('[data-cart-count]').forEach(function (el) {
