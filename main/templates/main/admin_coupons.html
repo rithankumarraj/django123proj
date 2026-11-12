@@ -731,7 +731,7 @@
                 data-order-status="{{ order.status }}">
               <td>
                 <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; color: #5aa3ff; text-decoration: none;">
-                  #{{ order.id }}
+                  #{{ order.order_number|default:order.id }}
                 </a>
               </td>
               <td>

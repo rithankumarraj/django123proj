@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Receipt - Order #{{ order.id }} | J CSD</title>
+  <title>Receipt - Order #{{ order.order_number|default:order.id }} | J CSD</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -404,7 +404,7 @@
   <div class="receipt-actions-bar">
     {% if is_staff_view %}
       <a href="{% url 'admin_order_detail' order.id %}" class="btn-action-back">
-        ← Back to Order #{{ order.id }}
+        ← Back to Order #{{ order.order_number|default:order.id }}
       </a>
     {% else %}
       <a href="{% url 'customer_orders' %}" class="btn-action-back">
@@ -475,7 +475,7 @@
         <h2 class="receipt-section-title">Order Summary</h2>
         <div class="receipt-meta-row">
           <span>Order Number:</span>
-          <strong>#{{ order.id }}</strong>
+          <strong>#{{ order.order_number|default:order.id }}</strong>
         </div>
         <div class="receipt-meta-row">
           <span>Order Date:</span>

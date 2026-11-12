@@ -313,7 +313,7 @@
           <article class="order-card">
             <div class="order-card-header">
               <div>
-                <h2>Order #{{ order.id }}</h2>
+                <h2>Order #{{ order.order_number|default:order.id }}</h2>
                 <span class="order-muted">Placed {{ order.created_at|date:"M j, Y · g:i A" }}</span>
               </div>
               <div class="order-statuses" aria-label="Order and payment status">
@@ -365,7 +365,7 @@
                 {% endif %}
                 <div class="order-actions-group">
                   <a class="back-link" href="{% url 'payment_page' order.payment_reference %}">View order</a>
-                  <a href="{% url 'order_receipt' order.id %}" target="_blank" class="btn-print-slip" title="Print or download receipt for Order #{{ order.id }}">
+                  <a href="{% url 'order_receipt' order.id %}" target="_blank" class="btn-print-slip" title="Print or download receipt for Order #{{ order.order_number|default:order.id }}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="6 9 6 2 18 2 18 9"></polyline>
                       <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>

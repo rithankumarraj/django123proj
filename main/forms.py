@@ -461,6 +461,7 @@ class ProductForm(forms.ModelForm):
         choices.append(("__new__", "+ Add New Category..."))
         self.fields["category"].choices = choices
         self.fields["image"].required = False
+        self.fields["cost_price"].required = False
 
     def clean(self):
         cleaned_data = super().clean()

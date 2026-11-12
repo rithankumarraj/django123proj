@@ -534,7 +534,7 @@
                                 Order received. Payment is awaiting provider confirmation:
                                 {% endif %}
                                 <strong>{{ order.get_payment_status_display }}</strong>
-                                (order #{{ order.id }})
+                                (order #{{ order.order_number|default:order.id }})
                             </p>
                             <button type="submit" class="btn btn-pay" disabled>
                                 {% if payment_simulation_enabled %}Payment simulated{% else %}Order submitted{% endif %}

@@ -216,8 +216,8 @@
             <tr>
               <td>
                 <div>
-                  <button type="button" class="btn-order-id-link" onclick="openOrderModal('{{ order.id }}')" title="View order #{{ order.id }} full details">
-                    #{{ order.id }}
+                  <button type="button" class="btn-order-id-link" onclick="openOrderModal('{{ order.id }}')" title="View order #{{ order.order_number|default:order.id }} full details">
+                    #{{ order.order_number|default:order.id }}
                   </button>
                 </div>
                 <div class="cell-sub-info">{{ order.created_at|date:"M d, H:i" }}</div>
@@ -405,7 +405,7 @@
         <div class="order-modal-header">
           <div class="order-modal-title-area">
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <h2 class="order-modal-title" id="modalTitle-{{ order.id }}">Order #{{ order.id }}</h2>
+              <h2 class="order-modal-title" id="modalTitle-{{ order.id }}">Order #{{ order.order_number|default:order.id }}</h2>
               <span class="status-pill status-{{ order.status }}">{{ order.get_status_display }}</span>
               <span class="status-pill status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
             </div>

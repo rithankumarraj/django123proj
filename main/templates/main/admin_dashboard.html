@@ -706,7 +706,7 @@ delivery partner verification requests.{% endblock %}
             <a href="{% url 'admin_order_detail' order.id %}"
               style="font-weight: 800; font-size: 0.92rem; color: #f6be5d; text-decoration: underline;"
               title="View order details">
-              #{{ order.id }}
+              #{{ order.order_number|default:order.id }}
             </a>
           </td>
 
@@ -880,7 +880,7 @@ delivery partner verification requests.{% endblock %}
           <td>
             <a href="{% url 'admin_order_detail' order.id %}"
               style="font-weight: 800; font-size: 0.92rem; color: #5aa3ff; text-decoration: underline;">
-              #{{ order.id }}
+              #{{ order.order_number|default:order.id }}
             </a>
           </td>
 

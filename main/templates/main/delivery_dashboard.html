@@ -1146,7 +1146,7 @@
                     <div class="order-card-header">
                       <div>
                         <div class="order-number" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                          <span>Order #{{ order.id }} · {{ order.customer_name }}</span>
+                          <span>Order #{{ order.order_number|default:order.id }} · {{ order.customer_name }}</span>
                           {% if order.delivery_postal_code %}
                             <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; background: rgba(90, 163, 255, 0.14); border: 1px solid rgba(90, 163, 255, 0.3); color: #5aa3ff; font-weight: 700; letter-spacing: 0.03em;">
                               PIN {{ order.delivery_postal_code }}
@@ -1242,7 +1242,7 @@
                             </button>
                           </form>
 
-                          <form method="post" action="{% url 'update_delivery_status' order.id %}" style="margin: 0;" onsubmit="return confirm('Confirm marking Order #{{ order.id }} as Cancelled?');">
+                          <form method="post" action="{% url 'update_delivery_status' order.id %}" style="margin: 0;" onsubmit="return confirm('Confirm marking Order #{{ order.order_number|default:order.id }} as Cancelled?');">
                             {% csrf_token %}
                             <input type="hidden" name="status" value="cancelled">
                             <button type="submit" class="btn-cancelled" title="Mark order as cancelled">
@@ -1327,7 +1327,7 @@
                     <div class="order-card-header">
                       <div>
                         <div class="order-number" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                          <span>Order #{{ order.id }} · {{ order.customer_name }}</span>
+                          <span>Order #{{ order.order_number|default:order.id }} · {{ order.customer_name }}</span>
                           {% if order.delivery_postal_code %}
                             <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; background: rgba(90, 163, 255, 0.14); border: 1px solid rgba(90, 163, 255, 0.3); color: #5aa3ff; font-weight: 700; letter-spacing: 0.03em;">
                               PIN {{ order.delivery_postal_code }}
@@ -1415,7 +1415,7 @@
 
                       <form method="post" action="{% url 'pick_delivery_order' order.id %}" style="margin: 0;">
                         {% csrf_token %}
-                        <button type="submit" class="btn-pick" title="Pick Order #{{ order.id }}">
+                        <button type="submit" class="btn-pick" title="Pick Order #{{ order.order_number|default:order.id }}">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="m7.5 4.27 9 5.15"></path>
                             <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>

@@ -710,7 +710,7 @@
             <tr>
               <td>
                 <a href="{% url 'order_receipt' r.id %}" target="_blank" style="color: #60a5fa; font-weight: 700; text-decoration: none;">
-                  #{{ r.id }}
+                  #{{ r.order_number|default:r.id }}
                 </a>
               </td>
               <td>{{ r.customer_name }}</td>
@@ -736,3 +736,4 @@
   </div>
 </div>
 {% endblock %}
+

@@ -821,6 +821,15 @@ class Order(models.Model):
     )
     coupon_code = models.CharField(max_length=50, blank=True, default="")
     payment_reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    order_number = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        null=True,
+        db_index=True,
+        verbose_name="Order Number",
+        help_text="Unique randomly generated non-sequential order number.",
+    )
     payment_event_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
     cashfree_order_id = models.CharField(max_length=100, blank=True, default="")
     cashfree_payment_session_id = models.TextField(blank=True, default="")
@@ -842,13 +851,41 @@ class Order(models.Model):
         )
         return sub if sub > 0 else self.total_amount
 
+    @classmethod
+    def generate_unique_order_number(cls):
+        """
+        Generates a unique, non-sequential 6-digit random order number (e.g. '749218').
+        Guarantees uniqueness across all orders in the database.
+        """
+        import secrets
+        for _ in range(500):
+            candidate = str(secrets.randbelow(900000) + 100000)
+            if not cls.objects.filter(order_number=candidate).exists():
+                return candidate
+        for _ in range(500):
+            candidate = str(secrets.randbelow(90000000) + 10000000)
+            if not cls.objects.filter(order_number=candidate).exists():
+                return candidate
+        import uuid
+        return str(uuid.uuid4().int)[:8]
+
+    @property
+    def display_order_number(self):
+        return f"#{self.order_number}" if self.order_number else f"#{self.id}"
+
+    @property
+    def order_code(self):
+        return self.order_number or str(self.id)
+
     def save(self, *args, **kwargs):
         if self.status == "returned":
             self.status = "cancelled"
+        if not self.order_number:
+            self.order_number = self.generate_unique_order_number()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Order #{self.pk} - {self.status}"
+        return f"Order #{self.order_number or self.pk} - {self.status}"
 
 
 class OrderItem(models.Model):

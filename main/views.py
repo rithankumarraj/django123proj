@@ -1004,19 +1004,19 @@ def customer_orders(request):
 
     orders = Order.objects.filter(customer=request.user)
     if search_query:
-        order_number = search_query.removeprefix("#")
-        if order_number.isdecimal():
-            search_filter = Q(pk=int(order_number))
-        else:
-            search_filter = (
-                Q(customer_name__icontains=search_query)
-                | Q(delivery_address__icontains=search_query)
-                | Q(delivery_city__icontains=search_query)
-                | Q(delivery_state__icontains=search_query)
-                | Q(delivery_postal_code__icontains=search_query)
-                | Q(product__name__icontains=search_query)
-                | Q(items__product__name__icontains=search_query)
-            )
+        order_number_clean = search_query.removeprefix("#").strip()
+        search_filter = (
+            Q(order_number__icontains=order_number_clean)
+            | Q(customer_name__icontains=search_query)
+            | Q(delivery_address__icontains=search_query)
+            | Q(delivery_city__icontains=search_query)
+            | Q(delivery_state__icontains=search_query)
+            | Q(delivery_postal_code__icontains=search_query)
+            | Q(product__name__icontains=search_query)
+            | Q(items__product__name__icontains=search_query)
+        )
+        if order_number_clean.isdecimal():
+            search_filter |= Q(pk=int(order_number_clean))
         orders = orders.filter(search_filter).distinct()
 
     orders = (
@@ -2581,8 +2581,10 @@ def admin_delivery_status(request):
         filtered_orders = orders_queryset
 
     if search_query:
+        clean_search = search_query.removeprefix("#").strip()
         filtered_orders = filtered_orders.filter(
-            Q(id__icontains=search_query)
+            Q(order_number__icontains=clean_search)
+            | Q(id__icontains=clean_search)
             | Q(customer_name__icontains=search_query)
             | Q(customer_phone__icontains=search_query)
             | Q(delivery_address__icontains=search_query)
@@ -2655,16 +2657,17 @@ def admin_update_order_status(request, order_id):
 
     if update_fields:
         order.save(update_fields=list(set(update_fields)))
-        messages.success(request, f"Order #{order.pk} updated successfully.")
+        messages.success(request, f"Order #{order.order_number or order.pk} updated successfully.")
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
         return JsonResponse({
             "status": "success",
             "order_id": order.id,
+            "order_number": order.order_number or str(order.id),
             "new_status": order.status,
             "new_status_display": order.get_status_display(),
             "delivery_user": order.delivery_user.get_full_name() or order.delivery_user.username if order.delivery_user else None,
-            "message": f"Order #{order.pk} updated successfully."
+            "message": f"Order #{order.order_number or order.pk} updated successfully."
         })
 
     next_url = request.POST.get("next")
@@ -3486,6 +3489,7 @@ def admin_users(request):
         recent_orders_list = [
             {
                 "id": o.id,
+                "order_number": o.order_number or str(o.id),
                 "created_at": o.created_at.strftime("%d %b %Y, %I:%M %p"),
                 "status": o.status,
                 "status_display": o.get_status_display(),
@@ -3755,6 +3759,7 @@ def admin_reports(request):
         order_audit_rows.append({
             "order": o,
             "id": o.id,
+            "order_number": o.order_number or str(o.id),
             "created_at": o.created_at,
             "customer_name": o.customer_name,
             "status": o.status,

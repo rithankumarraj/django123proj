@@ -2410,7 +2410,7 @@ class AdminMultipageTests(TestCase):
 
         res = self.client.get(reverse("admin_delivery_status"))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, f"#{order.id}")
+        self.assertContains(res, f"#{order.order_number or order.id}")
         self.assertContains(res, "John Doe")
 
         # Update order status to out_for_delivery
@@ -2817,7 +2817,7 @@ class OrderReceiptTests(TestCase):
         self.client.force_login(self.customer)
         response = self.client.get(reverse("order_receipt", kwargs={"order_id": self.order.id}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f"Order #{self.order.id}")
+        self.assertContains(response, f"Order #{self.order.order_number or self.order.id}")
         self.assertContains(response, "Order Receipt & Tax Invoice")
         self.assertContains(response, "Customer One")
         self.assertContains(response, "123 Test Street")
@@ -2840,7 +2840,7 @@ class OrderReceiptTests(TestCase):
         self.client.force_login(self.staff_user)
         response = self.client.get(reverse("order_receipt", kwargs={"order_id": self.order.id}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f"Order #{self.order.id}")
+        self.assertContains(response, f"Order #{self.order.order_number or self.order.id}")
         self.assertContains(response, "Back to Order")
 
     def test_guest_can_view_receipt_by_payment_reference(self):
@@ -2848,7 +2848,7 @@ class OrderReceiptTests(TestCase):
             reverse("order_receipt_by_reference", kwargs={"payment_reference": self.order.payment_reference})
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f"Order #{self.order.id}")
+        self.assertContains(response, f"Order #{self.order.order_number or self.order.id}")
 
     def test_customer_orders_page_contains_print_slip_button(self):
         self.client.force_login(self.customer)
@@ -3409,7 +3409,7 @@ class OrderStatusProgressionTests(TestCase):
         self.order.status = "shipped"
         self.order.save(update_fields=["status"])
         res_shipped = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
-        self.assertContains(res_shipped, f"Pick Order #{self.order.id}")
+        self.assertContains(res_shipped, f"Pick Order #{self.order.order_number or self.order.id}")
 
         # Driver picks shipped order -> status automatically transitions to out_for_delivery
         pick_res = self.client.post(
@@ -3606,7 +3606,7 @@ class CouponSystemTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "BIGSALE")
         self.assertContains(res, "Alice Smith")
-        self.assertContains(res, f"#{order.id}")
+        self.assertContains(res, f"#{order.order_number or order.id}")
         self.assertContains(res, "-₹20.00")
 
     def test_api_apply_coupon(self):
@@ -4420,12 +4420,12 @@ class AdminDashboardOperationsTests(TestCase):
 
         # 2. Section 1: Only new pending orders shown
         self.assertContains(resp, "Alice Green")
-        self.assertContains(resp, "#" + str(self.pending_order.id))
+        self.assertContains(resp, "#" + str(self.pending_order.order_number or self.pending_order.id))
         self.assertContains(resp, "Mark Packed")
 
         # 3. Section 2: Delivery requested (packed orders) shown
         self.assertContains(resp, "Bob Brown")
-        self.assertContains(resp, "#" + str(self.packed_order.id))
+        self.assertContains(resp, "#" + str(self.packed_order.order_number or self.packed_order.id))
         self.assertContains(resp, "Packed (Ready for Dispatch)")
 
         # 4. Section 3: Delivery partner approval requests shown
@@ -4629,6 +4629,18 @@ class AdminUsersAndSalesReportTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp["Content-Type"], "text/csv")
         self.assertIn("Classic Cola Can", resp.content.decode("utf-8"))
+
+    def test_random_order_number_generation(self):
+        order = Order.objects.create(
+            customer=self.customer_user,
+            product=self.prod_a,
+            quantity=1,
+            total_amount=Decimal("90.00"),
+        )
+        self.assertIsNotNone(order.order_number)
+        self.assertEqual(len(order.order_number), 6)
+        self.assertTrue(order.order_number.isdigit())
+        self.assertEqual(order.display_order_number, f"#{order.order_number}")
 
 
 

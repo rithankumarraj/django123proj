@@ -1,8 +1,8 @@
 {% extends "main/admin_base.html" %}
 {% load static %}
 
-{% block title %}Order #{{ order.id }} Details{% endblock %}
-{% block page_heading %}Order #{{ order.id }}{% endblock %}
+{% block title %}Order #{{ order.order_number|default:order.id }} Details{% endblock %}
+{% block page_heading %}Order #{{ order.order_number|default:order.id }}{% endblock %}
 {% block page_description %}Full order breakdown, purchased items with product images, customer contacts, delivery destination, and fulfillment status.{% endblock %}
 
 {% block topbar_actions %}
@@ -31,7 +31,7 @@
         <span class="stat-label">Order Number</span>
         <span class="stat-tag stat-tag-blue">Placed {{ order.created_at|date:"M d" }}</span>
       </div>
-      <div class="stat-value">#{{ order.id }}</div>
+      <div class="stat-value">#{{ order.order_number|default:order.id }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-header">

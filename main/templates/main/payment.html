@@ -690,7 +690,7 @@
       <div class="payment-result payment-result--status">
         Payment status
         <strong class="status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</strong>
-        <span class="payment-muted">Order #{{ order.id }}</span>
+        <span class="payment-muted">Order #{{ order.order_number|default:order.id }}</span>
       </div>
       {% endif %}
 
@@ -734,7 +734,7 @@
             amount: rAmount || amountInPaise,
             currency: currency,
             name: "J CSD Drinks",
-            description: "Order #{{ order.id }}",
+            description: "Order #{{ order.order_number|default:order.id }}",
             prefill: {
               name: "{{ order.customer_name|escapejs }}",
               contact: "{{ order.customer_phone|escapejs }}",
