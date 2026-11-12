@@ -5,13 +5,24 @@
 {% block page_description %}Manage store inventory, upload product imagery, set serviceable PIN codes, and toggle storefront availability.{% endblock %}
 
 {% block topbar_actions %}
-  <button type="button" class="btn-primary" onclick="openProductModal()" style="display: inline-flex; align-items: center; gap: 8px;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-    <span>Add New Product</span>
-  </button>
+  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <a href="{% url 'admin_bulk_add_products' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="7" x="3" y="3" rx="1.5"></rect>
+        <rect width="7" height="7" x="14" y="3" rx="1.5"></rect>
+        <rect width="7" height="7" x="14" y="14" rx="1.5"></rect>
+        <rect width="7" height="7" x="3" y="14" rx="1.5"></rect>
+      </svg>
+      <span>Bulk Add Products</span>
+    </a>
+    <button type="button" class="btn-primary" onclick="openProductModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>Add New Product</span>
+    </button>
+  </div>
 {% endblock %}
 
 {% block admin_content %}
@@ -211,7 +222,7 @@
           <tr>
             <th>Product</th>
             <th>Category</th>
-            <th>Price</th>
+            <th>Cost & Selling Price</th>
             <th>Available Delivery PINs</th>
             <th>Storefront</th>
             <th style="text-align: right;">Actions</th>
@@ -233,7 +244,18 @@
                 <span class="admin-category-badge">{{ product.category_display }}</span>
               </td>
               <td>
-                <strong>₹{{ product.price }}</strong>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <div style="display: flex; align-items: baseline; gap: 6px;">
+                    <strong style="font-size: 0.92rem; color: #fff;">₹{{ product.price }}</strong>
+                    <span style="font-size: 0.72rem; color: var(--admin-text-muted);">retail</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 0.74rem;">
+                    <span style="color: rgba(255,255,255,0.5);">Cost: ₹{{ product.cost_price|default:"60.00" }}</span>
+                    <span style="color: #2fcf7a; font-weight: 700; font-size: 0.72rem; background: rgba(47, 207, 122, 0.12); padding: 1px 5px; border-radius: 4px;" title="Estimated profit margin">
+                      +₹{{ product.profit_amount|floatformat:2 }} ({{ product.profit_margin_percent|floatformat:0 }}%)
+                    </span>
+                  </div>
+                </div>
               </td>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -412,17 +434,7 @@
             </div>
           </div>
 
-          <!-- Price -->
-          <div class="form-group">
-            <label class="form-label" for="id_price">Price (₹)</label>
-            {{ product_form.price }}
-            {% if product_form.price.errors %}
-              <span class="form-help" style="color: var(--admin-red);">{{ product_form.price.errors|first }}</span>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="form-row-2">
+          <!-- Volume -->
           <div class="form-group">
             <label class="form-label" for="id_volume">Volume</label>
             {{ product_form.volume }}
@@ -430,9 +442,60 @@
               <span class="form-help" style="color: var(--admin-red);">{{ product_form.volume.errors|first }}</span>
             {% endif %}
           </div>
+        </div>
 
-          <!-- Image Upload -->
+        <!-- Pricing: Cost Price & Selling Price -->
+        <div class="form-row-2">
+          <!-- Cost Price -->
           <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <label class="form-label" for="id_cost_price" style="margin: 0;">Cost Price (₹)</label>
+              <button 
+                type="button" 
+                onclick="document.getElementById('id_cost_price').value='60.00'; updateModalMargin();"
+                style="background: rgba(246, 190, 93, 0.12); color: #f6be5d; border: 1px solid rgba(246, 190, 93, 0.35); border-radius: 6px; padding: 2px 7px; font-size: 0.70rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;"
+                title="Click to apply recommended ₹60.00 cost"
+              >
+                Recommended: ₹60
+              </button>
+            </div>
+            {{ product_form.cost_price }}
+            <span class="form-help" style="font-size: 0.72rem; color: var(--admin-text-muted);">
+              Recommended unit cost is ₹60.00.
+            </span>
+            {% if product_form.cost_price.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ product_form.cost_price.errors|first }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Selling Price -->
+          <div class="form-group">
+            <label class="form-label" for="id_price">Selling Price (₹)</label>
+            {{ product_form.price }}
+            <span class="form-help" style="font-size: 0.72rem; color: var(--admin-text-muted);">
+              Retail price shown to customers.
+            </span>
+            {% if product_form.price.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ product_form.price.errors|first }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Live Profit & Margin Indicator Box -->
+        <div id="modalMarginPreview" style="background: rgba(47, 207, 122, 0.08); border: 1px solid rgba(47, 207, 122, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2fcf7a" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+            <span style="color: rgba(255,255,255,0.7);">Estimated Profit / Can:</span>
+            <strong id="marginProfitAmount" style="color: #2fcf7a; font-size: 0.9rem;">₹30.00</strong>
+          </div>
+          <div>
+            <span style="color: rgba(255,255,255,0.7);">Profit Margin:</span>
+            <span id="marginPercentBadge" style="font-weight: 800; color: #2fcf7a; background: rgba(47, 207, 122, 0.15); padding: 2px 8px; border-radius: 999px; margin-left: 4px;">33.3%</span>
+          </div>
+        </div>
+
+        <!-- Image Upload -->
+        <div class="form-group" style="margin-bottom: 16px;">
             <label class="form-label" for="id_image_file">Upload Image</label>
             <div class="upload-image-box">
               <div id="previewCard" class="image-preview-card" {% if not editing_product or not editing_product.image_url %}style="display: none;"{% endif %}>
@@ -462,7 +525,6 @@
               <span class="form-help" style="color: var(--admin-red);">{{ product_form.image_file.errors|first }}</span>
             {% endif %}
           </div>
-        </div>
 
         <!-- Available PIN Codes Input -->
         <div class="form-group">
@@ -591,8 +653,34 @@
   </div>
 
   <script>
+    function updateModalMargin() {
+      var costInput = document.getElementById('id_cost_price');
+      var priceInput = document.getElementById('id_price');
+      var profitEl = document.getElementById('marginProfitAmount');
+      var marginEl = document.getElementById('marginPercentBadge');
+      if (!costInput || !priceInput || !profitEl || !marginEl) return;
+
+      var cp = parseFloat(costInput.value) || 0;
+      var sp = parseFloat(priceInput.value) || 0;
+      var profit = sp - cp;
+      var margin = sp > 0 ? ((profit / sp) * 100).toFixed(1) : 0;
+
+      profitEl.textContent = (profit >= 0 ? '+₹' : '-₹') + Math.abs(profit).toFixed(2);
+      marginEl.textContent = margin + '%';
+      if (profit >= 0) {
+        profitEl.style.color = '#2fcf7a';
+        marginEl.style.color = '#2fcf7a';
+        marginEl.style.background = 'rgba(47, 207, 122, 0.15)';
+      } else {
+        profitEl.style.color = '#ff7676';
+        marginEl.style.color = '#ff7676';
+        marginEl.style.background = 'rgba(255, 118, 118, 0.15)';
+      }
+    }
+
     function openProductModal() {
       document.getElementById('productFormModal').classList.add('active');
+      updateModalMargin();
     }
     function closeProductModal() {
       document.getElementById('productFormModal').classList.remove('active');
@@ -893,6 +981,13 @@
           }
         });
       }
+
+      // Cost price & selling price live margin calculation
+      var costInput = document.getElementById('id_cost_price');
+      var priceInput = document.getElementById('id_price');
+      if (costInput) costInput.addEventListener('input', updateModalMargin);
+      if (priceInput) priceInput.addEventListener('input', updateModalMargin);
+      updateModalMargin();
 
       // Live Image Preview
       var fileInput = document.getElementById('id_image_file');

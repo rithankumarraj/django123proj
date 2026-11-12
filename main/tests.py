@@ -4459,6 +4459,82 @@ class AdminDashboardOperationsTests(TestCase):
         self.assertEqual(self.pending_order.status, "packed")
 
 
+class ProductCostPriceAndBulkAddTests(TestCase):
+    def setUp(self):
+        self.staff_user = get_user_model().objects.create_user(
+            username="productadmin", password="password123", is_staff=True
+        )
+        self.normal_user = get_user_model().objects.create_user(
+            username="normaluser", password="password123", is_staff=False
+        )
+
+    def test_product_default_cost_price_and_profit(self):
+        product = Product.objects.create(name="Mango Spark", price=Decimal("90.00"))
+        self.assertEqual(product.cost_price, Decimal("60.00"))
+        self.assertEqual(product.profit_amount, Decimal("30.00"))
+        self.assertEqual(product.profit_margin_percent, Decimal("33.3"))
+
+    def test_custom_cost_price(self):
+        product = Product.objects.create(
+            name="Premium Cola", cost_price=Decimal("50.00"), price=Decimal("100.00")
+        )
+        self.assertEqual(product.cost_price, Decimal("50.00"))
+        self.assertEqual(product.profit_amount, Decimal("50.00"))
+        self.assertEqual(product.profit_margin_percent, Decimal("50.0"))
+
+    def test_product_admin_displays_cost_and_bulk_button(self):
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(reverse("admin_products"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Bulk Add Products")
+        self.assertContains(resp, "Cost Price (₹)")
+        self.assertContains(resp, "Recommended: ₹60")
+
+    def test_bulk_add_products_get(self):
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(reverse("admin_bulk_add_products"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Bulk Product Ingestion")
+        self.assertContains(resp, "Recommended Store Unit Cost")
+        self.assertContains(resp, "60.00")
+
+    def test_bulk_add_products_post_creates_multiple_products(self):
+        self.client.force_login(self.staff_user)
+        post_data = {
+            "row_index": ["1", "2", "3"],
+            "name_1": "Guava Blast",
+            "category_1": "others",
+            "cost_price_1": "60.00",
+            "price_1": "90.00",
+            "volume_1": "330 ml",
+            "available_1": "1",
+            "name_2": "Berry Cooler",
+            "category_2": "energy_drink",
+            "cost_price_2": "55.00",
+            "price_2": "95.00",
+            "volume_2": "330 ml",
+            "available_2": "1",
+            "name_3": "",
+            "cost_price_3": "60.00",
+            "price_3": "90.00",
+        }
+        resp = self.client.post(reverse("admin_bulk_add_products"), data=post_data)
+        self.assertRedirects(resp, reverse("admin_products"))
+
+        p1 = Product.objects.get(name="Guava Blast")
+        self.assertEqual(p1.cost_price, Decimal("60.00"))
+        self.assertEqual(p1.price, Decimal("90.00"))
+        self.assertEqual(p1.category, "others")
+        self.assertTrue(p1.available)
+
+        p2 = Product.objects.get(name="Berry Cooler")
+        self.assertEqual(p2.cost_price, Decimal("55.00"))
+        self.assertEqual(p2.price, Decimal("95.00"))
+        self.assertEqual(p2.category, "energy_drink")
+
+        self.assertFalse(Product.objects.filter(name="").exists())
+
+
 
 
 

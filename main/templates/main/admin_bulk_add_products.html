@@ -1,0 +1,506 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Bulk Add Products | Admin Console{% endblock %}
+{% block page_heading %}Bulk Product Ingestion{% endblock %}
+{% block page_description %}Add multiple drink products to the storefront catalog simultaneously with recommended ₹60.00 unit cost and custom retail pricing.{% endblock %}
+
+{% block topbar_actions %}
+  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <a href="{% url 'admin_products' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.82rem;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back to Products</span>
+    </a>
+  </div>
+{% endblock %}
+
+{% block admin_content %}
+  <style>
+    .bulk-creator-panel {
+      background: var(--admin-card-bg);
+      border: 1px solid var(--admin-line);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .bulk-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--admin-line);
+    }
+    .bulk-tools-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .bulk-tools-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bulk-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+    }
+    .bulk-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--admin-text-muted);
+      font-size: 0.70rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--admin-line);
+      white-space: nowrap;
+    }
+    .bulk-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: middle;
+    }
+    .bulk-row:hover td {
+      background: rgba(255, 255, 255, 0.015);
+    }
+    .bulk-input {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--admin-line);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 0.82rem;
+      width: 100%;
+      box-sizing: border-box;
+      transition: all 0.15s ease;
+    }
+    .bulk-input:focus {
+      outline: none;
+      border-color: #5aa3ff;
+      background: rgba(0, 0, 0, 0.55);
+      box-shadow: 0 0 0 2px rgba(90, 163, 255, 0.2);
+    }
+    .bulk-select {
+      background: #11161a;
+      border: 1px solid var(--admin-line);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 0.80rem;
+      width: 100%;
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+    .bulk-select:focus {
+      outline: none;
+      border-color: #5aa3ff;
+    }
+    .bulk-margin-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pill-profit-positive {
+      background: rgba(47, 207, 122, 0.12);
+      color: #2fcf7a;
+      border: 1px solid rgba(47, 207, 122, 0.25);
+    }
+    .pill-profit-negative {
+      background: rgba(255, 118, 118, 0.12);
+      color: #ff7676;
+      border: 1px solid rgba(255, 118, 118, 0.25);
+    }
+    .btn-row-del {
+      background: none;
+      border: none;
+      color: rgba(255, 118, 118, 0.6);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .btn-row-del:hover {
+      color: #ff7676;
+      background: rgba(255, 118, 118, 0.15);
+    }
+    .bulk-submit-bar {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--admin-line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .bulk-file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.72rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bulk-file-label:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+    @media (max-width: 900px) {
+      .bulk-creator-panel {
+        padding: 16px;
+      }
+    }
+  </style>
+
+  <!-- Instructions Banner -->
+  <div style="background: rgba(246, 190, 93, 0.08); border: 1px solid rgba(246, 190, 93, 0.25); border-radius: 14px; padding: 14px 18px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(246, 190, 93, 0.15); display: flex; align-items: center; justify-content: center; color: #f6be5d; flex-shrink: 0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div>
+        <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">
+          Recommended Store Unit Cost: <span style="color: #f6be5d;">₹60.00</span> • Standard Retail: <span style="color: #2fcf7a;">₹90.00</span>
+        </div>
+        <div style="font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-top: 2px;">
+          All product rows below are pre-configured with the recommended cost of ₹60.00. Blank rows with no product name will be safely ignored when saving.
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button type="button" class="btn-mini" onclick="applyRecommendedCostToAll()" style="font-size: 0.76rem; padding: 6px 12px; background: rgba(246, 190, 93, 0.15); color: #f6be5d; border-color: rgba(246, 190, 93, 0.35);">
+        Reset All Costs to ₹60
+      </button>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="bulkProductForm">
+    {% csrf_token %}
+
+    <div class="bulk-creator-panel">
+      <!-- Toolbar -->
+      <div class="bulk-toolbar">
+        <div class="bulk-tools-left">
+          <button type="button" class="btn-mini" onclick="addBulkRow()" style="font-size: 0.78rem; padding: 7px 14px; background: rgba(90, 163, 255, 0.15); color: #5aa3ff; border-color: rgba(90, 163, 255, 0.35);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>+ Add Row</span>
+          </button>
+          <button type="button" class="btn-mini" onclick="addMultipleBulkRows(3)" style="font-size: 0.78rem; padding: 7px 12px;">
+            <span>+ Add 3 Rows</span>
+          </button>
+          <button type="button" class="btn-mini" onclick="addMultipleBulkRows(5)" style="font-size: 0.78rem; padding: 7px 12px;">
+            <span>+ Add 5 Rows</span>
+          </button>
+        </div>
+
+        <div class="bulk-tools-right">
+          <span style="font-size: 0.78rem; color: var(--admin-text-muted);">
+            Active Rows: <strong id="rowCountDisplay" style="color: #fff;">4</strong>
+          </span>
+        </div>
+      </div>
+
+      <!-- Bulk Products Table -->
+      <div class="table-responsive-wrapper" style="border: 1px solid var(--admin-line);">
+        <table class="bulk-table" id="bulkTable">
+          <thead>
+            <tr>
+              <th style="width: 36px; text-align: center;">#</th>
+              <th style="min-width: 170px;">Product Name *</th>
+              <th style="min-width: 140px;">Category</th>
+              <th style="min-width: 110px;">Cost Price (₹)</th>
+              <th style="min-width: 110px;">Selling Price (₹)</th>
+              <th style="min-width: 115px; text-align: center;">Profit / Margin</th>
+              <th style="min-width: 95px;">Volume</th>
+              <th style="min-width: 130px;">Image File</th>
+              <th style="min-width: 130px;">Available PINs</th>
+              <th style="width: 50px; text-align: center;">Active</th>
+              <th style="width: 40px; text-align: center;"></th>
+            </tr>
+          </thead>
+          <tbody id="bulkTableBody">
+            <!-- Rows injected by JavaScript on page load -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Submit & Bottom Summary -->
+      <div class="bulk-submit-bar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 0.82rem; color: var(--admin-text-muted);">
+            Named Products Ready: <strong id="validProductsCount" style="color: #2fcf7a; font-size: 0.95rem;">0</strong>
+          </span>
+          <span style="font-size: 0.74rem; color: rgba(255,255,255,0.4);">
+            (Empty rows will be ignored automatically)
+          </span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <a href="{% url 'admin_products' %}" class="btn-secondary" style="padding: 10px 18px; font-size: 0.82rem; text-decoration: none;">
+            Cancel
+          </a>
+          <button type="submit" class="btn-primary" style="padding: 10px 24px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span id="saveBtnText">Save All Products</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    var categoriesList = [
+      {% for cat in all_categories %}
+        { slug: "{{ cat.slug|escapejs }}", name: "{{ cat.name|escapejs }}" },
+      {% empty %}
+        { slug: "cola", name: "Cola" },
+        { slug: "energy_drink", name: "Energy Drink" },
+        { slug: "others", name: "Others" },
+      {% endfor %}
+    ];
+
+    var globalRowCounter = 0;
+
+    function buildCategoryOptionsHtml(selectedSlug) {
+      var html = '';
+      var found = false;
+      categoriesList.forEach(function(c) {
+        var sel = (c.slug === selectedSlug) ? ' selected' : '';
+        if (sel) found = true;
+        html += '<option value="' + c.slug + '"' + sel + '>' + c.name + '</option>';
+      });
+      if (!found) {
+        html += '<option value="others" selected>Others</option>';
+      }
+      html += '<option value="__new__">+ New Category...</option>';
+      return html;
+    }
+
+    function createRowElement(idx, initialData) {
+      var data = initialData || {
+        name: '',
+        category: 'others',
+        cost: '60.00',
+        price: '90.00',
+        volume: '330 ml',
+        pincodes: '',
+        available: true
+      };
+
+      var tr = document.createElement('tr');
+      tr.className = 'bulk-row';
+      tr.id = 'bulkRow_' + idx;
+      tr.dataset.index = idx;
+
+      tr.innerHTML = 
+        '<input type="hidden" name="row_index" value="' + idx + '">' +
+        '<td style="text-align: center; color: var(--admin-text-muted); font-weight: 700;" class="row-num">' +
+          (document.querySelectorAll('#bulkTableBody tr').length + 1) +
+        '</td>' +
+
+        '<!-- Name -->' +
+        '<td>' +
+          '<input type="text" name="name_' + idx + '" class="bulk-input input-name" placeholder="e.g. Lime Fizz" value="' + (data.name || '') + '" oninput="recalcRow(' + idx + '); checkAllValidProducts();" autocomplete="off">' +
+        '</td>' +
+
+        '<!-- Category -->' +
+        '<td>' +
+          '<select name="category_' + idx + '" class="bulk-select" id="catSelect_' + idx + '" onchange="handleRowCatChange(' + idx + ')">' +
+            buildCategoryOptionsHtml(data.category) +
+          '</select>' +
+          '<input type="text" name="new_category_' + idx + '" id="newCatInput_' + idx + '" class="bulk-input" placeholder="Type new category..." style="display: none; margin-top: 4px; font-size: 0.74rem; padding: 4px 6px;">' +
+        '</td>' +
+
+        '<!-- Cost Price (Recommended 60) -->' +
+        '<td>' +
+          '<div style="position: relative;">' +
+            '<input type="number" step="0.01" name="cost_price_' + idx + '" class="bulk-input input-cost" id="cost_' + idx + '" placeholder="60.00" value="' + (data.cost || '60.00') + '" oninput="recalcRow(' + idx + ')">' +
+          '</div>' +
+        '</td>' +
+
+        '<!-- Selling Price (Retail 90) -->' +
+        '<td>' +
+          '<input type="number" step="0.01" name="price_' + idx + '" class="bulk-input input-price" id="price_' + idx + '" placeholder="90.00" value="' + (data.price || '90.00') + '" oninput="recalcRow(' + idx + ')">' +
+        '</td>' +
+
+        '<!-- Live Margin Preview -->' +
+        '<td style="text-align: center;" id="marginCell_' + idx + '">' +
+          '<span class="bulk-margin-pill pill-profit-positive" id="marginPill_' + idx + '">+₹30.00 (33%)</span>' +
+        '</td>' +
+
+        '<!-- Volume -->' +
+        '<td>' +
+          '<input type="text" name="volume_' + idx + '" class="bulk-input" placeholder="330 ml" value="' + (data.volume || '330 ml') + '">' +
+        '</td>' +
+
+        '<!-- Image Upload -->' +
+        '<td>' +
+          '<label class="bulk-file-label" id="fileLabel_' + idx + '" title="Select drink image file">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>' +
+            '<span id="fileNameSpan_' + idx + '">Upload File</span>' +
+            '<input type="file" name="image_file_' + idx + '" accept="image/*" style="display: none;" onchange="handleFilePicked(' + idx + ', this)">' +
+          '</label>' +
+        '</td>' +
+
+        '<!-- Available PIN Codes -->' +
+        '<td>' +
+          '<input type="text" name="available_pincodes_' + idx + '" class="bulk-input" placeholder="All PINs (leave empty)" value="' + (data.pincodes || '') + '" title="Enter comma-separated PINs or leave empty for all India">' +
+        '</td>' +
+
+        '<!-- Available Active Checkbox -->' +
+        '<td style="text-align: center;">' +
+          '<input type="checkbox" name="available_' + idx + '" value="1" ' + (data.available ? 'checked' : '') + ' class="form-check-input" style="width: 16px; height: 16px; cursor: pointer;">' +
+        '</td>' +
+
+        '<!-- Delete Row -->' +
+        '<td style="text-align: center;">' +
+          '<button type="button" class="btn-row-del" onclick="removeBulkRow(' + idx + ')" title="Remove this row">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
+          '</button>' +
+        '</td>';
+
+      return tr;
+    }
+
+    function addBulkRow(initialData) {
+      globalRowCounter++;
+      var tbody = document.getElementById('bulkTableBody');
+      var row = createRowElement(globalRowCounter, initialData);
+      tbody.appendChild(row);
+      recalcRow(globalRowCounter);
+      updateRowNumbers();
+      checkAllValidProducts();
+    }
+
+    function addMultipleBulkRows(n) {
+      for (var i = 0; i < n; i++) {
+        addBulkRow();
+      }
+    }
+
+    function removeBulkRow(idx) {
+      var row = document.getElementById('bulkRow_' + idx);
+      if (row) {
+        row.remove();
+        updateRowNumbers();
+        checkAllValidProducts();
+      }
+    }
+
+    function updateRowNumbers() {
+      var rows = document.querySelectorAll('#bulkTableBody tr');
+      rows.forEach(function(r, i) {
+        var numEl = r.querySelector('.row-num');
+        if (numEl) numEl.textContent = (i + 1);
+      });
+      document.getElementById('rowCountDisplay').textContent = rows.length;
+    }
+
+    function recalcRow(idx) {
+      var costEl = document.getElementById('cost_' + idx);
+      var priceEl = document.getElementById('price_' + idx);
+      var pill = document.getElementById('marginPill_' + idx);
+      if (!costEl || !priceEl || !pill) return;
+
+      var cp = parseFloat(costEl.value) || 0;
+      var sp = parseFloat(priceEl.value) || 0;
+      var profit = sp - cp;
+      var margin = sp > 0 ? ((profit / sp) * 100).toFixed(0) : 0;
+
+      pill.textContent = (profit >= 0 ? '+₹' : '-₹') + Math.abs(profit).toFixed(2) + ' (' + margin + '%)';
+      if (profit >= 0) {
+        pill.className = 'bulk-margin-pill pill-profit-positive';
+      } else {
+        pill.className = 'bulk-margin-pill pill-profit-negative';
+      }
+    }
+
+    function handleRowCatChange(idx) {
+      var select = document.getElementById('catSelect_' + idx);
+      var input = document.getElementById('newCatInput_' + idx);
+      if (!select || !input) return;
+      if (select.value === '__new__') {
+        input.style.display = 'block';
+        input.focus();
+      } else {
+        input.style.display = 'none';
+        input.value = '';
+      }
+    }
+
+    function handleFilePicked(idx, fileInput) {
+      var label = document.getElementById('fileLabel_' + idx);
+      var span = document.getElementById('fileNameSpan_' + idx);
+      if (fileInput.files && fileInput.files[0]) {
+        var file = fileInput.files[0];
+        span.textContent = file.name;
+        label.style.borderColor = '#5aa3ff';
+        label.style.color = '#5aa3ff';
+        label.style.background = 'rgba(90, 163, 255, 0.12)';
+      }
+    }
+
+    function checkAllValidProducts() {
+      var names = document.querySelectorAll('#bulkTableBody .input-name');
+      var validCount = 0;
+      names.forEach(function(input) {
+        if (input.value.trim().length > 0) validCount++;
+      });
+      document.getElementById('validProductsCount').textContent = validCount;
+      var btnText = document.getElementById('saveBtnText');
+      if (validCount > 0) {
+        btnText.textContent = 'Save ' + validCount + ' Product' + (validCount > 1 ? 's' : '') + ' →';
+      } else {
+        btnText.textContent = 'Save All Products';
+      }
+    }
+
+    function applyRecommendedCostToAll() {
+      var costInputs = document.querySelectorAll('#bulkTableBody .input-cost');
+      costInputs.forEach(function(input) {
+        input.value = '60.00';
+      });
+      var rows = document.querySelectorAll('#bulkTableBody tr');
+      rows.forEach(function(r) {
+        recalcRow(r.dataset.index);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize with 4 blank product rows
+      for (var i = 0; i < 4; i++) {
+        addBulkRow();
+      }
+    });
+  </script>
+{% endblock %}

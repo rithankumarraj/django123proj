@@ -52,6 +52,7 @@ urlpatterns = [
     path("webhooks/razorpay/", views.razorpay_webhook, name="razorpay_webhook"),
     path("admin-profile/", views.admin_dashboard, name="admin_dashboard"),
     path("admin-profile/products/", views.admin_products, name="admin_products"),
+    path("admin-profile/products/bulk-add/", views.admin_bulk_add_products, name="admin_bulk_add_products"),
     path(
         "admin-profile/products/<int:product_id>/toggle-availability/",
         views.admin_toggle_product_availability,

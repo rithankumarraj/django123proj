@@ -69,6 +69,13 @@ class Product(models.Model):
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=60, default="others")
     description = models.TextField(blank=True)
+    cost_price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal("60.00"),
+        verbose_name="Cost Price (₹)",
+        help_text="Store wholesale/cost price per unit (recommended ₹60.00)."
+    )
     price = models.DecimalField(max_digits=8, decimal_places=2, default=90)
     volume = models.CharField(max_length=20, default="330 ml")
     image = models.CharField(max_length=255)
@@ -81,6 +88,20 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def profit_amount(self):
+        cp = self.cost_price if self.cost_price is not None else Decimal("60.00")
+        sp = self.price if self.price is not None else Decimal("0.00")
+        return max(Decimal("0.00"), sp - cp)
+
+    @property
+    def profit_margin_percent(self):
+        cp = self.cost_price if self.cost_price is not None else Decimal("60.00")
+        sp = self.price if self.price is not None else Decimal("0.00")
+        if sp > Decimal("0.00"):
+            return round(((sp - cp) / sp) * Decimal("100.0"), 1)
+        return Decimal("0.0")
 
     def get_available_pincodes_list(self):
         if not self.available_pincodes:

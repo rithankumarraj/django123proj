@@ -1,3 +1,4 @@
+from decimal import Decimal
 import os
 import re
 from django import forms
@@ -424,13 +425,14 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ["name", "category", "description", "price", "volume", "image", "available_pincodes", "available"]
+        fields = ["name", "category", "description", "cost_price", "price", "volume", "image", "available_pincodes", "available"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Fresh Lime"}),
             "category": forms.Select(attrs={"class": "form-control", "id": "id_category"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
-            "volume": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Enter product description..."}),
+            "cost_price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "id": "id_cost_price", "placeholder": "60.00"}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "id": "id_price", "placeholder": "90.00"}),
+            "volume": forms.TextInput(attrs={"class": "form-control", "placeholder": "330 ml"}),
             "image": forms.TextInput(attrs={"class": "form-control", "id": "id_image_path", "placeholder": "main/images/cola.png"}),
             "available_pincodes": forms.Textarea(attrs={"class": "form-control", "id": "id_available_pincodes", "rows": 3, "placeholder": "e.g. 625018, 625001 (leave empty for all PIN codes, or enter 200+ PINs)"}),
             "available": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -438,6 +440,13 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            if not self.initial.get("cost_price"):
+                self.initial["cost_price"] = Decimal("60.00")
+            if not self.initial.get("price"):
+                self.initial["price"] = Decimal("90.00")
+            if not self.initial.get("volume"):
+                self.initial["volume"] = "330 ml"
         choices = [
             ("cola", "Cola"),
             ("energy_drink", "Energy Drink"),
@@ -480,6 +489,10 @@ class ProductForm(forms.ModelForm):
                     defaults={"name": category.replace("_", " ").title()}
                 )
                 cleaned_data["category"] = cat_obj.slug
+
+        cost_price = cleaned_data.get("cost_price")
+        if cost_price is None or cost_price == "":
+            cleaned_data["cost_price"] = Decimal("60.00")
 
         image_file = cleaned_data.get("image_file")
         image_path = (cleaned_data.get("image") or "").strip()

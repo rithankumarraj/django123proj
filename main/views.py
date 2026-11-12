@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import json
 import logging
 import re
@@ -2274,6 +2274,96 @@ def admin_products(request):
         "all_categories": all_categories,
     }
     return render(request, "main/admin_products.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_bulk_add_products(request):
+    all_categories = ProductCategory.objects.all().order_by("name")
+
+    if request.method == "POST":
+        row_indices = request.POST.getlist("row_index")
+        if not row_indices:
+            row_indices = []
+            for k in request.POST.keys():
+                if k.startswith("name_"):
+                    row_indices.append(k.replace("name_", ""))
+
+        created_products = []
+        with transaction.atomic():
+            for idx in row_indices:
+                name = (request.POST.get(f"name_{idx}") or "").strip()
+                if not name:
+                    continue  # skip empty row
+
+                cat = (request.POST.get(f"category_{idx}") or "others").strip()
+                new_cat = (request.POST.get(f"new_category_{idx}") or "").strip()
+                if new_cat:
+                    clean_name = new_cat.strip()
+                    slug = slugify(clean_name).replace("-", "_") or "custom_category"
+                    cat_obj, _ = ProductCategory.objects.get_or_create(
+                        slug=slug, defaults={"name": clean_name.title()}
+                    )
+                    cat = cat_obj.slug
+
+                # Cost price with recommended ₹60 default
+                cost_str = (request.POST.get(f"cost_price_{idx}") or "").strip()
+                try:
+                    cost_price = Decimal(cost_str) if cost_str else Decimal("60.00")
+                except (InvalidOperation, ValueError):
+                    cost_price = Decimal("60.00")
+
+                # Selling price with ₹90 default
+                price_str = (request.POST.get(f"price_{idx}") or "").strip()
+                try:
+                    price = Decimal(price_str) if price_str else Decimal("90.00")
+                except (InvalidOperation, ValueError):
+                    price = Decimal("90.00")
+
+                volume = (request.POST.get(f"volume_{idx}") or "330 ml").strip()
+                pincodes = (request.POST.get(f"available_pincodes_{idx}") or "").strip()
+                available = request.POST.get(f"available_{idx}") in ["1", "true", "True", "on", True]
+                description = (request.POST.get(f"description_{idx}") or "").strip()
+
+                # Handle image file upload or default image
+                image_file = request.FILES.get(f"image_file_{idx}")
+                if image_file:
+                    base_name, ext = os.path.splitext(image_file.name)
+                    safe_name = f"{slugify(base_name) or 'product'}{ext.lower()}"
+                    saved_path = default_storage.save(f"products/{safe_name}", image_file)
+                    image_path = f"/media/{saved_path}"
+                else:
+                    image_path = (request.POST.get(f"image_path_{idx}") or "main/images/cola.png").strip()
+
+                product = Product.objects.create(
+                    name=name,
+                    category=cat,
+                    cost_price=cost_price,
+                    price=price,
+                    volume=volume,
+                    description=description,
+                    image=image_path,
+                    available_pincodes=pincodes,
+                    available=available,
+                )
+                created_products.append(product)
+
+        if created_products:
+            messages.success(
+                request,
+                f"Successfully added {len(created_products)} new product{'s' if len(created_products) > 1 else ''} to the catalog!"
+            )
+            return redirect("admin_products")
+        else:
+            messages.error(request, "No products were added. Please enter at least one product name.")
+
+    context = {
+        "active_page": "products",
+        "all_categories": all_categories,
+        "default_cost_price": "60.00",
+        "default_selling_price": "90.00",
+    }
+    return render(request, "main/admin_bulk_add_products.html", context)
 
 
 @login_required
