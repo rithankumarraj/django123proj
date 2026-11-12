@@ -24,3 +24,4 @@ class WebsiteViewTrackerMiddleware:
                 pass
 
         return response
+
