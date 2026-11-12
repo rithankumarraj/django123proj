@@ -360,9 +360,6 @@
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                   {% if combo.discount_type == 'percentage' %}
                     <span class="discount-pill discount-pill-percentage">{{ combo.discount_value|floatformat:0 }}% OFF</span>
-                    {% if combo.max_discount_cap %}
-                      <span style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">Cap: ₹{{ combo.max_discount_cap|floatformat:2 }}</span>
-                    {% endif %}
                   {% else %}
                     <span class="discount-pill discount-pill-fixed">₹{{ combo.discount_value|floatformat:2 }} OFF</span>
                   {% endif %}
@@ -493,14 +490,7 @@
               <small class="form-help">e.g. 15 for 15% or 50 for ₹50 off.</small>
             </div>
 
-            <!-- 6. Max Discount CAP -->
-            <div>
-              <label for="{{ form.max_discount_cap.id_for_label }}" class="form-label">Max Discount CAP (₹)</label>
-              {{ form.max_discount_cap }}
-              <small class="form-help">Optional ceiling for percentage discounts (e.g. 100.00).</small>
-            </div>
-
-            <!-- 7. Usage Limit -->
+            <!-- 6. Usage Limit -->
             <div>
               <label for="{{ form.usage_limit.id_for_label }}" class="form-label">Usage Limit</label>
               {{ form.usage_limit }}
@@ -572,7 +562,7 @@
               <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                 <img id="edit_combo_image_preview" src="/static/main/images/combos/cans_of_assortment.png" alt="Current pack image"
                   onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'"
-                  style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.2); padding: 2px;">
+                  style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; background: #111827; border: 1px solid rgba(255,255,255,0.2); padding: 2px;">
                 <span id="edit_combo_image_hint" style="font-size: 0.78rem; color: rgba(255,255,255,0.6);">Current Image (Upload new to replace)</span>
               </div>
               <input type="file" name="image" id="edit_combo_image" class="form-control" accept="image/*">
@@ -616,14 +606,7 @@
               <small class="form-help">e.g. 15 for 15% or 50 for ₹50.</small>
             </div>
 
-            <!-- 6. Max Discount CAP -->
-            <div>
-              <label for="edit_combo_max_discount_cap" class="form-label">Max Discount CAP (₹)</label>
-              <input type="number" step="0.01" min="0" name="max_discount_cap" id="edit_combo_max_discount_cap" class="form-control">
-              <small class="form-help">Optional ceiling for percentage discounts (e.g. 100.00).</small>
-            </div>
-
-            <!-- 7. Usage Limit -->
+            <!-- 6. Usage Limit -->
             <div>
               <label for="edit_combo_usage_limit" class="form-label">Usage Limit</label>
               <input type="number" min="1" name="usage_limit" id="edit_combo_usage_limit" class="form-control">
@@ -716,7 +699,8 @@
       }
       document.getElementById('edit_combo_discount_type').value = row.getAttribute('data-discount-type') || 'percentage';
       document.getElementById('edit_combo_discount_value').value = row.getAttribute('data-discount-value') || '';
-      document.getElementById('edit_combo_max_discount_cap').value = row.getAttribute('data-max-cap') || '';
+      var capEl = document.getElementById('edit_combo_max_discount_cap');
+      if (capEl) capEl.value = row.getAttribute('data-max-cap') || '';
       document.getElementById('edit_combo_usage_limit').value = row.getAttribute('data-usage-limit') || '';
       document.getElementById('edit_combo_expire_date').value = row.getAttribute('data-expire-date') || '';
       document.getElementById('edit_combo_description').value = row.getAttribute('data-description') || '';

@@ -172,6 +172,11 @@ urlpatterns = [
         views.admin_delete_combo,
         name="admin_delete_combo",
     ),
+    path(
+        "admin-profile/visitors/",
+        views.admin_visitors,
+        name="admin_visitors",
+    ),
     path("combos/", views.combos_showcase, name="combos_showcase"),
     path(
         "combos/add-bundle/<int:combo_id>/",

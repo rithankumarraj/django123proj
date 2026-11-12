@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import redirect_to_login
 from django.conf import settings
+from django.core.paginator import Paginator
 from django.db import models, transaction
 from django.db.models import Case, Q, Sum, When
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
@@ -58,6 +59,7 @@ from .models import (
     Product,
     ProductCategory,
     SiteDetails,
+    WebsiteView,
 )
 from .payments import process_payment_webhook, sign_webhook_payload
 from .razorpay_client import (
@@ -3109,6 +3111,77 @@ def api_check_combo(request):
         "total_qty": total_qty,
         "eligible_ids": combo_details.get("eligible_product_ids", []),
     })
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_visitors(request):
+    """
+    Admin view to monitor website visitor analytics:
+    - How many users are viewing the website.
+    - WiFi IP address tracking.
+    - Deduplicated daily unique views (multiple logins/visits from same WiFi IP on same day count as 1 view).
+    - Which registered users are viewing, plus guest visitors.
+    """
+    today = timezone.localdate()
+    date_filter = request.GET.get("range", "today")
+    search_query = (request.GET.get("q") or "").strip()
+
+    qs = WebsiteView.objects.all().select_related("user")
+
+    if date_filter == "today":
+        qs = qs.filter(date=today)
+    elif date_filter == "yesterday":
+        yesterday = today - timezone.timedelta(days=1)
+        qs = qs.filter(date=yesterday)
+    elif date_filter == "7days":
+        week_ago = today - timezone.timedelta(days=7)
+        qs = qs.filter(date__gte=week_ago)
+    elif date_filter == "30days":
+        month_ago = today - timezone.timedelta(days=30)
+        qs = qs.filter(date__gte=month_ago)
+
+    if search_query:
+        qs = qs.filter(
+            Q(ip_address__icontains=search_query)
+            | Q(username_display__icontains=search_query)
+            | Q(user_email__icontains=search_query)
+            | Q(user__username__icontains=search_query)
+            | Q(user__first_name__icontains=search_query)
+            | Q(user__last_name__icontains=search_query)
+            | Q(device__icontains=search_query)
+        )
+
+    # Top summary metrics
+    today_records = WebsiteView.objects.filter(date=today)
+    today_unique_views = today_records.count()
+    today_total_hits = today_records.aggregate(total=Sum("view_count"))["total"] or 0
+    today_logged_in_users = today_records.filter(user__isnull=False).count()
+    today_guests = today_records.filter(user__isnull=True).count()
+
+    total_unique_views_all_time = WebsiteView.objects.count()
+    total_hits_all_time = WebsiteView.objects.aggregate(total=Sum("view_count"))["total"] or 0
+
+    # Paginate results
+    paginator = Paginator(qs, 30)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "active_page": "visitors",
+        "visitors": page_obj,
+        "page_obj": page_obj,
+        "date_filter": date_filter,
+        "search_query": search_query,
+        "today_unique_views": today_unique_views,
+        "today_total_hits": today_total_hits,
+        "today_logged_in_users": today_logged_in_users,
+        "today_guests": today_guests,
+        "total_unique_views_all_time": total_unique_views_all_time,
+        "total_hits_all_time": total_hits_all_time,
+        "today_views_count": today_unique_views,
+    }
+    return render(request, "main/admin_visitors.html", context)
 
 
 

@@ -1,0 +1,363 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Website Visitors & User Views | Admin{% endblock %}
+{% block page_heading %}Website Visitors & Traffic{% endblock %}
+{% block page_description %}Monitor live and daily website visitor traffic by WiFi IP and user account. Multiple visits or logins from the same WiFi network/IP on the same day are automatically deduplicated and counted as 1 unique user view.{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'admin_visitors' %}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </svg>
+    <span>Refresh Live Traffic</span>
+  </a>
+{% endblock %}
+
+{% block admin_content %}
+  <style>
+    .visitors-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .wifi-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: rgba(59, 130, 246, 0.12);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.28);
+    }
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-avatar-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .guest-avatar-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .dedup-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+    .filter-pills-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-pill-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .filter-pill-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .filter-pill-btn.is-active {
+      color: #0b0d10;
+      background: #f59e0b;
+      border-color: #f59e0b;
+      font-weight: 700;
+    }
+    @media (max-width: 1024px) {
+      .visitors-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 600px) {
+      .visitors-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+    }
+  </style>
+
+  <!-- 1. Stats Cards -->
+  <div class="visitors-stats-grid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Today's Unique Views</span>
+        <span class="stat-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">1 / WiFi IP</span>
+      </div>
+      <div class="stat-value" style="color: #34d399;">{{ today_unique_views }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        Unique visitors counted today
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Today's Total Page Hits</span>
+        <span class="stat-tag" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Total Requests</span>
+      </div>
+      <div class="stat-value" style="color: #fbbf24;">{{ today_total_hits }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        Combined page requests today
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Logged-In Members Today</span>
+        <span class="stat-tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">Identified</span>
+      </div>
+      <div class="stat-value" style="color: #818cf8;">{{ today_logged_in_users }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        {{ today_guests }} guest visitor{{ today_guests|pluralize }}
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">All-Time Unique Daily Views</span>
+        <span class="stat-tag" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;">Total Record</span>
+      </div>
+      <div class="stat-value" style="color: #38bdf8;">{{ total_unique_views_all_time }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        {{ total_hits_all_time }} all-time page requests
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Search & Date Filters Card -->
+  <div class="admin-card mb-4" style="padding: 16px 20px;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+      <div class="filter-pills-bar">
+        <span style="font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-right: 4px;">Period:</span>
+        <a href="?range=today{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-pill-btn {% if date_filter == 'today' %}is-active{% endif %}">Today</a>
+        <a href="?range=yesterday{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-pill-btn {% if date_filter == 'yesterday' %}is-active{% endif %}">Yesterday</a>
+        <a href="?range=7days{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-pill-btn {% if date_filter == '7days' %}is-active{% endif %}">Last 7 Days</a>
+        <a href="?range=30days{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-pill-btn {% if date_filter == '30days' %}is-active{% endif %}">Last 30 Days</a>
+        <a href="?range=all{% if search_query %}&q={{ search_query }}{% endif %}" class="filter-pill-btn {% if date_filter == 'all' %}is-active{% endif %}">All Time</a>
+      </div>
+
+      <form method="get" action="{% url 'admin_visitors' %}" style="display: flex; align-items: center; gap: 8px;">
+        <input type="hidden" name="range" value="{{ date_filter }}">
+        <div style="position: relative;">
+          <input type="text" name="q" value="{{ search_query }}" id="visitorSearchInput" placeholder="Search WiFi IP, user, email…" class="form-control" style="width: 260px; padding-left: 32px; height: 38px; font-size: 0.85rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 10px; top: 12px; color: rgba(255,255,255,0.4);">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <button type="submit" class="btn-primary" style="height: 38px; padding: 0 14px; font-size: 0.82rem;">Filter</button>
+        {% if search_query %}
+          <a href="?range={{ date_filter }}" class="btn-secondary" style="height: 38px; padding: 0 12px; font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center;">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Visitor Log Table -->
+  <div class="admin-card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff;">
+          Visitor Access Log
+        </h3>
+        <p style="margin: 3px 0 0; font-size: 0.78rem; color: rgba(255,255,255,0.5);">
+          Showing records for {{ date_filter|title }} ({{ visitors|length }} records)
+        </p>
+      </div>
+      <div style="font-size: 0.78rem; color: rgba(255,255,255,0.45);">
+        💡 Rule: Repeated visits on the same WiFi IP within a day count as <strong style="color: #34d399;">1 unique view</strong>.
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="admin-table" id="visitorsTable" style="margin: 0; width: 100%;">
+        <thead>
+          <tr>
+            <th>WiFi IP Address</th>
+            <th>User / Account</th>
+            <th>Date</th>
+            <th>First Seen</th>
+            <th>Last Active</th>
+            <th>Requests (Hits)</th>
+            <th>Last Page</th>
+            <th>Device & Browser</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in visitors %}
+            <tr>
+              <!-- 1. WiFi IP Address -->
+              <td>
+                <span class="wifi-pill" title="Client WiFi / Public Network IP">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                    <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                  </svg>
+                  <span>{{ v.ip_address }}</span>
+                </span>
+              </td>
+
+              <!-- 2. User Account -->
+              <td>
+                <div class="user-cell">
+                  {% if v.user %}
+                    <div class="user-avatar-circle" title="{{ v.user.get_full_name|default:v.user.username }}">
+                      {{ v.user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.86rem; color: #fff;">
+                        {{ v.user.get_full_name|default:v.user.username }}
+                      </div>
+                      <div style="font-size: 0.74rem; color: rgba(255,255,255,0.5);">
+                        @{{ v.user.username }}
+                        {% if v.user.email %} • {{ v.user.email }}{% endif %}
+                      </div>
+                      {% if v.user.is_staff %}
+                        <span style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 4px; padding: 1px 5px; font-weight: 700;">STAFF</span>
+                      {% else %}
+                        <span style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; padding: 1px 5px; font-weight: 700;">CUSTOMER</span>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <div class="guest-avatar-circle" title="Guest Visitor">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </div>
+                    <div>
+                      <span style="font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.7);">
+                        Guest Visitor
+                      </span>
+                      <div style="font-size: 0.72rem; color: rgba(255,255,255,0.4);">
+                        Not signed in
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- 3. Date -->
+              <td style="font-size: 0.82rem; color: rgba(255,255,255,0.8); white-space: nowrap;">
+                {{ v.date|date:"d M Y" }}
+              </td>
+
+              <!-- 4. First Seen -->
+              <td style="font-size: 0.82rem; color: rgba(255,255,255,0.7); white-space: nowrap;">
+                {{ v.first_visit|date:"h:i A" }}
+              </td>
+
+              <!-- 5. Last Active -->
+              <td style="font-size: 0.82rem; color: #fbbf24; font-weight: 600; white-space: nowrap;">
+                {{ v.last_visit|date:"h:i A" }}
+              </td>
+
+              <!-- 6. Hits count & Deduplicated 1 view badge -->
+              <td>
+                <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                  <span style="font-weight: 800; font-size: 0.9rem; color: #fff;">
+                    {{ v.view_count }} hit{{ v.view_count|pluralize }}
+                  </span>
+                  <span class="dedup-badge">
+                    ✓ 1 Unique User View
+                  </span>
+                </div>
+              </td>
+
+              <!-- 7. Last Page Visited -->
+              <td>
+                <code style="font-size: 0.78rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85);">
+                  {{ v.last_page|truncatechars:28 }}
+                </code>
+              </td>
+
+              <!-- 8. Device / Browser -->
+              <td style="font-size: 0.8rem; color: rgba(255,255,255,0.65); white-space: nowrap;">
+                {{ v.device }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 48px 16px; color: rgba(255,255,255,0.45);">
+                <div style="font-size: 2rem; margin-bottom: 8px;">📡</div>
+                <div style="font-size: 0.95rem; font-weight: 600; color: #fff;">No visitor records found</div>
+                <div style="font-size: 0.8rem; margin-top: 4px;">
+                  {% if search_query %}
+                    No visitors matched your search "{{ search_query }}". Try clearing the search.
+                  {% else %}
+                    No visitor traffic recorded for this time range yet. Visits will automatically appear here live!
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+          Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <div style="display: flex; gap: 6px;">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&range={{ date_filter }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-secondary" style="padding: 4px 12px; font-size: 0.8rem; text-decoration: none;">
+              Previous
+            </a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&range={{ date_filter }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-secondary" style="padding: 4px 12px; font-size: 0.8rem; text-decoration: none;">
+              Next
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

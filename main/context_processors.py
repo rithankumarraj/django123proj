@@ -1,4 +1,5 @@
-from .models import ComboOffer, ContactMessage, Coupon, DeliveryProfile, Product, SiteDetails
+from django.utils import timezone
+from .models import ComboOffer, ContactMessage, Coupon, DeliveryProfile, Product, SiteDetails, WebsiteView
 from .views import CART_SESSION_KEY, WISHLIST_SESSION_KEY, _cart_items
 
 
@@ -13,6 +14,7 @@ def navbar_context(request):
     unread_messages_count = 0
     total_coupons_count = 0
     total_combos_count = 0
+    today_views_count = 0
     site_details = None
 
     try:
@@ -62,6 +64,10 @@ def navbar_context(request):
                 total_combos_count = ComboOffer.objects.count()
             except Exception:
                 total_combos_count = 0
+            try:
+                today_views_count = WebsiteView.objects.filter(date=timezone.localdate()).count()
+            except Exception:
+                today_views_count = 0
 
     return {
         "cart_count": cart_count,
@@ -70,6 +76,7 @@ def navbar_context(request):
         "unread_messages_count": unread_messages_count,
         "total_coupons_count": total_coupons_count,
         "total_combos_count": total_combos_count,
+        "today_views_count": today_views_count,
         "site_details": site_details,
         "details": site_details,
     }

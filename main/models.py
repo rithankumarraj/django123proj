@@ -525,11 +525,9 @@ class ComboOffer(models.Model):
 
     @property
     def discount_display(self):
-        if self.discount_type == "percentage":
-            val = int(self.discount_value) if self.discount_value == int(self.discount_value) else self.discount_value
-            cap_str = f" (Capped at ₹{self.max_discount_cap})" if self.max_discount_cap else ""
-            return f"{val}% OFF{cap_str}"
         val = int(self.discount_value) if self.discount_value == int(self.discount_value) else self.discount_value
+        if self.discount_type == "percentage":
+            return f"{val}% OFF"
         return f"₹{val} OFF"
 
     @property
@@ -973,3 +971,142 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"Message from {self.name} - {self.subject}"
+
+
+class WebsiteView(models.Model):
+    """
+    Tracks unique daily website views by client WiFi IP address and user.
+    If a user visits or logs in multiple times from the same WiFi IP on the same day,
+    it counts as ONE unique user view for that day, while recording their hit count,
+    first seen time, last active time, and device details.
+    """
+    ip_address = models.CharField(max_length=64, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="website_views"
+    )
+    username_display = models.CharField(max_length=150, blank=True, default="Guest")
+    user_email = models.CharField(max_length=254, blank=True, default="")
+    date = models.DateField(default=timezone.localdate, db_index=True)
+    first_visit = models.DateTimeField(auto_now_add=True)
+    last_visit = models.DateTimeField(auto_now=True)
+    view_count = models.PositiveIntegerField(default=1)
+    last_page = models.CharField(max_length=255, blank=True, default="/")
+    device = models.CharField(max_length=64, blank=True, default="Desktop")
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    session_key = models.CharField(max_length=64, blank=True, default="")
+
+    class Meta:
+        ordering = ["-last_visit"]
+        constraints = [
+            models.UniqueConstraint(fields=["date", "ip_address"], name="unique_daily_ip_view")
+        ]
+
+    def __str__(self):
+        user_name = self.username_display or "Guest"
+        return f"{self.ip_address} ({user_name}) on {self.date} - {self.view_count} hits"
+
+    @classmethod
+    def record_visit(cls, request):
+        """
+        Records a visit from the incoming request.
+        Extracts real client IP (WiFi IP) and deduplicates for the day.
+        """
+        path = getattr(request, "path", "/") or "/"
+        # Exclude static, media, internal tooling, and favicon
+        if any(path.startswith(prefix) for prefix in [
+            "/static/", "/media/", "/admin/", "/favicon.ico", "/__reload__", "/__debug__"
+        ]):
+            return None
+
+        # Extract client IP (handles WiFi NAT, reverse proxies, Vercel)
+        ip = "127.0.0.1"
+        cf_ip = request.META.get("HTTP_CF_CONNECTING_IP")
+        if cf_ip:
+            ip = cf_ip.strip()
+        else:
+            x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(",")[0].strip()
+            elif request.META.get("HTTP_X_REAL_IP"):
+                ip = request.META.get("HTTP_X_REAL_IP").strip()
+            elif request.META.get("REMOTE_ADDR"):
+                ip = request.META.get("REMOTE_ADDR").strip()
+
+        if not ip:
+            ip = "127.0.0.1"
+
+        today = timezone.localdate()
+        user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+        user_agent = (request.META.get("HTTP_USER_AGENT") or "")[:250]
+
+        # Extract device & browser
+        ua_lower = user_agent.lower()
+        os_name = "Desktop"
+        if "android" in ua_lower:
+            os_name = "Android"
+        elif "iphone" in ua_lower or "ipad" in ua_lower or "ios" in ua_lower:
+            os_name = "iOS"
+        elif "windows" in ua_lower:
+            os_name = "Windows"
+        elif "macintosh" in ua_lower or "mac os" in ua_lower:
+            os_name = "Mac"
+        elif "linux" in ua_lower:
+            os_name = "Linux"
+
+        browser_name = "Browser"
+        if "chrome" in ua_lower and "edg" not in ua_lower and "opr" not in ua_lower:
+            browser_name = "Chrome"
+        elif "safari" in ua_lower and "chrome" not in ua_lower:
+            browser_name = "Safari"
+        elif "firefox" in ua_lower:
+            browser_name = "Firefox"
+        elif "edg" in ua_lower:
+            browser_name = "Edge"
+        elif "opr" in ua_lower or "opera" in ua_lower:
+            browser_name = "Opera"
+
+        device_str = f"{os_name} • {browser_name}"
+        session_key = (
+            request.session.session_key
+            if hasattr(request, "session") and request.session.session_key
+            else ""
+        )
+
+        try:
+            record, created = cls.objects.get_or_create(
+                date=today,
+                ip_address=ip,
+                defaults={
+                    "user": user,
+                    "username_display": user.username if user else "Guest",
+                    "user_email": user.email if user else "",
+                    "view_count": 1,
+                    "last_page": path[:250],
+                    "device": device_str,
+                    "user_agent": user_agent,
+                    "session_key": session_key or "",
+                },
+            )
+            if not created:
+                # User or device viewed again on the same day from the same WiFi IP
+                fields_to_update = ["last_visit", "view_count", "last_page"]
+                record.view_count += 1
+                record.last_page = path[:250]
+                record.last_visit = timezone.now()
+
+                # If previously recorded as guest, but now user is authenticated, associate user
+                if user and (not record.user or record.user != user):
+                    record.user = user
+                    record.username_display = user.username
+                    record.user_email = user.email or ""
+                    fields_to_update.extend(["user", "username_display", "user_email"])
+
+                if device_str and record.device != device_str:
+                    record.device = device_str
+                    fields_to_update.append("device")
+
+                record.save(update_fields=fields_to_update)
+
+            return record
+        except Exception:
+            return None

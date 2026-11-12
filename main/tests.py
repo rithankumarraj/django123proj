@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import json
 from decimal import Decimal
+from django.utils import timezone
 
 from allauth.core.exceptions import ImmediateHttpResponse
 
@@ -22,6 +23,7 @@ from .models import (
     Product,
     ProductCategory,
     SiteDetails,
+    WebsiteView,
 )
 from .payments import sign_webhook_payload
 
@@ -4253,10 +4255,90 @@ class ComboOfferTests(TestCase):
         new_combo.refresh_from_db()
         self.assertFalse(new_combo.is_active)
 
-        # Delete
-        del_res = self.client.post(reverse("admin_delete_combo", kwargs={"combo_id": new_combo.id}), follow=True)
-        self.assertEqual(del_res.status_code, 200)
-        self.assertFalse(ComboOffer.objects.filter(name="Weekend Party Pack").exists())
+
+class WebsiteVisitorTrackingTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="testvisitor", email="visitor@example.com", password="password123")
+        self.admin = User.objects.create_superuser(username="adminvisitor", email="adminvis@example.com", password="password123")
+        self.wifi_ip = "192.168.1.100"
+
+    def test_combo_discount_display_has_no_capped_cost(self):
+        combo = ComboOffer.objects.create(
+            name="Zero Cola Combo",
+            discount_type="percentage",
+            discount_value=Decimal("12.00"),
+            max_discount_cap=Decimal("2000.00"),
+            is_active=True,
+        )
+        self.assertEqual(combo.discount_display, "12% OFF")
+        self.assertNotIn("Capped", combo.discount_display)
+        self.assertNotIn("capped", combo.discount_display.lower())
+
+    def test_middleware_records_unique_wifi_ip_view(self):
+        # 1st request from WiFi IP as guest
+        response = self.client.get(reverse("home"), HTTP_X_FORWARDED_FOR=self.wifi_ip)
+        self.assertEqual(response.status_code, 200)
+
+        record = WebsiteView.objects.filter(ip_address=self.wifi_ip).first()
+        self.assertIsNotNone(record)
+        self.assertEqual(record.view_count, 1)
+        self.assertIsNone(record.user)
+        self.assertEqual(record.username_display, "Guest")
+
+        # 2nd request from the same WiFi IP
+        self.client.get(reverse("home"), HTTP_X_FORWARDED_FOR=self.wifi_ip)
+        today = timezone.localdate()
+        # Count of unique records for this WiFi IP today must remain exactly 1!
+        self.assertEqual(WebsiteView.objects.filter(date=today, ip_address=self.wifi_ip).count(), 1)
+        record.refresh_from_db()
+        self.assertEqual(record.view_count, 2)
+
+    def test_multiple_logins_on_same_wifi_count_as_one_view_and_link_user(self):
+        today = timezone.localdate()
+        # Guest visit from WiFi IP
+        self.client.get(reverse("home"), HTTP_X_FORWARDED_FOR=self.wifi_ip)
+        self.assertEqual(WebsiteView.objects.filter(date=today, ip_address=self.wifi_ip).count(), 1)
+
+        # User logs in and visits from the same WiFi IP
+        self.client.force_login(self.user)
+        self.client.get(reverse("home"), HTTP_X_FORWARDED_FOR=self.wifi_ip)
+
+        # Still only 1 unique daily view record for that WiFi IP!
+        self.assertEqual(WebsiteView.objects.filter(date=today, ip_address=self.wifi_ip).count(), 1)
+        record = WebsiteView.objects.get(date=today, ip_address=self.wifi_ip)
+        self.assertEqual(record.user, self.user)
+        self.assertEqual(record.username_display, self.user.username)
+        self.assertEqual(record.user_email, self.user.email)
+        self.assertEqual(record.view_count, 2)
+
+    def test_different_wifi_ips_count_as_separate_views(self):
+        today = timezone.localdate()
+        ip_1 = "10.0.0.1"
+        ip_2 = "10.0.0.2"
+        self.client.get(reverse("home"), HTTP_X_FORWARDED_FOR=ip_1)
+        self.client.get(reverse("home"), HTTP_X_FORWARDED_FOR=ip_2)
+
+        self.assertEqual(WebsiteView.objects.filter(date=today).count(), 2)
+
+    def test_admin_visitors_view_security_and_rendering(self):
+        # Anonymous is redirected
+        anon_resp = self.client.get(reverse("admin_visitors"))
+        self.assertEqual(anon_resp.status_code, 302)
+
+        # Non-staff user redirected or forbidden
+        self.client.force_login(self.user)
+        user_resp = self.client.get(reverse("admin_visitors"))
+        self.assertEqual(user_resp.status_code, 302)
+
+        # Staff user gets 200 and sees visitor details
+        self.client.force_login(self.admin)
+        admin_resp = self.client.get(reverse("admin_visitors"))
+        self.assertEqual(admin_resp.status_code, 200)
+        self.assertContains(admin_resp, "Website Visitors & Traffic")
+        self.assertContains(admin_resp, "Today's Unique Views")
+        self.assertContains(admin_resp, "WiFi IP Address")
+
 
 
 

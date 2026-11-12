@@ -122,6 +122,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'main.middleware.WebsiteViewTrackerMiddleware',
 ]
 
 ROOT_URLCONF = 'django123proj.urls'
