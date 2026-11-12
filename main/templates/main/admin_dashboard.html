@@ -6,7 +6,26 @@
 delivery partner verification requests.{% endblock %}
 
 {% block topbar_actions %}
-<div style="display: flex; gap: 8px; align-items: center;">
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+  <a href="{% url 'admin_reports' %}" class="btn-secondary"
+    style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"></line>
+      <line x1="12" y1="20" x2="12" y2="4"></line>
+      <line x1="6" y1="20" x2="6" y2="14"></line>
+    </svg>
+    <span>Sales & Profit Report</span>
+  </a>
+  <a href="{% url 'admin_users' %}" class="btn-secondary"
+    style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+    <span>Users ({{ total_users_count }})</span>
+  </a>
   <a href="{% url 'admin_dashboard' %}" class="btn-secondary btn-dashboard-refresh"
     style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"

@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
 from .models import ComboOffer, ContactMessage, Coupon, DeliveryProfile, Order, Product, SiteDetails, WebsiteView
@@ -19,6 +20,7 @@ def navbar_context(request):
     pending_orders_count = 0
     pending_partner_requests_count = 0
     total_dashboard_alerts_count = 0
+    total_users_count = 0
     site_details = None
 
     try:
@@ -83,6 +85,10 @@ def navbar_context(request):
             except Exception:
                 pending_partner_requests_count = 0
             total_dashboard_alerts_count = pending_orders_count + pending_partner_requests_count
+            try:
+                total_users_count = get_user_model().objects.count()
+            except Exception:
+                total_users_count = 0
 
     return {
         "cart_count": cart_count,
@@ -95,6 +101,7 @@ def navbar_context(request):
         "pending_orders_count": pending_orders_count,
         "pending_partner_requests_count": pending_partner_requests_count,
         "total_dashboard_alerts_count": total_dashboard_alerts_count,
+        "total_users_count": total_users_count,
         "site_details": site_details,
         "details": site_details,
     }

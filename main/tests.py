@@ -4535,6 +4535,103 @@ class ProductCostPriceAndBulkAddTests(TestCase):
         self.assertFalse(Product.objects.filter(name="").exists())
 
 
+class AdminUsersAndSalesReportTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff_user = User.objects.create_user(
+            username="test_admin_staff",
+            email="staff@store.com",
+            password="adminpassword123",
+            is_staff=True,
+        )
+        self.customer_user = User.objects.create_user(
+            username="alex_customer",
+            email="alex@customer.com",
+            first_name="Alex",
+            last_name="Johnson",
+            password="customerpassword123",
+            is_staff=False,
+        )
+        self.prod_a = Product.objects.create(
+            name="Classic Cola Can",
+            price=Decimal("90.00"),
+            cost_price=Decimal("60.00"),
+            category="classic_cola",
+            available=True,
+        )
+        self.prod_b = Product.objects.create(
+            name="Fresh Lime Can",
+            price=Decimal("90.00"),
+            cost_price=Decimal("50.00"),
+            category="lime_soda",
+            available=True,
+        )
+        self.order1 = Order.objects.create(
+            customer=self.customer_user,
+            customer_name="Alex Johnson",
+            customer_phone="9876543210",
+            delivery_address="123 High Street",
+            delivery_city="Chennai",
+            product=self.prod_a,
+            quantity=2,
+            total_amount=Decimal("180.00"),
+            status="delivered",
+            payment_status="paid",
+        )
+        OrderItem.objects.create(
+            order=self.order1,
+            product=self.prod_a,
+            quantity=2,
+            unit_price=Decimal("90.00"),
+        )
+
+    def test_admin_users_access_control(self):
+        resp_anon = self.client.get(reverse("admin_users"))
+        self.assertEqual(resp_anon.status_code, 302)
+
+        self.client.force_login(self.customer_user)
+        resp_cust = self.client.get(reverse("admin_users"))
+        self.assertRedirects(resp_cust, reverse("home"))
+
+        self.client.force_login(self.staff_user)
+        resp_staff = self.client.get(reverse("admin_users"))
+        self.assertEqual(resp_staff.status_code, 200)
+        self.assertContains(resp_staff, "Users & Customer Accounts")
+        self.assertContains(resp_staff, "alex_customer")
+        self.assertContains(resp_staff, "Alex Johnson")
+
+    def test_admin_users_search_and_filter(self):
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(f"{reverse('admin_users')}?q=alex")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "alex_customer")
+
+        resp_none = self.client.get(f"{reverse('admin_users')}?q=nonexistentuserxyz")
+        self.assertEqual(resp_none.status_code, 200)
+        self.assertContains(resp_none, "No registered users found")
+
+    def test_admin_reports_access_and_profit_calculations(self):
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(reverse("admin_reports"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Sales & Profit/Loss Report")
+        self.assertContains(resp, "Which Product Sells More")
+        self.assertContains(resp, "Which Product Is More Buying")
+
+        self.assertEqual(resp.context["gross_sales"], Decimal("180.00"))
+        self.assertEqual(resp.context["total_cogs"], Decimal("120.00"))
+        self.assertEqual(resp.context["net_profit"], Decimal("60.00"))
+        self.assertTrue(resp.context["is_profitable"])
+
+    def test_admin_reports_export_csv(self):
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(reverse("admin_reports_export_csv"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/csv")
+        self.assertIn("Classic Cola Can", resp.content.decode("utf-8"))
+
+
+
 
 
 

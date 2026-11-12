@@ -61,6 +61,18 @@
             {% endif %}
           </a>
 
+          <!-- 0.1 Report Page -->
+          <a href="{% url 'admin_reports' %}" class="nav-link-item {% if active_page == 'reports' or active_page == 'report' %}active{% endif %}">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </span>
+            <span class="nav-link-text">Report</span>
+          </a>
+
           <!-- 1. Products Page -->
           <a href="{% url 'admin_products' %}" class="nav-link-item {% if active_page == 'products' %}active{% endif %}">
             <span class="nav-icon">
@@ -77,23 +89,7 @@
             {% endif %}
           </a>
 
-          <!-- 2. Delivery Users Page -->
-          <a href="{% url 'admin_delivery_users' %}" class="nav-link-item {% if active_page == 'delivery_users' %}active{% endif %}">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </span>
-            <span class="nav-link-text">Delivery Users</span>
-            {% if total_delivery_users_count is not None %}
-              <span class="nav-count-badge">{{ total_delivery_users_count }}</span>
-            {% endif %}
-          </a>
-
-          <!-- 3. Customer Orders Page -->
+          <!-- 2. Customer Orders Page -->
           <a href="{% url 'admin_delivery_status' %}" class="nav-link-item {% if active_page == 'delivery_status' %}active{% endif %}">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -106,6 +102,37 @@
             <span class="nav-link-text">Customer Orders</span>
             {% if pending_orders_count %}
               <span class="nav-count-badge badge-amber">{{ pending_orders_count }}</span>
+            {% endif %}
+          </a>
+
+          <!-- 3. Users Page (Track Users and User Count) -->
+          <a href="{% url 'admin_users' %}" class="nav-link-item {% if active_page == 'users' or active_page == 'user_tracking' %}active{% endif %}">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="nav-link-text">Users</span>
+            {% if total_users_count is not None %}
+              <span class="nav-count-badge">{{ total_users_count }}</span>
+            {% endif %}
+          </a>
+
+          <!-- 4. Delivery Users Page -->
+          <a href="{% url 'admin_delivery_users' %}" class="nav-link-item {% if active_page == 'delivery_users' %}active{% endif %}">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <polyline points="16 11 18 13 22 9"></polyline>
+              </svg>
+            </span>
+            <span class="nav-link-text">Delivery Users</span>
+            {% if total_delivery_users_count is not None %}
+              <span class="nav-count-badge">{{ total_delivery_users_count }}</span>
             {% endif %}
           </a>
 

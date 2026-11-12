@@ -157,6 +157,10 @@ class Product(models.Model):
         return slug.replace("_", " ").title()
 
     @property
+    def category_name(self):
+        return self.category_display
+
+    @property
     def image_url(self):
         img = (self.image or "").strip()
         if not img:

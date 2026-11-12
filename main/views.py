@@ -3355,4 +3355,599 @@ def admin_visitors(request):
     return render(request, "main/admin_visitors.html", context)
 
 
+@login_required
+def admin_users(request):
+    """
+    Admin view to track registered users, customer profiles, delivery partners, and user count.
+    Provides:
+    - User count breakdown (Total Users, Customers, Delivery Partners, Staff)
+    - Order counts and total lifetime spend per user
+    - Phone number and delivery address tracking
+    - Search by username, full name, email, phone, location
+    - Role filtering and sorting
+    - Full details and order history for each user
+    """
+    if not request.user.is_staff:
+        return redirect("home")
+
+    User = get_user_model()
+    role_filter = request.GET.get("role", "all")
+    order_filter = request.GET.get("orders", "all")
+    sort_by = request.GET.get("sort", "recent_joined")
+    search_query = (request.GET.get("q") or "").strip()
+
+    # Base queryset with relations
+    users_qs = User.objects.all().select_related("customer_profile").prefetch_related("addresses", "orders", "orders__items")
+
+    # Role filter
+    if role_filter == "customers":
+        users_qs = users_qs.filter(is_staff=False, delivery_profile__isnull=True)
+    elif role_filter == "delivery":
+        users_qs = users_qs.filter(delivery_profile__isnull=False)
+    elif role_filter == "staff":
+        users_qs = users_qs.filter(is_staff=True)
+
+    # Search filter
+    if search_query:
+        users_qs = users_qs.filter(
+            Q(username__icontains=search_query)
+            | Q(email__icontains=search_query)
+            | Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+            | Q(customer_profile__phone__icontains=search_query)
+            | Q(customer_profile__address__icontains=search_query)
+            | Q(customer_profile__city__icontains=search_query)
+            | Q(addresses__phone__icontains=search_query)
+            | Q(addresses__address__icontains=search_query)
+            | Q(addresses__city__icontains=search_query)
+            | Q(addresses__postal_code__icontains=search_query)
+        ).distinct()
+
+    # Global KPI counts
+    total_users_count = User.objects.count()
+    total_staff_count = User.objects.filter(is_staff=True).count()
+    total_delivery_count = DeliveryProfile.objects.count()
+    total_customer_count = User.objects.filter(is_staff=False, delivery_profile__isnull=True).count()
+
+    today = timezone.localdate()
+    new_users_today = User.objects.filter(date_joined__date=today).count()
+    month_start = today.replace(day=1)
+    new_users_this_month = User.objects.filter(date_joined__date__gte=month_start).count()
+
+    user_rows = []
+    total_registered_orders = 0
+    total_registered_spend = Decimal("0.00")
+    active_customers_with_orders = 0
+
+    for u in users_qs:
+        user_orders = list(u.orders.all().order_by("-created_at"))
+        total_orders = len(user_orders)
+        valid_orders = [o for o in user_orders if o.status != "cancelled"]
+        user_spend = sum((o.total_amount for o in valid_orders), Decimal("0.00"))
+
+        if total_orders > 0:
+            active_customers_with_orders += 1
+        total_registered_orders += total_orders
+        total_registered_spend += user_spend
+
+        # Determine user role
+        is_delivery = hasattr(u, "delivery_profile") and u.delivery_profile.is_approved
+        if u.is_superuser:
+            role_display = "Super Admin"
+            role_key = "admin"
+        elif u.is_staff:
+            role_display = "Staff"
+            role_key = "staff"
+        elif is_delivery:
+            role_display = "Delivery Partner"
+            role_key = "delivery"
+        else:
+            role_display = "Customer"
+            role_key = "customer"
+
+        # Resolve primary phone
+        phone = ""
+        if hasattr(u, "customer_profile") and u.customer_profile.phone:
+            phone = u.customer_profile.phone
+        elif u.addresses.exists():
+            default_addr = u.addresses.filter(is_default=True).first() or u.addresses.first()
+            if default_addr:
+                phone = default_addr.phone
+        if not phone and user_orders:
+            for o in user_orders:
+                if o.customer_phone:
+                    phone = o.customer_phone
+                    break
+
+        # Resolve location / address
+        location = ""
+        address_obj = u.addresses.filter(is_default=True).first() or u.addresses.first()
+        if address_obj:
+            parts = [p for p in [address_obj.city, address_obj.state, address_obj.postal_code] if p]
+            location = ", ".join(parts) if parts else address_obj.address
+        elif hasattr(u, "customer_profile") and (u.customer_profile.city or u.customer_profile.address):
+            parts = [p for p in [u.customer_profile.city, u.customer_profile.state, u.customer_profile.postal_code] if p]
+            location = ", ".join(parts) if parts else u.customer_profile.address
+        elif user_orders:
+            for o in user_orders:
+                if o.delivery_city or o.delivery_address:
+                    parts = [p for p in [o.delivery_city, o.delivery_state, o.delivery_postal_code] if p]
+                    location = ", ".join(parts) if parts else o.delivery_address
+                    break
+
+        latest_order = user_orders[0] if user_orders else None
+
+        # Filter by orders criteria
+        if order_filter == "has_orders" and total_orders == 0:
+            continue
+        elif order_filter == "no_orders" and total_orders > 0:
+            continue
+
+        recent_orders_list = [
+            {
+                "id": o.id,
+                "created_at": o.created_at.strftime("%d %b %Y, %I:%M %p"),
+                "status": o.status,
+                "status_display": o.get_status_display(),
+                "total_amount": str(o.total_amount),
+                "items_count": o.items.count() or o.quantity,
+                "receipt_url": reverse("order_receipt", kwargs={"order_id": o.id}),
+            }
+            for o in user_orders[:5]
+        ]
+
+        user_dict_json = {
+            "id": u.id,
+            "username": u.username,
+            "full_name": u.get_full_name() or u.username,
+            "email": u.email,
+            "phone": phone,
+            "location": location or "—",
+            "role_display": role_display,
+            "role_key": role_key,
+            "orders_count": total_orders,
+            "spend": float(user_spend),
+            "date_joined": u.date_joined.strftime("%d %b %Y"),
+            "recent_orders": recent_orders_list,
+        }
+
+        user_rows.append({
+            "id": u.id,
+            "user": u,
+            "username": u.username,
+            "full_name": u.get_full_name() or u.username,
+            "email": u.email,
+            "phone": phone,
+            "location": location or "—",
+            "role_display": role_display,
+            "role_key": role_key,
+            "is_active": u.is_active,
+            "date_joined": u.date_joined,
+            "last_login": u.last_login,
+            "orders_count": total_orders,
+            "completed_orders_count": len([o for o in user_orders if o.status == "delivered"]),
+            "spend": user_spend,
+            "latest_order": latest_order,
+            "recent_orders": recent_orders_list,
+            "json_data": json.dumps(user_dict_json),
+        })
+
+    # Sorting options
+    if sort_by == "orders_desc":
+        user_rows.sort(key=lambda x: x["orders_count"], reverse=True)
+    elif sort_by == "spend_desc":
+        user_rows.sort(key=lambda x: x["spend"], reverse=True)
+    elif sort_by == "recent_active":
+        user_rows.sort(key=lambda x: (x["last_login"] is not None, x["last_login"]), reverse=True)
+    elif sort_by == "name_asc":
+        user_rows.sort(key=lambda x: x["full_name"].lower())
+    else:  # recent_joined
+        user_rows.sort(key=lambda x: x["date_joined"], reverse=True)
+
+    # Paginate
+    paginator = Paginator(user_rows, 25)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "active_page": "users",
+        "users": page_obj,
+        "page_obj": page_obj,
+        "total_users_count": total_users_count,
+        "total_customer_count": total_customer_count,
+        "total_delivery_count": total_delivery_count,
+        "total_staff_count": total_staff_count,
+        "new_users_today": new_users_today,
+        "new_users_this_month": new_users_this_month,
+        "active_customers_with_orders": active_customers_with_orders,
+        "total_registered_orders": total_registered_orders,
+        "total_registered_spend": total_registered_spend,
+        "role_filter": role_filter,
+        "order_filter": order_filter,
+        "sort_by": sort_by,
+        "search_query": search_query,
+    }
+    return render(request, "main/admin_users.html", context)
+
+
+@login_required
+def admin_reports(request):
+    """
+    Admin view for sales, profit/loss, and product purchase/selling performance report.
+    - Shows Profit / Loss with gross revenue, cost of goods sold (COGS), discounts, net profit, and margin %.
+    - Shows "Which Product Sells More" (highest unit sales and revenue generation).
+    - Shows "Which Product is More Buying" (highest order inclusion rate and frequency).
+    - Category breakdown, fulfillment status, and payment mode analysis.
+    - Time range filtering (All time, Today, Last 7 days, Last 30 days, Year, Custom range).
+    """
+    if not request.user.is_staff:
+        return redirect("home")
+
+    from datetime import datetime
+
+    range_filter = request.GET.get("range", "all")
+    start_date_str = (request.GET.get("start_date") or "").strip()
+    end_date_str = (request.GET.get("end_date") or "").strip()
+    now = timezone.now()
+    today = timezone.localdate()
+
+    orders_qs = Order.objects.all().select_related("product", "customer", "combo_offer", "coupon").prefetch_related("items", "items__product")
+
+    filter_label = "All Time"
+    if range_filter == "today":
+        orders_qs = orders_qs.filter(created_at__date=today)
+        filter_label = "Today (" + today.strftime("%d %b %Y") + ")"
+    elif range_filter == "7days":
+        week_ago = now - timezone.timedelta(days=7)
+        orders_qs = orders_qs.filter(created_at__gte=week_ago)
+        filter_label = "Last 7 Days"
+    elif range_filter == "30days":
+        month_ago = now - timezone.timedelta(days=30)
+        orders_qs = orders_qs.filter(created_at__gte=month_ago)
+        filter_label = "Last 30 Days"
+    elif range_filter == "year":
+        year_start = today.replace(month=1, day=1)
+        orders_qs = orders_qs.filter(created_at__date__gte=year_start)
+        filter_label = f"This Year ({today.year})"
+    elif range_filter == "custom" and start_date_str and end_date_str:
+        try:
+            sd = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            ed = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            orders_qs = orders_qs.filter(created_at__date__gte=sd, created_at__date__lte=ed)
+            filter_label = f"{sd.strftime('%d %b %Y')} to {ed.strftime('%d %b %Y')}"
+        except ValueError:
+            range_filter = "all"
+
+    total_orders_in_period = orders_qs.count()
+    cancelled_orders_count = orders_qs.filter(status="cancelled").count()
+    delivered_orders_count = orders_qs.filter(status="delivered").count()
+    pending_orders_count = orders_qs.filter(status="pending").count()
+    packed_orders_count = orders_qs.filter(status="packed").count()
+    shipped_orders_count = orders_qs.filter(status__in=["shipped", "out_for_delivery"]).count()
+
+    active_orders = list(orders_qs.exclude(status="cancelled"))
+    active_orders_count = len(active_orders)
+
+    gross_sales = Decimal("0.00")
+    total_cogs = Decimal("0.00")
+    total_discounts = Decimal("0.00")
+    total_shipping_revenue = Decimal("0.00")
+    total_packing_revenue = Decimal("0.00")
+    total_units_sold = 0
+
+    online_orders_count = 0
+    online_orders_revenue = Decimal("0.00")
+    cod_orders_count = 0
+    cod_orders_revenue = Decimal("0.00")
+
+    all_products = {p.id: p for p in Product.objects.all()}
+    prod_data = {}
+    for p in all_products.values():
+        prod_data[p.id] = {
+            "id": p.id,
+            "product": p,
+            "name": p.name,
+            "category": p.category_display,
+            "selling_price": p.price,
+            "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+            "image_url": p.image_url,
+            "units_sold": 0,
+            "orders_count": 0,
+            "revenue": Decimal("0.00"),
+            "cost": Decimal("0.00"),
+            "profit": Decimal("0.00"),
+            "margin_pct": Decimal("0.00"),
+            "order_ids": set(),
+        }
+
+    cat_data = {}
+    order_audit_rows = []
+
+    for o in active_orders:
+        order_revenue = o.total_amount
+        gross_sales += order_revenue
+        total_discounts += (o.discount_amount + o.combo_discount)
+        total_shipping_revenue += o.shipping_fee
+        total_packing_revenue += o.packing_fee
+
+        if o.payment_method == "cod":
+            cod_orders_count += 1
+            cod_orders_revenue += order_revenue
+        else:
+            online_orders_count += 1
+            online_orders_revenue += order_revenue
+
+        order_cogs = Decimal("0.00")
+        order_items_summary = []
+        pids_in_this_order = set()
+
+        if o.items.exists():
+            for it in o.items.all():
+                p = it.product
+                pid = p.id
+                if pid not in prod_data:
+                    prod_data[pid] = {
+                        "id": pid,
+                        "product": p,
+                        "name": p.name,
+                        "category": p.category_display,
+                        "selling_price": p.price,
+                        "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+                        "image_url": p.image_url,
+                        "units_sold": 0,
+                        "orders_count": 0,
+                        "revenue": Decimal("0.00"),
+                        "cost": Decimal("0.00"),
+                        "profit": Decimal("0.00"),
+                        "margin_pct": Decimal("0.00"),
+                        "order_ids": set(),
+                    }
+                item_qty = it.quantity
+                item_rev = it.line_total
+                item_cost = item_qty * prod_data[pid]["cost_price"]
+
+                prod_data[pid]["units_sold"] += item_qty
+                prod_data[pid]["revenue"] += item_rev
+                prod_data[pid]["cost"] += item_cost
+                pids_in_this_order.add(pid)
+
+                order_cogs += item_cost
+                total_units_sold += item_qty
+                order_items_summary.append(f"{item_qty}× {p.name}")
+        elif o.product:
+            p = o.product
+            pid = p.id
+            if pid not in prod_data:
+                prod_data[pid] = {
+                    "id": pid,
+                    "product": p,
+                    "name": p.name,
+                    "category": p.category_display,
+                    "selling_price": p.price,
+                    "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+                    "image_url": p.image_url,
+                    "units_sold": 0,
+                    "orders_count": 0,
+                    "revenue": Decimal("0.00"),
+                    "cost": Decimal("0.00"),
+                    "profit": Decimal("0.00"),
+                    "margin_pct": Decimal("0.00"),
+                    "order_ids": set(),
+                }
+            item_qty = o.quantity
+            item_rev = item_qty * p.price
+            item_cost = item_qty * prod_data[pid]["cost_price"]
+
+            prod_data[pid]["units_sold"] += item_qty
+            prod_data[pid]["revenue"] += item_rev
+            prod_data[pid]["cost"] += item_cost
+            pids_in_this_order.add(pid)
+
+            order_cogs += item_cost
+            total_units_sold += item_qty
+            order_items_summary.append(f"{item_qty}× {p.name}")
+
+        for pid in pids_in_this_order:
+            prod_data[pid]["order_ids"].add(o.id)
+
+        total_cogs += order_cogs
+        order_profit = order_revenue - order_cogs
+        order_audit_rows.append({
+            "order": o,
+            "id": o.id,
+            "created_at": o.created_at,
+            "customer_name": o.customer_name,
+            "status": o.status,
+            "status_display": o.get_status_display(),
+            "payment_status": o.payment_status,
+            "items_display": ", ".join(order_items_summary) or "1× Item",
+            "revenue": order_revenue,
+            "cost": order_cogs,
+            "profit": order_profit,
+            "is_profitable": order_profit >= Decimal("0.00"),
+        })
+
+    product_report_list = []
+    for pid, pinfo in prod_data.items():
+        pinfo["orders_count"] = len(pinfo["order_ids"])
+        pinfo["profit"] = pinfo["revenue"] - pinfo["cost"]
+        if pinfo["revenue"] > Decimal("0.00"):
+            pinfo["margin_pct"] = ((pinfo["profit"] / pinfo["revenue"]) * Decimal("100")).quantize(Decimal("0.1"))
+        else:
+            pinfo["margin_pct"] = Decimal("0.0")
+
+        if active_orders_count > 0:
+            pinfo["inclusion_rate_pct"] = round((pinfo["orders_count"] / active_orders_count) * 100, 1)
+        else:
+            pinfo["inclusion_rate_pct"] = 0.0
+
+        if pinfo["orders_count"] > 0:
+            pinfo["avg_units_per_order"] = round(pinfo["units_sold"] / pinfo["orders_count"], 1)
+        else:
+            pinfo["avg_units_per_order"] = 0.0
+
+        if total_units_sold > 0:
+            pinfo["market_share_pct"] = round((pinfo["units_sold"] / total_units_sold) * 100, 1)
+        else:
+            pinfo["market_share_pct"] = 0.0
+
+        cat_name = pinfo["category"] or "General"
+        if cat_name not in cat_data:
+            cat_data[cat_name] = {
+                "name": cat_name,
+                "units_sold": 0,
+                "revenue": Decimal("0.00"),
+                "cost": Decimal("0.00"),
+                "profit": Decimal("0.00"),
+            }
+        cat_data[cat_name]["units_sold"] += pinfo["units_sold"]
+        cat_data[cat_name]["revenue"] += pinfo["revenue"]
+        cat_data[cat_name]["cost"] += pinfo["cost"]
+        cat_data[cat_name]["profit"] += pinfo["profit"]
+
+        product_report_list.append(pinfo)
+
+    category_report_list = list(cat_data.values())
+    for cat in category_report_list:
+        if cat["revenue"] > Decimal("0.00"):
+            cat["margin_pct"] = ((cat["profit"] / cat["revenue"]) * Decimal("100")).quantize(Decimal("0.1"))
+        else:
+            cat["margin_pct"] = Decimal("0.0")
+        cat["share_pct"] = round((cat["units_sold"] / total_units_sold * 100), 1) if total_units_sold > 0 else 0.0
+
+    category_report_list.sort(key=lambda x: x["revenue"], reverse=True)
+
+    # 1. Which product sells more (Ranked by Units Sold & Revenue)
+    products_selling_most = sorted(product_report_list, key=lambda x: (x["units_sold"], x["revenue"]), reverse=True)
+
+    # 2. Which product is more buying (Ranked by Order Inclusion & Frequency)
+    products_buying_most = sorted(product_report_list, key=lambda x: (x["orders_count"], x["units_sold"]), reverse=True)
+
+    # Net Profit / Loss Financials
+    net_profit = gross_sales - total_cogs
+    if gross_sales > Decimal("0.00"):
+        overall_margin_pct = ((net_profit / gross_sales) * Decimal("100")).quantize(Decimal("0.1"))
+    else:
+        overall_margin_pct = Decimal("0.0")
+
+    avg_order_value = (gross_sales / active_orders_count).quantize(Decimal("0.01")) if active_orders_count > 0 else Decimal("0.00")
+    is_profitable = net_profit >= Decimal("0.00")
+
+    order_audit_rows.sort(key=lambda x: x["created_at"], reverse=True)
+
+    context = {
+        "active_page": "reports",
+        "filter_label": filter_label,
+        "range_filter": range_filter,
+        "start_date": start_date_str,
+        "end_date": end_date_str,
+        "gross_sales": gross_sales,
+        "total_cogs": total_cogs,
+        "total_discounts": total_discounts,
+        "total_shipping_revenue": total_shipping_revenue,
+        "total_packing_revenue": total_packing_revenue,
+        "net_profit": net_profit,
+        "overall_margin_pct": overall_margin_pct,
+        "is_profitable": is_profitable,
+        "avg_order_value": avg_order_value,
+        "total_units_sold": total_units_sold,
+        "total_orders_in_period": total_orders_in_period,
+        "active_orders_count": active_orders_count,
+        "delivered_orders_count": delivered_orders_count,
+        "shipped_orders_count": shipped_orders_count,
+        "packed_orders_count": packed_orders_count,
+        "pending_orders_count": pending_orders_count,
+        "cancelled_orders_count": cancelled_orders_count,
+        "online_orders_count": online_orders_count,
+        "online_orders_revenue": online_orders_revenue,
+        "cod_orders_count": cod_orders_count,
+        "cod_orders_revenue": cod_orders_revenue,
+        "products_selling_most": products_selling_most,
+        "products_buying_most": products_buying_most,
+        "category_report_list": category_report_list,
+        "order_audit_rows": order_audit_rows[:25],
+    }
+    return render(request, "main/admin_reports.html", context)
+
+
+@login_required
+def admin_reports_export_csv(request):
+    """
+    Exports product sales and profit/loss report as a clean CSV download.
+    """
+    if not request.user.is_staff:
+        return redirect("home")
+    import csv
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="jcsd_profit_loss_report_{timezone.localdate()}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Product Name",
+        "Category",
+        "Cost Price (INR)",
+        "Selling Price (INR)",
+        "Units Sold",
+        "Order Count",
+        "Inclusion Rate (%)",
+        "Gross Revenue (INR)",
+        "Total Cost (INR)",
+        "Net Profit (INR)",
+        "Margin (%)",
+    ])
+
+    active_orders = list(Order.objects.exclude(status="cancelled").prefetch_related("items", "items__product"))
+    all_products = Product.objects.all()
+    stats = {}
+    for p in all_products:
+        stats[p.id] = {
+            "name": p.name,
+            "category": p.category_display,
+            "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+            "selling_price": p.price,
+            "units": 0,
+            "orders": set(),
+            "revenue": Decimal("0.00"),
+            "cost": Decimal("0.00"),
+        }
+
+    for o in active_orders:
+        if o.items.exists():
+            for it in o.items.all():
+                pid = it.product_id
+                if pid in stats:
+                    stats[pid]["units"] += it.quantity
+                    stats[pid]["orders"].add(o.id)
+                    stats[pid]["revenue"] += it.line_total
+                    stats[pid]["cost"] += it.quantity * stats[pid]["cost_price"]
+        elif o.product_id and o.product_id in stats:
+            pid = o.product_id
+            stats[pid]["units"] += o.quantity
+            stats[pid]["orders"].add(o.id)
+            stats[pid]["revenue"] += o.quantity * stats[pid]["selling_price"]
+            stats[pid]["cost"] += o.quantity * stats[pid]["cost_price"]
+
+    total_orders = len(active_orders) or 1
+    for pinfo in sorted(stats.values(), key=lambda x: x["units"], reverse=True):
+        profit = pinfo["revenue"] - pinfo["cost"]
+        margin = round((profit / pinfo["revenue"] * 100), 1) if pinfo["revenue"] > 0 else 0
+        inc_rate = round((len(pinfo["orders"]) / total_orders * 100), 1)
+        writer.writerow([
+            pinfo["name"],
+            pinfo["category"],
+            f"{pinfo['cost_price']:.2f}",
+            f"{pinfo['selling_price']:.2f}",
+            pinfo["units"],
+            len(pinfo["orders"]),
+            f"{inc_rate}%",
+            f"{pinfo['revenue']:.2f}",
+            f"{pinfo['cost']:.2f}",
+            f"{profit:.2f}",
+            f"{margin}%",
+        ])
+
+    return response
+
+
 

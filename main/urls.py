@@ -178,6 +178,26 @@ urlpatterns = [
         views.admin_visitors,
         name="admin_visitors",
     ),
+    path(
+        "admin-profile/users/",
+        views.admin_users,
+        name="admin_users",
+    ),
+    path(
+        "admin-profile/reports/",
+        views.admin_reports,
+        name="admin_reports",
+    ),
+    path(
+        "admin-profile/report/",
+        views.admin_reports,
+        name="admin_report",
+    ),
+    path(
+        "admin-profile/reports/export/",
+        views.admin_reports_export_csv,
+        name="admin_reports_export_csv",
+    ),
     path("combos/", views.combos_showcase, name="combos_showcase"),
     path(
         "combos/add-bundle/<int:combo_id>/",
