@@ -1,5 +1,6 @@
+from django.db.models import Q
 from django.utils import timezone
-from .models import ComboOffer, ContactMessage, Coupon, DeliveryProfile, Product, SiteDetails, WebsiteView
+from .models import ComboOffer, ContactMessage, Coupon, DeliveryProfile, Order, Product, SiteDetails, WebsiteView
 from .views import CART_SESSION_KEY, WISHLIST_SESSION_KEY, _cart_items
 
 
@@ -15,6 +16,9 @@ def navbar_context(request):
     total_coupons_count = 0
     total_combos_count = 0
     today_views_count = 0
+    pending_orders_count = 0
+    pending_partner_requests_count = 0
+    total_dashboard_alerts_count = 0
     site_details = None
 
     try:
@@ -68,6 +72,17 @@ def navbar_context(request):
                 today_views_count = WebsiteView.objects.filter(date=timezone.localdate()).count()
             except Exception:
                 today_views_count = 0
+            try:
+                pending_orders_count = Order.objects.filter(status="pending").count()
+            except Exception:
+                pending_orders_count = 0
+            try:
+                pending_partner_requests_count = DeliveryProfile.objects.filter(
+                    Q(status="pending") | Q(is_approved=False)
+                ).count()
+            except Exception:
+                pending_partner_requests_count = 0
+            total_dashboard_alerts_count = pending_orders_count + pending_partner_requests_count
 
     return {
         "cart_count": cart_count,
@@ -77,6 +92,9 @@ def navbar_context(request):
         "total_coupons_count": total_coupons_count,
         "total_combos_count": total_combos_count,
         "today_views_count": today_views_count,
+        "pending_orders_count": pending_orders_count,
+        "pending_partner_requests_count": pending_partner_requests_count,
+        "total_dashboard_alerts_count": total_dashboard_alerts_count,
         "site_details": site_details,
         "details": site_details,
     }

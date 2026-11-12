@@ -2143,7 +2143,71 @@ def customer_logout(request):
 @login_required
 @user_passes_test(lambda user: user.is_staff)
 def admin_dashboard(request):
-    return admin_products(request)
+    """
+    Store Operations Dashboard:
+    - New Orders: only new incoming orders (status='pending')
+    - Delivery Requested: orders packed / shipped / out_for_delivery needing fulfillment
+    - Delivery Partner Approval Requests: pending delivery driver verification applications
+    """
+    # 1. New Orders: Only new incoming pending orders
+    new_orders = (
+        Order.objects.filter(status="pending")
+        .select_related("product", "delivery_user", "customer")
+        .prefetch_related("items__product")
+        .order_by("-created_at")
+    )
+    new_orders_count = new_orders.count()
+
+    # 2. Delivery Requested: Orders packed waiting dispatch, or in transit
+    delivery_requested_orders = (
+        Order.objects.filter(status__in=["packed", "shipped", "out_for_delivery"])
+        .select_related("product", "delivery_user", "customer")
+        .prefetch_related("items__product")
+        .order_by("-created_at")
+    )
+    delivery_requested_count = delivery_requested_orders.count()
+    packed_count = delivery_requested_orders.filter(status="packed").count()
+    in_transit_count = delivery_requested_orders.filter(status__in=["shipped", "out_for_delivery"]).count()
+
+    # 3. Delivery Partner Approval Requests: Pending verification applications
+    partner_approval_requests = (
+        DeliveryProfile.objects.filter(Q(status="pending") | Q(is_approved=False))
+        .select_related("user")
+        .order_by("-created_at")
+    )
+    partner_approval_count = partner_approval_requests.count()
+
+    # Active/Approved delivery partners for quick assignment
+    approved_delivery_partners = (
+        DeliveryProfile.objects.filter(status="approved", is_approved=True)
+        .select_related("user")
+        .order_by("user__first_name", "user__username")
+    )
+
+    total_products_count = Product.objects.count()
+    total_delivery_users_count = DeliveryProfile.objects.count()
+    today_views_count = WebsiteView.objects.filter(date=timezone.localdate()).count()
+
+    context = {
+        "active_page": "dashboard",
+        "new_orders": new_orders,
+        "new_orders_count": new_orders_count,
+        "delivery_requested_orders": delivery_requested_orders,
+        "delivery_requested_count": delivery_requested_count,
+        "packed_count": packed_count,
+        "in_transit_count": in_transit_count,
+        "partner_approval_requests": partner_approval_requests,
+        "partner_approval_count": partner_approval_count,
+        "approved_delivery_partners": approved_delivery_partners,
+        "total_products_count": total_products_count,
+        "total_delivery_users_count": total_delivery_users_count,
+        "pending_orders_count": new_orders_count,
+        "pending_partner_requests_count": partner_approval_count,
+        "total_dashboard_alerts_count": new_orders_count + partner_approval_count,
+        "today_views_count": today_views_count,
+        "status_choices": Order.STATUS_CHOICES,
+    }
+    return render(request, "main/admin_dashboard.html", context)
 
 
 @login_required
@@ -2470,30 +2534,47 @@ def admin_delivery_status(request):
 def admin_update_order_status(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     new_status = request.POST.get("status")
-    if new_status == "returned":
-        new_status = "cancelled"
-    valid_statuses = {choice for choice, _ in Order.STATUS_CHOICES}
-    if new_status not in valid_statuses:
-        if request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
-            return JsonResponse({"status": "error", "message": "Please choose a valid delivery status."}, status=400)
-        messages.error(request, "Please choose a valid delivery status.")
-        return redirect("admin_delivery_status")
+    update_fields = []
 
-    order.status = new_status
-    if new_status == "delivered":
-        order.delivered_at = timezone.now()
-    else:
-        order.delivered_at = None
-    order.save(update_fields=["status", "delivered_at"])
-    messages.success(request, f"Order #{order.pk} status updated to {order.get_status_display()}.")
+    if new_status:
+        if new_status == "returned":
+            new_status = "cancelled"
+        valid_statuses = {choice for choice, _ in Order.STATUS_CHOICES}
+        if new_status not in valid_statuses:
+            if request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
+                return JsonResponse({"status": "error", "message": "Please choose a valid delivery status."}, status=400)
+            messages.error(request, "Please choose a valid delivery status.")
+            return redirect(request.POST.get("next") or "admin_delivery_status")
+
+        order.status = new_status
+        order.delivered_at = timezone.now() if new_status == "delivered" else None
+        update_fields.extend(["status", "delivered_at"])
+
+    delivery_user_id = request.POST.get("delivery_user_id")
+    if delivery_user_id is not None:
+        if delivery_user_id in ("", "0", "none"):
+            order.delivery_user = None
+            update_fields.append("delivery_user")
+        else:
+            try:
+                du = get_user_model().objects.get(pk=int(delivery_user_id))
+                order.delivery_user = du
+                update_fields.append("delivery_user")
+            except Exception:
+                pass
+
+    if update_fields:
+        order.save(update_fields=list(set(update_fields)))
+        messages.success(request, f"Order #{order.pk} updated successfully.")
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", ""):
         return JsonResponse({
             "status": "success",
             "order_id": order.id,
-            "new_status": new_status,
+            "new_status": order.status,
             "new_status_display": order.get_status_display(),
-            "message": f"Order #{order.pk} status updated to {order.get_status_display()}."
+            "delivery_user": order.delivery_user.get_full_name() or order.delivery_user.username if order.delivery_user else None,
+            "message": f"Order #{order.pk} updated successfully."
         })
 
     next_url = request.POST.get("next")

@@ -4340,6 +4340,126 @@ class WebsiteVisitorTrackingTests(TestCase):
         self.assertContains(admin_resp, "WiFi IP Address")
 
 
+class AdminDashboardOperationsTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff_user = User.objects.create_superuser(
+            username="superadmin", email="superadmin@example.com", password="password123"
+        )
+        self.normal_user = User.objects.create_user(
+            username="regularuser", email="user@example.com", password="password123"
+        )
+        self.product = Product.objects.create(
+            name="Test Fizzy Drink",
+            price=Decimal("90.00"),
+            available=True,
+            volume="330 ml",
+        )
+        # 1. New Pending Order
+        self.pending_order = Order.objects.create(
+            customer=self.normal_user,
+            product=self.product,
+            customer_name="Alice Green",
+            customer_phone="9876543210",
+            delivery_address="456 Elm Street",
+            delivery_city="Chennai",
+            delivery_postal_code="600001",
+            quantity=2,
+            total_amount=Decimal("180.00"),
+            status="pending",
+            payment_status="paid",
+        )
+        # 2. Packed Order (Delivery requested / dispatch pending)
+        self.packed_order = Order.objects.create(
+            customer=self.normal_user,
+            product=self.product,
+            customer_name="Bob Brown",
+            customer_phone="9123456780",
+            delivery_address="789 Oak Ave",
+            delivery_city="Chennai",
+            delivery_postal_code="600002",
+            quantity=6,
+            total_amount=Decimal("540.00"),
+            status="packed",
+            payment_status="paid",
+        )
+        # 3. Pending Delivery Partner Applicant
+        self.driver_user = User.objects.create_user(
+            username="speedydriver", email="speedy@example.com", password="password123"
+        )
+        self.pending_partner = DeliveryProfile.objects.create(
+            user=self.driver_user,
+            phone="9988776655",
+            vehicle_type="bike",
+            vehicle_number="TN-59-AB-1234",
+            driving_license="DL99887766",
+            aadhar_number="1234-5678-9012",
+            status="pending",
+            is_approved=False,
+        )
+
+    def test_anonymous_redirected_from_dashboard(self):
+        resp = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_normal_user_redirected_from_dashboard(self):
+        self.client.force_login(self.normal_user)
+        resp = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_staff_can_view_operations_dashboard_with_all_three_sections(self):
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(reverse("admin_dashboard"))
+        self.assertEqual(resp.status_code, 200)
+
+        # 1. Verification of the 3 key sections in the dashboard
+        self.assertContains(resp, "Operations Dashboard")
+        self.assertContains(resp, "New Incoming Orders")
+        self.assertContains(resp, "Delivery Requested Orders")
+        self.assertContains(resp, "Delivery Partner Approval Requests")
+
+        # 2. Section 1: Only new pending orders shown
+        self.assertContains(resp, "Alice Green")
+        self.assertContains(resp, "#" + str(self.pending_order.id))
+        self.assertContains(resp, "Mark Packed")
+
+        # 3. Section 2: Delivery requested (packed orders) shown
+        self.assertContains(resp, "Bob Brown")
+        self.assertContains(resp, "#" + str(self.packed_order.id))
+        self.assertContains(resp, "Packed (Ready for Dispatch)")
+
+        # 4. Section 3: Delivery partner approval requests shown
+        self.assertContains(resp, "speedydriver")
+        self.assertContains(resp, "TN-59-AB-1234")
+        self.assertContains(resp, "DL99887766")
+        self.assertContains(resp, "Approve")
+        self.assertContains(resp, "Reject")
+
+    def test_admin_can_approve_partner_from_dashboard(self):
+        self.client.force_login(self.staff_user)
+        post_data = {"next": reverse("admin_dashboard")}
+        resp = self.client.post(
+            reverse("admin_approve_delivery_partner", kwargs={"profile_id": self.pending_partner.id}),
+            data=post_data,
+        )
+        self.assertRedirects(resp, reverse("admin_dashboard"))
+        self.pending_partner.refresh_from_db()
+        self.assertTrue(self.pending_partner.is_approved)
+        self.assertEqual(self.pending_partner.status, "approved")
+
+    def test_admin_can_mark_order_packed_from_dashboard(self):
+        self.client.force_login(self.staff_user)
+        post_data = {"status": "packed", "next": reverse("admin_dashboard")}
+        resp = self.client.post(
+            reverse("admin_update_order_status", kwargs={"order_id": self.pending_order.id}),
+            data=post_data,
+        )
+        self.assertRedirects(resp, reverse("admin_dashboard"))
+        self.pending_order.refresh_from_db()
+        self.assertEqual(self.pending_order.status, "packed")
+
+
+
 
 
 

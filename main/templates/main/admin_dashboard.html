@@ -1,722 +1,653 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Profile</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+{% extends "main/admin_base.html" %}
+
+{% block title %}Dashboard | Store Operations & Urgent Actions{% endblock %}
+{% block page_heading %}Operations Dashboard{% endblock %}
+{% block page_description %}Real-time command center for new incoming orders, delivery fulfillment requests, and delivery partner verification requests.{% endblock %}
+
+{% block topbar_actions %}
+  <div style="display: flex; gap: 8px; align-items: center;">
+    <a href="{% url 'admin_dashboard' %}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      <span>Refresh Dashboard</span>
+    </a>
+  </div>
+{% endblock %}
+
+{% block admin_content %}
   <style>
-    :root {
-      --bg: #0b0e10;
-      --panel: #14191c;
-      --card: #171d20;
-      --muted: #a9b1b8;
-      --white: #f3f5f7;
-      --line: rgba(255,255,255,0.08);
-      --green: #2fcf7a;
-      --orange: #f6be5d;
-      --blue: #5aa3ff;
-      --red: #ff7676;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: "Inter", sans-serif;
-      background: linear-gradient(180deg, #0b0e10 0%, #12181b 100%);
-      color: var(--white);
-    }
-
-    a { color: inherit; text-decoration: none; }
-
-    .admin-shell {
-      width: min(1200px, 100%);
-      margin: 0 auto;
-      padding: 32px 20px 60px;
-      box-sizing: border-box;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .dashboard-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--line);
+      margin-bottom: 26px;
+    }
+    .dashboard-section {
+      background: #14191c;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
       margin-bottom: 28px;
-    }
-
-    .brand {
-      font-size: 1.7rem;
-      font-weight: 800;
-      letter-spacing: -0.06em;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 12px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.02);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--muted);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-      margin-bottom: 24px;
-      width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-    }
-
-    .stat-card {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 20px 18px;
-      min-width: 0;
-      box-sizing: border-box;
-    }
-
-    .stat-label {
-      display: block;
-      color: var(--muted);
-      font-size: 0.72rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .stat-value {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 800;
-      letter-spacing: -0.07em;
-    }
-
-    .content-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
-      gap: 22px;
-      width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-    }
-
-    .panel {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 22px;
-      margin-bottom: 22px;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
       overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
-
-    .panel h2 {
-      margin: 0 0 16px;
-      font-size: 1.3rem;
-      letter-spacing: -0.04em;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .field {
+    .dashboard-section-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    .field label {
-      font-size: 0.73rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--muted);
-    }
-
-    .field input,
-    .field textarea,
-    .field select {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-      color: var(--white);
-      font: inherit;
-    }
-
-    .field textarea {
-      min-height: 110px;
-      resize: vertical;
-    }
-
-    .checkbox-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 6px;
-    }
-
-    .checkbox-wrap input {
-      width: 18px;
-      height: 18px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
       flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    .btn {
-      border: 0;
-      border-radius: 999px;
-      padding: 11px 18px;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .btn:hover { transform: translateY(-1px); }
-
-    .btn-primary {
-      background: #fff;
-      color: #101417;
-    }
-
-    .btn-secondary {
-      background: rgba(255,255,255,0.05);
-      color: var(--white);
-      border: 1px solid var(--line);
-    }
-
-    .list-panel {
-      margin-top: 0;
-    }
-
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      margin-top: 14px;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.01);
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
-    }
-
-    .table-container::-webkit-scrollbar {
-      height: 6px;
-    }
-
-    .table-container::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 999px;
-    }
-
-    .table-container::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.22);
-      border-radius: 999px;
-    }
-
-    .product-list,
-    .status-list {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .status-list {
-      min-width: 840px;
-    }
-
-    .product-list {
-      min-width: 480px;
-    }
-
-    .product-list th,
-    .product-list td,
-    .status-list th,
-    .status-list td {
-      padding: 13px 12px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: middle;
-    }
-
-    .product-list th,
-    .status-list th {
-      color: var(--muted);
-      font-size: 0.7rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      background: rgba(255, 255, 255, 0.02);
-      white-space: nowrap;
-    }
-
-    .status-list th:nth-child(1),
-    .status-list td:nth-child(1) {
-      width: 85px;
-      min-width: 85px;
-      white-space: nowrap;
-      font-weight: 700;
-    }
-
-    .status-list th:nth-child(2),
-    .status-list td:nth-child(2) {
-      width: 180px;
-      min-width: 180px;
-    }
-
-    .status-list th:nth-child(3),
-    .status-list td:nth-child(3) {
-      width: 160px;
-      min-width: 160px;
-    }
-
-    .status-list th:nth-child(4),
-    .status-list td:nth-child(4) {
-      width: 240px;
-      min-width: 240px;
-      line-height: 1.45;
-    }
-
-    .status-list th:nth-child(5),
-    .status-list td:nth-child(5) {
-      width: 140px;
-      min-width: 140px;
-      white-space: nowrap;
-    }
-
-    .status-list th:nth-child(6),
-    .status-list td:nth-child(6) {
-      width: 140px;
-      min-width: 140px;
-      white-space: nowrap;
-    }
-
-    .product-name {
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .status-delivered { background: rgba(47, 207, 122, 0.12); color: var(--green); }
-    .status-pending { background: rgba(246, 190, 93, 0.12); color: var(--orange); }
-    .status-paid { background: rgba(47, 207, 122, 0.12); color: var(--green); }
-    .status-failed { background: rgba(255, 118, 118, 0.12); color: var(--red); }
-    .status-packed { background: rgba(90, 163, 255, 0.12); color: var(--blue); }
-    .status-out_for_delivery { background: rgba(255, 118, 118, 0.12); color: var(--red); }
-
-    .table-actions {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .mini-btn {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-      font-size: 0.75rem;
-      font-weight: 700;
-    }
-
-    .panel-header-row {
-      display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
     }
-
-    .panel-header-row h2 {
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title {
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #fff;
       margin: 0;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-
-    .table-scroll-hint {
-      display: none;
+    .section-count-chip {
+      font-size: 0.76rem;
+      font-weight: 800;
+      padding: 2px 9px;
+      border-radius: 999px;
+    }
+    .chip-amber {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .chip-blue {
+      background: rgba(59, 130, 246, 0.18);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .chip-purple {
+      background: rgba(168, 85, 247, 0.18);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    .status-badge-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .status-pending {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .status-packed {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .status-shipped {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+    .status-out-for-delivery {
+      background: rgba(236, 72, 153, 0.15);
+      color: #f472b6;
+      border: 1px solid rgba(236, 72, 153, 0.35);
+    }
+    .status-paid {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .status-cod {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .btn-pack-quick {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--muted);
-      background: rgba(255, 255, 255, 0.04);
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #0b0e10;
+      font-weight: 800;
+      font-size: 0.78rem;
       padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
+      border-radius: 8px;
+      border: none;
       cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      transition: all 0.2s ease;
+      white-space: nowrap;
     }
-
-    .table-scroll-hint:hover,
-    .table-scroll-hint:active {
-      background: rgba(255, 255, 255, 0.09);
-      color: var(--white);
-      border-color: rgba(255, 255, 255, 0.18);
+    .btn-pack-quick:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
     }
-
-    @media (max-width: 860px) {
-      body {
-        overflow-x: hidden;
+    .btn-approve-quick {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #10b981;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-approve-quick:hover {
+      background: #059669;
+    }
+    .btn-reject-quick {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-reject-quick:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+    .assign-select {
+      background: #1e262c;
+      color: #f3f5f7;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      font-size: 0.76rem;
+      padding: 4px 8px;
+      max-width: 150px;
+    }
+    .empty-state-box {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    @media (max-width: 1024px) {
+      .dashboard-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-
-      .admin-shell {
-        padding: 20px 14px 60px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-      }
-
-      .stats-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        width: 100%;
-        min-width: 0;
-        margin-bottom: 18px;
-      }
-
-      .stat-card {
-        padding: 14px 10px;
-        border-radius: 14px;
-      }
-
-      .stat-label {
-        font-size: 0.64rem;
-        letter-spacing: 0.08em;
-      }
-
-      .stat-value {
-        font-size: 1.75rem;
-      }
-
-      .content-grid {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 18px;
-        width: 100%;
-        min-width: 0;
-      }
-
-      .form-grid {
-        grid-template-columns: minmax(0, 1fr);
-        width: 100%;
-        min-width: 0;
-      }
-
-      .panel {
-        padding: 18px 14px;
-        border-radius: 18px;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-        overflow: hidden;
-      }
-
-      .table-container {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-      }
-
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-        gap: 14px;
-      }
-
-      .table-scroll-hint {
-        display: inline-flex;
+    }
+    @media (max-width: 640px) {
+      .dashboard-stats-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
-</head>
-<body>
-  <div class="admin-shell">
-    <header class="topbar">
-      <div class="brand">J CSD Admin</div>
-      <div class="nav-actions">
-        <a class="chip" href="{% url 'home' %}">Storefront</a>
-        <a class="chip" href="{% url 'delivery_login' %}">Delivery login</a>
-        <a class="chip" href="/admin/">Django Admin</a>
+
+  <!-- 1. Top KPI Operational Cards -->
+  <div class="dashboard-stats-grid">
+    <!-- Card 1: New Orders -->
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">New Incoming Orders</span>
+        <span class="stat-tag" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24;">Action Required</span>
       </div>
-    </header>
-
-    <section class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-label">Products</span>
-        <div class="stat-value">{{ total_products }}</div>
+      <div class="stat-value" style="color: #fbbf24;">{{ new_orders_count }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        Pending packaging & confirmation
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Delivered</span>
-        <div class="stat-value">{{ delivered_count }}</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Pending</span>
-        <div class="stat-value">{{ pending_count }}</div>
-      </div>
-    </section>
-
-    <div class="content-grid">
-      <section class="panel">
-        <h2>{% if editing_product %}Edit product{% else %}Add product{% endif %}</h2>
-
-        {% if messages %}
-          {% for message in messages %}
-            <div class="chip" style="margin-bottom: 14px; display: inline-flex;">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-
-        <form method="post">
-          {% csrf_token %}
-
-          <div class="form-grid">
-            <div class="field full">
-              <label for="id_name">Product name</label>
-              {{ product_form.name }}
-            </div>
-
-            <div class="field full">
-              <label for="id_description">Description</label>
-              {{ product_form.description }}
-            </div>
-
-            <div class="field">
-              <label for="id_category">Category</label>
-              {{ product_form.category }}
-            </div>
-
-            <div class="field">
-              <label for="id_price">Price</label>
-              {{ product_form.price }}
-            </div>
-
-            <div class="field">
-              <label for="id_volume">Volume</label>
-              {{ product_form.volume }}
-            </div>
-
-            <div class="field full">
-              <label for="id_image">Image path</label>
-              {{ product_form.image }}
-            </div>
-
-            <div class="field full">
-              <div class="checkbox-wrap">
-                {{ product_form.available }}
-                <label for="id_available">Available for storefront</label>
-              </div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="submit" class="btn btn-primary">{% if editing_product %}Save changes{% else %}Add product{% endif %}</button>
-            {% if editing_product %}
-              <a class="btn btn-secondary" href="{% url 'admin_dashboard' %}">Cancel</a>
-            {% endif %}
-          </div>
-        </form>
-      </section>
-
-      <section class="panel list-panel">
-        <div class="panel-header-row">
-          <h2>Product list</h2>
-          <button type="button" class="table-scroll-hint" onclick="scrollTable(this)" aria-label="Scroll table horizontally">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            Scroll table
-          </button>
-        </div>
-        <div class="table-container">
-          <table class="product-list">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for product in products %}
-              <tr>
-                <td>
-                  <div class="product-name">{{ product.name }}</div>
-                  <div class="muted">{{ product.volume }}</div>
-                </td>
-                <td>₹{{ product.price }}</td>
-                <td>
-                  {% if product.available %}
-                    <span class="status-badge status-delivered">Active</span>
-                  {% else %}
-                    <span class="status-badge status-pending">Hidden</span>
-                  {% endif %}
-                </td>
-                <td class="table-actions">
-                  <a class="mini-btn" href="?edit={{ product.id }}">Edit</a>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="4" class="muted">No products found.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </div>
 
-    <section class="panel">
-      <h2>Create delivery account</h2>
-      <p class="muted">Delivery staff can view product availability and customer delivery addresses, and update order status.</p>
-      <form method="post" action="{% url 'create_delivery_account' %}">
-        {% csrf_token %}
-        <div class="form-grid">
-          {% for field in delivery_account_form %}
-            <div class="field">
-              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field }}
-              {% for error in field.errors %}<span class="muted">{{ error }}</span>{% endfor %}
-            </div>
-          {% endfor %}
-        </div>
-        <div class="actions">
-          <button type="submit" class="btn btn-primary">Create delivery account</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="panel">
-      <div class="panel-header-row">
-        <h2>Customer Orders</h2>
-        <button type="button" class="table-scroll-hint" onclick="scrollTable(this)" aria-label="Scroll table horizontally">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          Scroll table
-        </button>
+    <!-- Card 2: Delivery Requested -->
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Delivery Requested</span>
+        <span class="stat-tag" style="background: rgba(59, 130, 246, 0.18); color: #60a5fa;">Dispatch Queue</span>
       </div>
-      <div class="table-container">
-        <table class="status-list">
-          <thead>
+      <div class="stat-value" style="color: #60a5fa;">{{ delivery_requested_count }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        {{ packed_count }} ready for pickup • {{ in_transit_count }} in transit
+      </div>
+    </div>
+
+    <!-- Card 3: Partner Approval Requests -->
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Partner Approvals</span>
+        {% if partner_approval_count > 0 %}
+          <span class="stat-tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">Pending Review</span>
+        {% else %}
+          <span class="stat-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">All Clear</span>
+        {% endif %}
+      </div>
+      <div class="stat-value" style="{% if partner_approval_count > 0 %}color: #f87171;{% else %}color: #34d399;{% endif %}">
+        {{ partner_approval_count }}
+      </div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        Delivery driver verification requests
+      </div>
+    </div>
+
+    <!-- Card 4: Active Delivery Fleet -->
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Approved Drivers</span>
+        <span class="stat-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">Available Fleet</span>
+      </div>
+      <div class="stat-value" style="color: #34d399;">{{ approved_delivery_partners|length }}</div>
+      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+        Ready for order delivery assignment
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       SECTION 1: 🛒 ONLY NEW ORDERS (Status: Pending)
+       ======================================================================== -->
+  <div class="dashboard-section" id="newOrdersSection">
+    <div class="dashboard-section-header">
+      <div class="section-title-wrap">
+        <h2 class="section-title">
+          <span>🛒</span>
+          <span>New Incoming Orders</span>
+        </h2>
+        <span class="section-count-chip chip-amber">{{ new_orders_count }} New</span>
+      </div>
+      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+        Showing only unprocessed customer orders requiring packing & confirmation.
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="admin-table" style="margin: 0; width: 100%;">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Customer & Phone</th>
+            <th>Items / Bundle</th>
+            <th>Total & Payment</th>
+            <th>Delivery Address</th>
+            <th>Placed At</th>
+            <th style="text-align: right;">Quick Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in new_orders %}
             <tr>
-              <th>Order</th>
-              <th>Product</th>
-              <th>Customer</th>
-              <th>Delivery address</th>
-              <th>Payment</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for order in orders %}
-            <tr>
-              <td>#{{ order.id }}</td>
+              <!-- Order ID -->
               <td>
-                {% for item in order.items.all %}
-                  <div>{{ item.product.name }} × {{ item.quantity }}</div>
-                {% empty %}
-                  {% if order.product %}{{ order.product.name }} × {{ order.quantity }}{% else %}Order items unavailable{% endif %}
-                {% endfor %}
+                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; font-size: 0.92rem; color: #fbbf24; text-decoration: underline;" title="View order details">
+                  #{{ order.id }}
+                </a>
               </td>
-              <td>{{ order.customer_name }}{% if order.customer_phone %}<br><span class="muted">{{ order.customer_phone }}</span>{% endif %}</td>
+
+              <!-- Customer -->
               <td>
-                {% if order.delivery_address %}
-                  {{ order.delivery_address }}, {{ order.delivery_city }}, {{ order.delivery_state }} {{ order.delivery_postal_code }}
-                {% else %}
-                  <span class="muted">Address not provided</span>
+                <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">{{ order.customer_name }}</div>
+                <div style="font-size: 0.76rem; color: rgba(255,255,255,0.5);">{{ order.customer_phone }}</div>
+                {% if order.customer %}
+                  <div style="font-size: 0.7rem; color: #60a5fa;">@{{ order.customer.username }}</div>
                 {% endif %}
               </td>
+
+              <!-- Items / Bundle -->
               <td>
-                <span class="status-badge status-{{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+                <div style="font-weight: 600; color: #e2e8f0; font-size: 0.84rem;">
+                  {% if order.items.exists %}
+                    {% for it in order.items.all %}
+                      <div>{{ it.quantity }}× {{ it.product.name }}</div>
+                    {% endfor %}
+                  {% else %}
+                    {{ order.quantity }}× {{ order.product.name }}
+                  {% endif %}
+                </div>
+                {% if order.combo_name %}
+                  <span style="display: inline-block; margin-top: 3px; font-size: 0.68rem; background: rgba(245,158,11,0.18); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                    ✨ {{ order.combo_name }} (-₹{{ order.combo_discount|floatformat:0 }})
+                  </span>
+                {% endif %}
               </td>
+
+              <!-- Total & Payment -->
               <td>
-                <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+                <div style="font-weight: 800; font-size: 0.95rem; color: #fff;">₹{{ order.total_amount|floatformat:2 }}</div>
+                <div style="margin-top: 3px;">
+                  {% if order.payment_status == 'paid' %}
+                    <span class="status-badge-mini status-paid">Paid ({{ order.get_payment_method_display }})</span>
+                  {% elif order.payment_method == 'cod' %}
+                    <span class="status-badge-mini status-cod">COD (₹{{ order.total_amount|floatformat:0 }})</span>
+                  {% else %}
+                    <span class="status-badge-mini status-pending">Payment Pending</span>
+                  {% endif %}
+                </div>
               </td>
+
+              <!-- Address & PIN -->
+              <td style="font-size: 0.8rem; color: rgba(255,255,255,0.7); max-width: 220px;">
+                <div>{{ order.delivery_address }}</div>
+                <div style="color: rgba(255,255,255,0.45); font-size: 0.74rem;">
+                  {{ order.delivery_city }}{% if order.delivery_postal_code %} • <strong>PIN: {{ order.delivery_postal_code }}</strong>{% endif %}
+                </div>
+              </td>
+
+              <!-- Timestamp -->
+              <td style="font-size: 0.78rem; color: rgba(255,255,255,0.6); white-space: nowrap;">
+                <div>{{ order.created_at|date:"d M Y" }}</div>
+                <div style="color: #fbbf24; font-weight: 600;">{{ order.created_at|date:"h:i A" }}</div>
+              </td>
+
+              <!-- Quick Action -->
               <td style="text-align: right; white-space: nowrap;">
-                <a href="{% url 'admin_order_detail' order.id %}" class="btn-mini" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.75rem;">
-                  View
-                </a>
-                <a href="{% url 'order_receipt' order.id %}" target="_blank" class="btn-mini" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.75rem; margin-left: 6px;" title="Print or download order slip">
-                  Slip
-                </a>
+                <div style="display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end;">
+                  <form method="post" action="{% url 'admin_update_order_status' order.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="packed">
+                    <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
+                    <button type="submit" class="btn-pack-quick" title="Mark order packed & ready for delivery">
+                      <span>📦 Mark Packed</span>
+                    </button>
+                  </form>
+                  <a href="{% url 'admin_order_detail' order.id %}" class="btn-secondary" style="padding: 5px 10px; font-size: 0.78rem; text-decoration: none;" title="Full order details">
+                    View
+                  </a>
+                </div>
               </td>
             </tr>
-            {% empty %}
+          {% empty %}
             <tr>
-              <td colspan="7" class="muted">No delivery orders found.</td>
+              <td colspan="7">
+                <div class="empty-state-box">
+                  <div style="font-size: 2.2rem; margin-bottom: 6px;">🎉</div>
+                  <div style="font-weight: 700; color: #fff; font-size: 1rem;">All caught up! No new pending orders.</div>
+                  <div style="font-size: 0.8rem; margin-top: 4px;">When new customers place orders, they will appear here instantly for packing.</div>
+                </div>
+              </td>
             </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-  <script>
-    function scrollTable(btn) {
-      const panel = btn.closest('.panel');
-      if (!panel) return;
-      const container = panel.querySelector('.table-container');
-      if (!container) return;
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      if (container.scrollLeft >= maxScroll - 20) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        container.scrollBy({ left: 260, behavior: 'smooth' });
-      }
-    }
-  </script>
-</body>
-</html>
+
+  <!-- ========================================================================
+       SECTION 2: 🚚 DELIVERY REQUESTED (Packed, Shipped, Out for Delivery)
+       ======================================================================== -->
+  <div class="dashboard-section" id="deliveryRequestedSection">
+    <div class="dashboard-section-header">
+      <div class="section-title-wrap">
+        <h2 class="section-title">
+          <span>🚚</span>
+          <span>Delivery Requested Orders</span>
+        </h2>
+        <span class="section-count-chip chip-blue">{{ delivery_requested_count }} Active</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+          Orders ready for dispatch pickup or currently on the road.
+        </span>
+        <a href="{% url 'admin_delivery_status' %}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.78rem; text-decoration: none;">
+          Full Order Tracker →
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="admin-table" style="margin: 0; width: 100%;">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Customer & Destination</th>
+            <th>Items</th>
+            <th>Delivery Status</th>
+            <th>Assigned Delivery Partner</th>
+            <th>Update Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in delivery_requested_orders %}
+            <tr>
+              <!-- Order ID -->
+              <td>
+                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; font-size: 0.92rem; color: #60a5fa; text-decoration: underline;">
+                  #{{ order.id }}
+                </a>
+              </td>
+
+              <!-- Customer & Destination -->
+              <td>
+                <div style="font-weight: 700; color: #fff; font-size: 0.86rem;">{{ order.customer_name }}</div>
+                <div style="font-size: 0.76rem; color: rgba(255,255,255,0.6);">
+                  {{ order.delivery_address }}
+                </div>
+                <div style="font-size: 0.72rem; color: #fbbf24; font-weight: 600;">
+                  PIN: {{ order.delivery_postal_code|default:"Not provided" }}
+                </div>
+              </td>
+
+              <!-- Items -->
+              <td style="font-size: 0.82rem; color: #e2e8f0;">
+                {% if order.items.exists %}
+                  {{ order.items.count }} item{{ order.items.count|pluralize }} ({{ order.items.first.product.name }}{% if order.items.count > 1 %}, +more{% endif %})
+                {% else %}
+                  {{ order.quantity }}× {{ order.product.name }}
+                {% endif %}
+                <div style="font-weight: 700; color: #34d399; font-size: 0.78rem; margin-top: 2px;">
+                  ₹{{ order.total_amount|floatformat:0 }}
+                </div>
+              </td>
+
+              <!-- Status Badge -->
+              <td>
+                {% if order.status == 'packed' %}
+                  <span class="status-badge-mini status-packed">📦 Packed (Ready for Dispatch)</span>
+                {% elif order.status == 'shipped' %}
+                  <span class="status-badge-mini status-shipped">🚚 Shipped</span>
+                {% elif order.status == 'out_for_delivery' %}
+                  <span class="status-badge-mini status-out-for-delivery">🛵 Out for Delivery</span>
+                {% else %}
+                  <span class="status-badge-mini status-pending">{{ order.get_status_display }}</span>
+                {% endif %}
+              </td>
+
+              <!-- Assigned Partner & Reassign Form -->
+              <td>
+                <form method="post" action="{% url 'admin_update_order_status' order.id %}" style="display: flex; align-items: center; gap: 6px; margin: 0;">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
+                  <select name="delivery_user_id" class="assign-select" onchange="this.form.submit()">
+                    <option value="none">-- Unassigned --</option>
+                    {% for dp in approved_delivery_partners %}
+                      <option value="{{ dp.user.id }}" {% if order.delivery_user_id == dp.user.id %}selected{% endif %}>
+                        {{ dp.user.get_full_name|default:dp.user.username }} ({{ dp.get_vehicle_type_display }})
+                      </option>
+                    {% endfor %}
+                  </select>
+                </form>
+                {% if order.delivery_user %}
+                  <div style="font-size: 0.72rem; color: #34d399; margin-top: 2px;">
+                    ✓ Assigned to {{ order.delivery_user.get_full_name|default:order.delivery_user.username }}
+                  </div>
+                {% else %}
+                  <div style="font-size: 0.72rem; color: #fbbf24; margin-top: 2px;">
+                    ⚠️ Driver needed
+                  </div>
+                {% endif %}
+              </td>
+
+              <!-- Quick Status Transitions -->
+              <td>
+                <form method="post" action="{% url 'admin_update_order_status' order.id %}" style="display: flex; align-items: center; gap: 6px; margin: 0;">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
+                  {% if order.status == 'packed' %}
+                    <input type="hidden" name="status" value="shipped">
+                    <button type="submit" class="btn-secondary" style="padding: 4px 10px; font-size: 0.76rem;">
+                      Mark Shipped →
+                    </button>
+                  {% elif order.status == 'shipped' %}
+                    <input type="hidden" name="status" value="out_for_delivery">
+                    <button type="submit" class="btn-secondary" style="padding: 4px 10px; font-size: 0.76rem; border-color: rgba(236,72,153,0.4); color: #f472b6;">
+                      Out for Delivery →
+                    </button>
+                  {% elif order.status == 'out_for_delivery' %}
+                    <input type="hidden" name="status" value="delivered">
+                    <button type="submit" class="btn-primary" style="padding: 4px 10px; font-size: 0.76rem; background: #10b981;">
+                      ✓ Mark Delivered
+                    </button>
+                  {% endif %}
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state-box">
+                  <div style="font-size: 2rem; margin-bottom: 6px;">📦</div>
+                  <div style="font-weight: 700; color: #fff;">No orders currently awaiting delivery dispatch.</div>
+                  <div style="font-size: 0.8rem; margin-top: 4px;">Orders marked as packed will appear here for driver assignment and transit updates.</div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       SECTION 3: 📋 DELIVERY PARTNER APPROVAL REQUESTS
+       ======================================================================== -->
+  <div class="dashboard-section" id="partnerApprovalsSection">
+    <div class="dashboard-section-header">
+      <div class="section-title-wrap">
+        <h2 class="section-title">
+          <span>📋</span>
+          <span>Delivery Partner Approval Requests</span>
+        </h2>
+        {% if partner_approval_count > 0 %}
+          <span class="section-count-chip chip-amber">{{ partner_approval_count }} Pending Review</span>
+        {% else %}
+          <span class="section-count-chip chip-purple">0 Pending</span>
+        {% endif %}
+      </div>
+      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+        Review driver applications, verify license & vehicle credentials, and approve access.
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="admin-table" style="margin: 0; width: 100%;">
+        <thead>
+          <tr>
+            <th>Applicant Name</th>
+            <th>Contact & City</th>
+            <th>Vehicle Info</th>
+            <th>Licence & Aadhaar</th>
+            <th>Serviceable PINs</th>
+            <th>Applied Date</th>
+            <th style="text-align: right;">Approval Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in partner_approval_requests %}
+            <tr>
+              <!-- Applicant Name -->
+              <td>
+                <div style="font-weight: 800; color: #fff; font-size: 0.88rem;">
+                  {{ p.user.get_full_name|default:p.user.username }}
+                </div>
+                <div style="font-size: 0.74rem; color: rgba(255,255,255,0.5);">
+                  @{{ p.user.username }} • {{ p.user.email }}
+                </div>
+              </td>
+
+              <!-- Contact & City -->
+              <td style="font-size: 0.82rem;">
+                <div style="font-weight: 600; color: #fbbf24;">{{ p.phone|default:"No phone" }}</div>
+                <div style="color: rgba(255,255,255,0.6); font-size: 0.76rem;">{{ p.address|default:"-" }}</div>
+              </td>
+
+              <!-- Vehicle Info -->
+              <td>
+                <span class="status-badge-mini status-packed">
+                  {{ p.get_vehicle_type_display }}
+                </span>
+                <div style="font-size: 0.74rem; color: rgba(255,255,255,0.7); font-family: monospace; margin-top: 3px;">
+                  {{ p.vehicle_number|default:"-" }}
+                </div>
+              </td>
+
+              <!-- Documents -->
+              <td style="font-size: 0.78rem; color: rgba(255,255,255,0.8);">
+                <div>Licence: <strong>{{ p.driving_license|default:"-" }}</strong></div>
+                <div>Aadhaar: <strong>{{ p.aadhar_number|default:"-" }}</strong></div>
+              </td>
+
+              <!-- Serviceable PINs -->
+              <td style="font-size: 0.78rem; color: rgba(255,255,255,0.7); max-width: 180px;">
+                {% if p.serviceable_pincodes %}
+                  <span style="color: #60a5fa; font-family: monospace;">{{ p.serviceable_pincodes }}</span>
+                {% else %}
+                  <span style="color: rgba(255,255,255,0.4);">All areas</span>
+                {% endif %}
+              </td>
+
+              <!-- Applied Date -->
+              <td style="font-size: 0.78rem; color: rgba(255,255,255,0.6); white-space: nowrap;">
+                {{ p.created_at|date:"d M Y" }}
+              </td>
+
+              <!-- Direct Actions -->
+              <td style="text-align: right; white-space: nowrap;">
+                <div style="display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end;">
+                  <!-- 1. Approve Partner -->
+                  <form method="post" action="{% url 'admin_approve_delivery_partner' p.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
+                    <button type="submit" class="btn-approve-quick" onclick="return confirm('Approve {{ p.user.username }} as a delivery partner?')">
+                      <span>✓ Approve</span>
+                    </button>
+                  </form>
+
+                  <!-- 2. Reject Partner -->
+                  <form method="post" action="{% url 'admin_reject_delivery_partner' p.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
+                    <button type="submit" class="btn-reject-quick" onclick="return confirm('Reject {{ p.user.username }}\'s application?')">
+                      <span>✕ Reject</span>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state-box">
+                  <div style="font-size: 2rem; margin-bottom: 6px;">🛡️</div>
+                  <div style="font-weight: 700; color: #fff;">No pending delivery partner verification requests.</div>
+                  <div style="font-size: 0.8rem; margin-top: 4px;">When new drivers apply to deliver for J CSD, their applications will appear here for review.</div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
