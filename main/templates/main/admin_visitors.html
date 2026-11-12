@@ -5,13 +5,13 @@
 {% block page_description %}Monitor live and daily website visitor traffic by WiFi IP and user account. Multiple visits or logins from the same WiFi network/IP on the same day are automatically deduplicated and counted as 1 unique user view.{% endblock %}
 
 {% block topbar_actions %}
-  <a href="{% url 'admin_visitors' %}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <a href="{% url 'admin_visitors' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="23 4 23 10 17 10"></polyline>
       <polyline points="1 20 1 14 7 14"></polyline>
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
     </svg>
-    <span>Refresh Live Traffic</span>
+    <span>Refresh Traffic</span>
   </a>
 {% endblock %}
 
@@ -108,13 +108,54 @@
     }
     @media (max-width: 1024px) {
       .visitors-stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
       }
     }
     @media (max-width: 600px) {
       .visitors-stats-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 16px;
+      }
+      .visitors-stats-grid .stat-card {
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+        min-width: 0;
+        gap: 4px;
+      }
+      .visitors-stats-grid .stat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .visitors-stats-grid .stat-label {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        white-space: normal;
+      }
+      .visitors-stats-grid .stat-tag {
+        font-size: 0.55rem !important;
+        padding: 1px 6px !important;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .visitors-stats-grid .stat-value {
+        font-size: clamp(1.35rem, 5vw, 1.65rem) !important;
+        line-height: 1.1;
+      }
+      .visitors-stats-grid .stat-desc {
+        display: none !important;
+      }
+      .filter-pills-bar {
+        gap: 6px;
+      }
+      .filter-pill-btn {
+        padding: 5px 10px;
+        font-size: 0.74rem;
       }
     }
   </style>
@@ -127,7 +168,7 @@
         <span class="stat-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">1 / WiFi IP</span>
       </div>
       <div class="stat-value" style="color: #34d399;">{{ today_unique_views }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         Unique visitors counted today
       </div>
     </div>
@@ -138,7 +179,7 @@
         <span class="stat-tag" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Total Requests</span>
       </div>
       <div class="stat-value" style="color: #fbbf24;">{{ today_total_hits }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         Combined page requests today
       </div>
     </div>
@@ -149,7 +190,7 @@
         <span class="stat-tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">Identified</span>
       </div>
       <div class="stat-value" style="color: #818cf8;">{{ today_logged_in_users }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         {{ today_guests }} guest visitor{{ today_guests|pluralize }}
       </div>
     </div>
@@ -160,7 +201,7 @@
         <span class="stat-tag" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;">Total Record</span>
       </div>
       <div class="stat-value" style="color: #38bdf8;">{{ total_unique_views_all_time }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         {{ total_hits_all_time }} all-time page requests
       </div>
     </div>
@@ -211,7 +252,7 @@
       </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive-wrapper">
       <table class="admin-table" id="visitorsTable" style="margin: 0; width: 100%;">
         <thead>
           <tr>

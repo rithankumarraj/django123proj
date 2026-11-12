@@ -6,13 +6,13 @@
 
 {% block topbar_actions %}
   <div style="display: flex; gap: 8px; align-items: center;">
-    <a href="{% url 'admin_dashboard' %}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <a href="{% url 'admin_dashboard' %}" class="btn-secondary btn-dashboard-refresh" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="23 4 23 10 17 10"></polyline>
         <polyline points="1 20 1 14 7 14"></polyline>
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
       </svg>
-      <span>Refresh Dashboard</span>
+      <span>Refresh</span>
     </a>
   </div>
 {% endblock %}
@@ -55,7 +55,10 @@
       letter-spacing: -0.01em;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+    }
+    .section-title svg {
+      flex-shrink: 0;
     }
     .section-count-chip {
       font-size: 0.76rem;
@@ -64,19 +67,19 @@
       border-radius: 999px;
     }
     .chip-amber {
-      background: rgba(245, 158, 11, 0.18);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: rgba(246, 190, 93, 0.15);
+      color: #f6be5d;
+      border: 1px solid rgba(246, 190, 93, 0.35);
     }
     .chip-blue {
-      background: rgba(59, 130, 246, 0.18);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.4);
+      background: rgba(90, 163, 255, 0.15);
+      color: #5aa3ff;
+      border: 1px solid rgba(90, 163, 255, 0.35);
     }
     .chip-purple {
-      background: rgba(168, 85, 247, 0.18);
+      background: rgba(168, 85, 247, 0.15);
       color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.4);
+      border: 1px solid rgba(168, 85, 247, 0.35);
     }
     .status-badge-mini {
       display: inline-flex;
@@ -90,147 +93,456 @@
       letter-spacing: 0.03em;
     }
     .status-pending {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(246, 190, 93, 0.12);
+      color: #f6be5d;
+      border: 1px solid rgba(246, 190, 93, 0.32);
     }
     .status-packed {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.35);
+      background: rgba(90, 163, 255, 0.12);
+      color: #5aa3ff;
+      border: 1px solid rgba(90, 163, 255, 0.32);
     }
     .status-shipped {
-      background: rgba(168, 85, 247, 0.15);
+      background: rgba(168, 85, 247, 0.12);
       color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.35);
+      border: 1px solid rgba(168, 85, 247, 0.32);
     }
     .status-out-for-delivery {
-      background: rgba(236, 72, 153, 0.15);
+      background: rgba(236, 72, 153, 0.12);
       color: #f472b6;
-      border: 1px solid rgba(236, 72, 153, 0.35);
+      border: 1px solid rgba(236, 72, 153, 0.32);
     }
     .status-paid {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.12);
       color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.35);
+      border: 1px solid rgba(16, 185, 129, 0.32);
     }
     .status-cod {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(246, 190, 93, 0.12);
+      color: #f6be5d;
+      border: 1px solid rgba(246, 190, 93, 0.32);
     }
-    .btn-pack-quick {
+
+    /* Consistent Action Buttons matching Admin Design System */
+    .btn-action-pack {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #0b0e10;
-      font-weight: 800;
-      font-size: 0.78rem;
       padding: 6px 12px;
       border-radius: 8px;
-      border: none;
+      background: rgba(246, 190, 93, 0.12);
+      color: #f6be5d;
+      border: 1px solid rgba(246, 190, 93, 0.35);
+      font-size: 0.78rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.18s ease;
       white-space: nowrap;
     }
-    .btn-pack-quick:hover {
-      opacity: 0.92;
+    .btn-action-pack:hover {
+      background: #f6be5d;
+      color: #0b0e10;
+      border-color: #f6be5d;
+      box-shadow: 0 4px 12px rgba(246, 190, 93, 0.35);
       transform: translateY(-1px);
     }
-    .btn-approve-quick {
+
+    .btn-table-view {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      background: #10b981;
-      color: #ffffff;
-      font-weight: 700;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(90, 163, 255, 0.12);
+      color: #5aa3ff;
+      border: 1px solid rgba(90, 163, 255, 0.32);
       font-size: 0.78rem;
-      padding: 5px 12px;
-      border-radius: 6px;
-      border: none;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+      text-decoration: none;
     }
-    .btn-approve-quick:hover {
-      background: #059669;
+    .btn-table-view:hover {
+      background: #5aa3ff;
+      color: #0b0e10;
+      border-color: #5aa3ff;
+      box-shadow: 0 4px 12px rgba(90, 163, 255, 0.3);
+      transform: translateY(-1px);
     }
-    .btn-reject-quick {
+
+    .btn-action-ship {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      background: rgba(239, 68, 68, 0.15);
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(168, 85, 247, 0.12);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-action-ship:hover {
+      background: #c084fc;
+      color: #0b0e10;
+      border-color: #c084fc;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-transit {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(236, 72, 153, 0.12);
+      color: #f472b6;
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-action-transit:hover {
+      background: #f472b6;
+      color: #0b0e10;
+      border-color: #f472b6;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-delivered {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-action-delivered:hover {
+      background: #10b981;
+      color: #0b0e10;
+      border-color: #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-approve {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-action-approve:hover {
+      background: #10b981;
+      color: #0b0e10;
+      border-color: #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-reject {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.12);
       color: #f87171;
       border: 1px solid rgba(239, 68, 68, 0.35);
-      font-weight: 700;
       font-size: 0.78rem;
-      padding: 5px 12px;
-      border-radius: 6px;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.18s ease;
+      white-space: nowrap;
     }
-    .btn-reject-quick:hover {
+    .btn-action-reject:hover {
       background: #ef4444;
-      color: #fff;
+      color: #ffffff;
+      border-color: #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      transform: translateY(-1px);
     }
+
     .assign-select {
       background: #1e262c;
       color: #f3f5f7;
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 6px;
       font-size: 0.76rem;
-      padding: 4px 8px;
-      max-width: 150px;
+      padding: 5px 8px;
+      max-width: 170px;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
     }
+    .assign-select:focus {
+      outline: none;
+      border-color: #5aa3ff;
+    }
+
     .empty-state-box {
       text-align: center;
-      padding: 40px 20px;
+      padding: 44px 20px;
       color: rgba(255, 255, 255, 0.5);
     }
-    @media (max-width: 1024px) {
+    .empty-icon-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Filter Tabs Bar (matching admin design system) */
+    .dashboard-tabs-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .dashboard-tabs-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .filter-tab {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--admin-line);
+      color: var(--admin-text-muted);
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.18s ease;
+    }
+    .filter-tab:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: var(--admin-line-strong);
+    }
+    .filter-tab.active {
+      background: #f6be5d;
+      color: #0b0e10;
+      border-color: #f6be5d;
+      box-shadow: 0 4px 14px rgba(246, 190, 93, 0.25);
+    }
+    .filter-tab.active .tab-count {
+      background: rgba(0, 0, 0, 0.2);
+      color: #0b0e10;
+    }
+    .tab-count {
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    /* Clickable Stat Cards */
+    .stat-card.is-clickable {
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      user-select: none;
+    }
+    .stat-card.is-clickable:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .stat-card.is-clickable:active {
+      transform: scale(0.98);
+    }
+    .stat-card.stat-card-active {
+      border-color: var(--card-accent, #f6be5d) !important;
+      box-shadow: 0 0 0 1px var(--card-accent, #f6be5d), 0 8px 24px rgba(0, 0, 0, 0.45);
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+    .stat-card-action-hint {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--card-accent, rgba(255, 255, 255, 0.6));
+      opacity: 0.85;
+      transition: opacity 0.15s ease;
+    }
+    .stat-card.is-clickable:hover .stat-card-action-hint {
+      opacity: 1;
+    }
+
+    /* Responsive Grid & Mobile View */
+    @media (max-width: 992px) {
       .dashboard-stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
       }
     }
-    @media (max-width: 640px) {
+    @media (max-width: 600px) {
       .dashboard-stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        margin-bottom: 16px;
+      }
+      .dashboard-stats-grid .stat-card {
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+        min-width: 0;
+        gap: 4px;
+      }
+      .dashboard-stats-grid .stat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .dashboard-stats-grid .stat-label {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        white-space: normal;
+      }
+      .dashboard-stats-grid .stat-tag {
+        font-size: 0.55rem !important;
+        padding: 1px 6px !important;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .dashboard-stats-grid .stat-value {
+        font-size: clamp(1.35rem, 5vw, 1.65rem) !important;
+        line-height: 1.1;
+      }
+      .dashboard-stats-grid .stat-desc {
+        display: none !important;
+      }
+      .stat-card-action-hint {
+        font-size: 0.62rem !important;
+        margin-top: 2px !important;
+        gap: 3px !important;
+      }
+      .dashboard-section {
+        border-radius: 14px !important;
+        margin-bottom: 18px !important;
+      }
+      .dashboard-section-header {
+        padding: 14px 14px !important;
+      }
+      .section-title {
+        font-size: 0.98rem !important;
+      }
+      .dashboard-tabs-bar {
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      .filter-tab {
+        padding: 6px 12px;
+        font-size: 0.74rem;
       }
     }
   </style>
 
-  <!-- 1. Top KPI Operational Cards -->
-  <div class="dashboard-stats-grid">
+  <!-- 1. Top KPI Operational Cards (Clickable to switch tables) -->
+  <div class="dashboard-stats-grid" id="dashboardStatsGrid">
     <!-- Card 1: New Orders -->
-    <div class="stat-card">
+    <div 
+      class="stat-card is-clickable" 
+      data-target="newOrdersSection" 
+      style="--card-accent: #f6be5d;" 
+      onclick="selectDashboardSection('newOrdersSection')"
+      role="button"
+      tabindex="0"
+      title="Click to view New Incoming Orders table"
+    >
       <div class="stat-header">
         <span class="stat-label">New Incoming Orders</span>
-        <span class="stat-tag" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24;">Action Required</span>
+        <span class="stat-tag" style="background: rgba(246, 190, 93, 0.15); color: #f6be5d;">Action Required</span>
       </div>
-      <div class="stat-value" style="color: #fbbf24;">{{ new_orders_count }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-value" style="color: #f6be5d;">{{ new_orders_count }}</div>
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         Pending packaging & confirmation
+      </div>
+      <div class="stat-card-action-hint">
+        <span>View Table</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
     </div>
 
     <!-- Card 2: Delivery Requested -->
-    <div class="stat-card">
+    <div 
+      class="stat-card is-clickable" 
+      data-target="deliveryRequestedSection" 
+      style="--card-accent: #5aa3ff;" 
+      onclick="selectDashboardSection('deliveryRequestedSection')"
+      role="button"
+      tabindex="0"
+      title="Click to view Delivery Requested Orders table"
+    >
       <div class="stat-header">
         <span class="stat-label">Delivery Requested</span>
-        <span class="stat-tag" style="background: rgba(59, 130, 246, 0.18); color: #60a5fa;">Dispatch Queue</span>
+        <span class="stat-tag" style="background: rgba(90, 163, 255, 0.15); color: #5aa3ff;">Dispatch Queue</span>
       </div>
-      <div class="stat-value" style="color: #60a5fa;">{{ delivery_requested_count }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-value" style="color: #5aa3ff;">{{ delivery_requested_count }}</div>
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         {{ packed_count }} ready for pickup • {{ in_transit_count }} in transit
+      </div>
+      <div class="stat-card-action-hint">
+        <span>View Table</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
     </div>
 
     <!-- Card 3: Partner Approval Requests -->
-    <div class="stat-card">
+    <div 
+      class="stat-card is-clickable" 
+      data-target="partnerApprovalsSection" 
+      style="--card-accent: #c084fc;" 
+      onclick="selectDashboardSection('partnerApprovalsSection')"
+      role="button"
+      tabindex="0"
+      title="Click to view Delivery Partner Approval Requests table"
+    >
       <div class="stat-header">
         <span class="stat-label">Partner Approvals</span>
         {% if partner_approval_count > 0 %}
-          <span class="stat-tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">Pending Review</span>
+          <span class="stat-tag" style="background: rgba(239, 68, 68, 0.18); color: #f87171;">Pending Review</span>
         {% else %}
           <span class="stat-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">All Clear</span>
         {% endif %}
@@ -238,42 +550,81 @@
       <div class="stat-value" style="{% if partner_approval_count > 0 %}color: #f87171;{% else %}color: #34d399;{% endif %}">
         {{ partner_approval_count }}
       </div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         Delivery driver verification requests
+      </div>
+      <div class="stat-card-action-hint">
+        <span>View Table</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
     </div>
 
     <!-- Card 4: Active Delivery Fleet -->
-    <div class="stat-card">
+    <a 
+      href="{% url 'admin_delivery_users' %}" 
+      class="stat-card is-clickable" 
+      style="--card-accent: #34d399; text-decoration: none;"
+      title="Manage Approved Delivery Fleet"
+    >
       <div class="stat-header">
         <span class="stat-label">Approved Drivers</span>
         <span class="stat-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">Available Fleet</span>
       </div>
       <div class="stat-value" style="color: #34d399;">{{ approved_delivery_partners|length }}</div>
-      <div style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
+      <div class="stat-desc" style="font-size: 0.75rem; color: rgba(255,255,255,0.45); margin-top: 4px;">
         Ready for order delivery assignment
       </div>
-    </div>
+      <div class="stat-card-action-hint">
+        <span>Manage Fleet →</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- 2. Section Navigation Tabs (matching admin design system) -->
+  <div class="filter-tabs-bar dashboard-tabs-bar" id="dashboardFilterTabs">
+    <button type="button" class="filter-tab active" data-target="all" onclick="selectDashboardSection('all')">
+      <span>All Tables</span>
+      <span class="tab-count">{{ total_dashboard_alerts_count }}</span>
+    </button>
+    <button type="button" class="filter-tab" data-target="newOrdersSection" onclick="selectDashboardSection('newOrdersSection')">
+      <span>New Orders</span>
+      <span class="tab-count">{{ new_orders_count }}</span>
+    </button>
+    <button type="button" class="filter-tab" data-target="deliveryRequestedSection" onclick="selectDashboardSection('deliveryRequestedSection')">
+      <span>Delivery Requested</span>
+      <span class="tab-count">{{ delivery_requested_count }}</span>
+    </button>
+    <button type="button" class="filter-tab" data-target="partnerApprovalsSection" onclick="selectDashboardSection('partnerApprovalsSection')">
+      <span>Partner Approvals</span>
+      <span class="tab-count">{{ partner_approval_count }}</span>
+    </button>
   </div>
 
   <!-- ========================================================================
-       SECTION 1: 🛒 ONLY NEW ORDERS (Status: Pending)
+       SECTION 1: ONLY NEW ORDERS (Status: Pending)
        ======================================================================== -->
   <div class="dashboard-section" id="newOrdersSection">
     <div class="dashboard-section-header">
       <div class="section-title-wrap">
         <h2 class="section-title">
-          <span>🛒</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f6be5d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="21" r="1"></circle>
+            <circle cx="19" cy="21" r="1"></circle>
+            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+          </svg>
           <span>New Incoming Orders</span>
         </h2>
         <span class="section-count-chip chip-amber">{{ new_orders_count }} New</span>
       </div>
-      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
-        Showing only unprocessed customer orders requiring packing & confirmation.
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+          Showing only unprocessed customer orders requiring packing & confirmation.
+        </span>
+        <button type="button" class="btn-table-view is-all-toggle" onclick="selectDashboardSection('all')" style="font-size: 0.74rem; padding: 4px 10px; display: none;">Show All Tables</button>
       </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive-wrapper">
       <table class="admin-table" style="margin: 0; width: 100%;">
         <thead>
           <tr>
@@ -291,7 +642,7 @@
             <tr>
               <!-- Order ID -->
               <td>
-                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; font-size: 0.92rem; color: #fbbf24; text-decoration: underline;" title="View order details">
+                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; font-size: 0.92rem; color: #f6be5d; text-decoration: underline;" title="View order details">
                   #{{ order.id }}
                 </a>
               </td>
@@ -301,7 +652,7 @@
                 <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">{{ order.customer_name }}</div>
                 <div style="font-size: 0.76rem; color: rgba(255,255,255,0.5);">{{ order.customer_phone }}</div>
                 {% if order.customer %}
-                  <div style="font-size: 0.7rem; color: #60a5fa;">@{{ order.customer.username }}</div>
+                  <div style="font-size: 0.7rem; color: #5aa3ff;">@{{ order.customer.username }}</div>
                 {% endif %}
               </td>
 
@@ -317,7 +668,7 @@
                   {% endif %}
                 </div>
                 {% if order.combo_name %}
-                  <span style="display: inline-block; margin-top: 3px; font-size: 0.68rem; background: rgba(245,158,11,0.18); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                  <span style="display: inline-block; margin-top: 3px; font-size: 0.68rem; background: rgba(246,190,93,0.15); color: #f6be5d; border: 1px solid rgba(246,190,93,0.32); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
                     ✨ {{ order.combo_name }} (-₹{{ order.combo_discount|floatformat:0 }})
                   </span>
                 {% endif %}
@@ -348,22 +699,35 @@
               <!-- Timestamp -->
               <td style="font-size: 0.78rem; color: rgba(255,255,255,0.6); white-space: nowrap;">
                 <div>{{ order.created_at|date:"d M Y" }}</div>
-                <div style="color: #fbbf24; font-weight: 600;">{{ order.created_at|date:"h:i A" }}</div>
+                <div style="color: #f6be5d; font-weight: 600;">{{ order.created_at|date:"h:i A" }}</div>
               </td>
 
               <!-- Quick Action -->
               <td style="text-align: right; white-space: nowrap;">
-                <div style="display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end;">
+                <div style="display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end;">
+                  <!-- Mark Packed Action Button -->
                   <form method="post" action="{% url 'admin_update_order_status' order.id %}" style="margin: 0;">
                     {% csrf_token %}
                     <input type="hidden" name="status" value="packed">
                     <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
-                    <button type="submit" class="btn-pack-quick" title="Mark order packed & ready for delivery">
-                      <span>📦 Mark Packed</span>
+                    <button type="submit" class="btn-action-pack" title="Mark order packed & ready for delivery">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m7.5 4.27 9 5.15"></path>
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                        <path d="m3.3 7 8.7 5 8.7-5"></path>
+                        <path d="M12 22V12"></path>
+                      </svg>
+                      <span>Mark Packed</span>
                     </button>
                   </form>
-                  <a href="{% url 'admin_order_detail' order.id %}" class="btn-secondary" style="padding: 5px 10px; font-size: 0.78rem; text-decoration: none;" title="Full order details">
-                    View
+
+                  <!-- View Order Link -->
+                  <a href="{% url 'admin_order_detail' order.id %}" class="btn-table-view" title="View full order details">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>View</span>
                   </a>
                 </div>
               </td>
@@ -372,8 +736,12 @@
             <tr>
               <td colspan="7">
                 <div class="empty-state-box">
-                  <div style="font-size: 2.2rem; margin-bottom: 6px;">🎉</div>
-                  <div style="font-weight: 700; color: #fff; font-size: 1rem;">All caught up! No new pending orders.</div>
+                  <div class="empty-icon-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <div style="font-weight: 700; color: #fff; font-size: 0.96rem;">All caught up! No new pending orders.</div>
                   <div style="font-size: 0.8rem; margin-top: 4px;">When new customers place orders, they will appear here instantly for packing.</div>
                 </div>
               </td>
@@ -385,28 +753,38 @@
   </div>
 
   <!-- ========================================================================
-       SECTION 2: 🚚 DELIVERY REQUESTED (Packed, Shipped, Out for Delivery)
+       SECTION 2: DELIVERY REQUESTED (Packed, Shipped, Out for Delivery)
        ======================================================================== -->
   <div class="dashboard-section" id="deliveryRequestedSection">
     <div class="dashboard-section-header">
       <div class="section-title-wrap">
         <h2 class="section-title">
-          <span>🚚</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5aa3ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="16" height="13" x="1" y="6" rx="2"></rect>
+            <path d="M17 10h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4"></path>
+            <circle cx="6" cy="18" r="2"></circle>
+            <circle cx="18" cy="18" r="2"></circle>
+          </svg>
           <span>Delivery Requested Orders</span>
         </h2>
         <span class="section-count-chip chip-blue">{{ delivery_requested_count }} Active</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
         <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
           Orders ready for dispatch pickup or currently on the road.
         </span>
-        <a href="{% url 'admin_delivery_status' %}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.78rem; text-decoration: none;">
-          Full Order Tracker →
+        <button type="button" class="btn-table-view is-all-toggle" onclick="selectDashboardSection('all')" style="font-size: 0.74rem; padding: 4px 10px; display: none;">Show All Tables</button>
+        <a href="{% url 'admin_delivery_status' %}" class="btn-table-view" style="padding: 5px 12px; font-size: 0.78rem; text-decoration: none;">
+          <span>Full Order Tracker</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
         </a>
       </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive-wrapper">
       <table class="admin-table" style="margin: 0; width: 100%;">
         <thead>
           <tr>
@@ -423,7 +801,7 @@
             <tr>
               <!-- Order ID -->
               <td>
-                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; font-size: 0.92rem; color: #60a5fa; text-decoration: underline;">
+                <a href="{% url 'admin_order_detail' order.id %}" style="font-weight: 800; font-size: 0.92rem; color: #5aa3ff; text-decoration: underline;">
                   #{{ order.id }}
                 </a>
               </td>
@@ -434,7 +812,7 @@
                 <div style="font-size: 0.76rem; color: rgba(255,255,255,0.6);">
                   {{ order.delivery_address }}
                 </div>
-                <div style="font-size: 0.72rem; color: #fbbf24; font-weight: 600;">
+                <div style="font-size: 0.72rem; color: #f6be5d; font-weight: 600;">
                   PIN: {{ order.delivery_postal_code|default:"Not provided" }}
                 </div>
               </td>
@@ -454,11 +832,20 @@
               <!-- Status Badge -->
               <td>
                 {% if order.status == 'packed' %}
-                  <span class="status-badge-mini status-packed">📦 Packed (Ready for Dispatch)</span>
+                  <span class="status-badge-mini status-packed">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path></svg>
+                    <span>Packed (Ready for Dispatch)</span>
+                  </span>
                 {% elif order.status == 'shipped' %}
-                  <span class="status-badge-mini status-shipped">🚚 Shipped</span>
+                  <span class="status-badge-mini status-shipped">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="13" x="1" y="6" rx="2"></rect><path d="M17 10h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4"></path><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+                    <span>Shipped</span>
+                  </span>
                 {% elif order.status == 'out_for_delivery' %}
-                  <span class="status-badge-mini status-out-for-delivery">🛵 Out for Delivery</span>
+                  <span class="status-badge-mini status-out-for-delivery">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+                    <span>Out for Delivery</span>
+                  </span>
                 {% else %}
                   <span class="status-badge-mini status-pending">{{ order.get_status_display }}</span>
                 {% endif %}
@@ -479,11 +866,12 @@
                   </select>
                 </form>
                 {% if order.delivery_user %}
-                  <div style="font-size: 0.72rem; color: #34d399; margin-top: 2px;">
-                    ✓ Assigned to {{ order.delivery_user.get_full_name|default:order.delivery_user.username }}
+                  <div style="font-size: 0.72rem; color: #34d399; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>Assigned to {{ order.delivery_user.get_full_name|default:order.delivery_user.username }}</span>
                   </div>
                 {% else %}
-                  <div style="font-size: 0.72rem; color: #fbbf24; margin-top: 2px;">
+                  <div style="font-size: 0.72rem; color: #f6be5d; margin-top: 3px;">
                     ⚠️ Driver needed
                   </div>
                 {% endif %}
@@ -496,18 +884,21 @@
                   <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
                   {% if order.status == 'packed' %}
                     <input type="hidden" name="status" value="shipped">
-                    <button type="submit" class="btn-secondary" style="padding: 4px 10px; font-size: 0.76rem;">
-                      Mark Shipped →
+                    <button type="submit" class="btn-action-ship" title="Mark order as shipped">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="13" x="1" y="6" rx="2"></rect><path d="M17 10h4a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4"></path><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+                      <span>Mark Shipped</span>
                     </button>
                   {% elif order.status == 'shipped' %}
                     <input type="hidden" name="status" value="out_for_delivery">
-                    <button type="submit" class="btn-secondary" style="padding: 4px 10px; font-size: 0.76rem; border-color: rgba(236,72,153,0.4); color: #f472b6;">
-                      Out for Delivery →
+                    <button type="submit" class="btn-action-transit" title="Mark order as out for delivery">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+                      <span>Out for Delivery</span>
                     </button>
                   {% elif order.status == 'out_for_delivery' %}
                     <input type="hidden" name="status" value="delivered">
-                    <button type="submit" class="btn-primary" style="padding: 4px 10px; font-size: 0.76rem; background: #10b981;">
-                      ✓ Mark Delivered
+                    <button type="submit" class="btn-action-delivered" title="Mark order as delivered">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <span>Mark Delivered</span>
                     </button>
                   {% endif %}
                 </form>
@@ -517,8 +908,13 @@
             <tr>
               <td colspan="6">
                 <div class="empty-state-box">
-                  <div style="font-size: 2rem; margin-bottom: 6px;">📦</div>
-                  <div style="font-weight: 700; color: #fff;">No orders currently awaiting delivery dispatch.</div>
+                  <div class="empty-icon-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m7.5 4.27 9 5.15"></path>
+                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                    </svg>
+                  </div>
+                  <div style="font-weight: 700; color: #fff; font-size: 0.96rem;">No orders currently awaiting delivery dispatch.</div>
                   <div style="font-size: 0.8rem; margin-top: 4px;">Orders marked as packed will appear here for driver assignment and transit updates.</div>
                 </div>
               </td>
@@ -530,13 +926,17 @@
   </div>
 
   <!-- ========================================================================
-       SECTION 3: 📋 DELIVERY PARTNER APPROVAL REQUESTS
+       SECTION 3: DELIVERY PARTNER APPROVAL REQUESTS
        ======================================================================== -->
   <div class="dashboard-section" id="partnerApprovalsSection">
     <div class="dashboard-section-header">
       <div class="section-title-wrap">
         <h2 class="section-title">
-          <span>📋</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <polyline points="16 11 18 13 22 9"></polyline>
+          </svg>
           <span>Delivery Partner Approval Requests</span>
         </h2>
         {% if partner_approval_count > 0 %}
@@ -545,12 +945,15 @@
           <span class="section-count-chip chip-purple">0 Pending</span>
         {% endif %}
       </div>
-      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
-        Review driver applications, verify license & vehicle credentials, and approve access.
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+          Review driver applications, verify license & vehicle credentials, and approve access.
+        </span>
+        <button type="button" class="btn-table-view is-all-toggle" onclick="selectDashboardSection('all')" style="font-size: 0.74rem; padding: 4px 10px; display: none;">Show All Tables</button>
       </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive-wrapper">
       <table class="admin-table" style="margin: 0; width: 100%;">
         <thead>
           <tr>
@@ -578,7 +981,7 @@
 
               <!-- Contact & City -->
               <td style="font-size: 0.82rem;">
-                <div style="font-weight: 600; color: #fbbf24;">{{ p.phone|default:"No phone" }}</div>
+                <div style="font-weight: 600; color: #f6be5d;">{{ p.phone|default:"No phone" }}</div>
                 <div style="color: rgba(255,255,255,0.6); font-size: 0.76rem;">{{ p.address|default:"-" }}</div>
               </td>
 
@@ -601,7 +1004,7 @@
               <!-- Serviceable PINs -->
               <td style="font-size: 0.78rem; color: rgba(255,255,255,0.7); max-width: 180px;">
                 {% if p.serviceable_pincodes %}
-                  <span style="color: #60a5fa; font-family: monospace;">{{ p.serviceable_pincodes }}</span>
+                  <span style="color: #5aa3ff; font-family: monospace;">{{ p.serviceable_pincodes }}</span>
                 {% else %}
                   <span style="color: rgba(255,255,255,0.4);">All areas</span>
                 {% endif %}
@@ -619,8 +1022,11 @@
                   <form method="post" action="{% url 'admin_approve_delivery_partner' p.id %}" style="margin: 0;">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
-                    <button type="submit" class="btn-approve-quick" onclick="return confirm('Approve {{ p.user.username }} as a delivery partner?')">
-                      <span>✓ Approve</span>
+                    <button type="submit" class="btn-action-approve" onclick="return confirm('Approve {{ p.user.username }} as a delivery partner?')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span>Approve</span>
                     </button>
                   </form>
 
@@ -628,8 +1034,12 @@
                   <form method="post" action="{% url 'admin_reject_delivery_partner' p.id %}" style="margin: 0;">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'admin_dashboard' %}">
-                    <button type="submit" class="btn-reject-quick" onclick="return confirm('Reject {{ p.user.username }}\'s application?')">
-                      <span>✕ Reject</span>
+                    <button type="submit" class="btn-action-reject" onclick="return confirm('Reject {{ p.user.username }}\'s application?')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                      <span>Reject</span>
                     </button>
                   </form>
                 </div>
@@ -639,8 +1049,12 @@
             <tr>
               <td colspan="7">
                 <div class="empty-state-box">
-                  <div style="font-size: 2rem; margin-bottom: 6px;">🛡️</div>
-                  <div style="font-weight: 700; color: #fff;">No pending delivery partner verification requests.</div>
+                  <div class="empty-icon-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </div>
+                  <div style="font-weight: 700; color: #fff; font-size: 0.96rem;">No pending delivery partner verification requests.</div>
                   <div style="font-size: 0.8rem; margin-top: 4px;">When new drivers apply to deliver for J CSD, their applications will appear here for review.</div>
                 </div>
               </td>
@@ -650,4 +1064,89 @@
       </table>
     </div>
   </div>
+
+  <script>
+    let currentDashboardSection = 'all';
+
+    function selectDashboardSection(targetKey, shouldScroll = true) {
+      const sections = {
+        'newOrdersSection': document.getElementById('newOrdersSection'),
+        'deliveryRequestedSection': document.getElementById('deliveryRequestedSection'),
+        'partnerApprovalsSection': document.getElementById('partnerApprovalsSection')
+      };
+
+      // Toggle behavior: clicking the currently active section returns to 'all'
+      if (currentDashboardSection === targetKey && targetKey !== 'all') {
+        targetKey = 'all';
+      }
+      currentDashboardSection = targetKey;
+
+      // 1. Update filter tab pills
+      document.querySelectorAll('#dashboardFilterTabs .filter-tab').forEach(tab => {
+        if (tab.getAttribute('data-target') === targetKey) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+
+      // 2. Update stat cards highlight
+      document.querySelectorAll('#dashboardStatsGrid .stat-card').forEach(card => {
+        if (card.getAttribute('data-target') === targetKey && targetKey !== 'all') {
+          card.classList.add('stat-card-active');
+        } else {
+          card.classList.remove('stat-card-active');
+        }
+      });
+
+      // 3. Show/hide table sections
+      if (targetKey === 'all') {
+        Object.values(sections).forEach(sec => {
+          if (sec) sec.style.display = '';
+        });
+        document.querySelectorAll('.is-all-toggle').forEach(el => el.style.display = 'none');
+      } else {
+        Object.entries(sections).forEach(([key, sec]) => {
+          if (!sec) return;
+          if (key === targetKey) {
+            sec.style.display = '';
+          } else {
+            sec.style.display = 'none';
+          }
+        });
+        document.querySelectorAll('.is-all-toggle').forEach(el => el.style.display = 'inline-flex');
+
+        // 4. Scroll smoothly to the visible table section
+        if (shouldScroll && sections[targetKey]) {
+          setTimeout(() => {
+            sections[targetKey].scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 60);
+        }
+      }
+
+      // 5. Update browser history hash without reload
+      if (history.replaceState) {
+        const hash = targetKey === 'all' ? '' : '#' + targetKey;
+        history.replaceState(null, null, window.location.pathname + window.location.search + hash);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Enable keyboard accessibility on clickable cards
+      document.querySelectorAll('.stat-card.is-clickable').forEach(card => {
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            card.click();
+          }
+        });
+      });
+
+      // Handle direct anchor links or URL hash on load
+      const hash = window.location.hash.replace('#', '');
+      if (hash && document.getElementById(hash)) {
+        selectDashboardSection(hash, true);
+      }
+    });
+  </script>
 {% endblock %}
