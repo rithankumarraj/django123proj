@@ -114,6 +114,11 @@ urlpatterns = [
         name="admin_details",
     ),
     path(
+        "admin-profile/details/set-popup-offer/",
+        views.admin_set_popup_offer,
+        name="admin_set_popup_offer",
+    ),
+    path(
         "admin-profile/rates/shipping/",
         views.admin_shipping_charges,
         name="admin_shipping_charges",

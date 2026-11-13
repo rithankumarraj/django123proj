@@ -581,6 +581,48 @@ class ContactDetailsForm(forms.ModelForm):
         }
 
 
+class DailyPromoPopupForm(forms.ModelForm):
+    class Meta:
+        model = SiteDetails
+        fields = [
+            "popup_enabled",
+            "popup_offer_type",
+            "popup_combo",
+            "popup_coupon",
+            "popup_title",
+            "popup_message",
+            "popup_badge_text",
+        ]
+        labels = {
+            "popup_enabled": "Enable Daily Promotional Popup",
+            "popup_offer_type": "Featured Offer Type",
+            "popup_combo": "Featured Combo Offer",
+            "popup_coupon": "Featured Coupon Code",
+            "popup_title": "Custom Heading",
+            "popup_message": "Custom Description",
+            "popup_badge_text": "Badge / Tag Text",
+        }
+        widgets = {
+            "popup_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "popup_offer_type": forms.Select(attrs={"class": "form-control"}),
+            "popup_combo": forms.Select(attrs={"class": "form-control"}),
+            "popup_coupon": forms.Select(attrs={"class": "form-control"}),
+            "popup_title": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Special Deal of the Day!"}),
+            "popup_message": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Leave empty to use the offer's default description"}),
+            "popup_badge_text": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. TODAY'S SPECIAL"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["popup_combo"].queryset = ComboOffer.objects.filter(is_active=True).order_by("-created_at")
+        self.fields["popup_coupon"].queryset = Coupon.objects.filter(is_active=True).order_by("-created_at")
+        self.fields["popup_combo"].required = False
+        self.fields["popup_coupon"].required = False
+        self.fields["popup_title"].required = False
+        self.fields["popup_message"].required = False
+        self.fields["popup_badge_text"].required = False
+
+
 class CouponForm(forms.ModelForm):
     applicable_categories = forms.ModelMultipleChoiceField(
         queryset=ProductCategory.objects.all(),

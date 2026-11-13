@@ -355,13 +355,13 @@ class CustomerOrderHistoryTests(TestCase):
         response = self.client.get(reverse("customer_orders"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f"Order #{self.order.pk}")
+        self.assertContains(response, f"Order #{self.order.order_number or self.order.pk}")
         self.assertContains(response, "Delivery: Out for delivery")
         self.assertContains(response, "Payment: Paid")
         self.assertContains(response, "History Cola")
         self.assertContains(response, "15 History Street")
         self.assertContains(response, "+91 98765 43210")
-        self.assertNotContains(response, f"Order #{self.order.pk + 1}")
+        self.assertNotContains(response, f"Order #{self.order.pk + 9999}")
 
     def test_order_history_requires_sign_in(self):
         response = self.client.get(reverse("customer_orders"))
@@ -399,14 +399,14 @@ class CustomerOrderHistoryTests(TestCase):
         self.client.force_login(self.customer)
 
         for query, expected in (
-            (str(self.order.pk), self.order),
+            (str(self.order.order_number or self.order.pk), self.order),
             ("Searchable Lime", second_order),
             ("Lime Avenue", second_order),
         ):
             with self.subTest(query=query):
                 response = self.client.get(reverse("customer_orders"), {"q": query})
                 self.assertEqual(list(response.context["orders"]), [expected])
-                self.assertContains(response, f"Order #{expected.pk}")
+                self.assertContains(response, f"Order #{expected.order_number or expected.pk}")
 
     def test_order_history_sorts_by_date_and_total(self):
         lower_total_order = Order.objects.create(
@@ -688,8 +688,8 @@ class CheckoutQuantityTests(TestCase):
         # In "My Orders", customer sees both orders
         orders_page = self.client.get(reverse("customer_orders"))
         self.assertEqual(orders_page.status_code, 200)
-        self.assertContains(orders_page, f"Order #{orders[0].id}")
-        self.assertContains(orders_page, f"Order #{orders[1].id}")
+        self.assertContains(orders_page, f"Order #{orders[0].order_number or orders[0].id}")
+        self.assertContains(orders_page, f"Order #{orders[1].order_number or orders[1].id}")
 
     def test_product_page_includes_live_quantity_subtotal(self):
         response = self.client.get(f"/product/{self.product.id}/")
@@ -1269,7 +1269,7 @@ class DeliveryProfileTests(TestCase):
         # 1. First driver views available orders and sees self.order
         self.client.force_login(self.delivery_user)
         resp1 = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
-        self.assertContains(resp1, f"Order #{self.order.pk}")
+        self.assertContains(resp1, f"Order #{self.order.order_number or self.order.pk}")
 
         # 2. First driver picks the order
         pick_resp = self.client.post(
@@ -1285,7 +1285,7 @@ class DeliveryProfileTests(TestCase):
         # 3. Second driver logs in: order must NOT be visible in Orders to Pick
         self.client.force_login(other_driver_user)
         resp2 = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
-        self.assertNotContains(resp2, f"Order #{self.order.pk} ·")
+        self.assertNotContains(resp2, f"Order #{self.order.order_number or self.order.pk} ·")
 
         # 4. Second driver tries to pick the already-picked order: rejected
         double_pick = self.client.post(
@@ -3043,10 +3043,10 @@ class DeliveryPartnerManagementTests(TestCase):
         avail_res = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
         self.assertEqual(avail_res.status_code, 200)
         # Order 1 (625018) should appear
-        self.assertContains(avail_res, f"Order #{order_in_zone.id}")
+        self.assertContains(avail_res, f"Order #{order_in_zone.order_number or order_in_zone.id}")
         self.assertContains(avail_res, "625018")
         # Order 2 (600001) should NOT appear
-        self.assertNotContains(avail_res, f"Order #{order_outside_zone.id}")
+        self.assertNotContains(avail_res, f"Order #{order_outside_zone.order_number or order_outside_zone.id}")
 
         # Attempt to pick out-of-zone order -> blocked!
         pick_outside_res = self.client.post(
@@ -3383,7 +3383,7 @@ class OrderStatusProgressionTests(TestCase):
         self.order.status = "pending"
         self.order.save(update_fields=["status"])
         res_pending = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
-        self.assertNotContains(res_pending, f"Pick Order #{self.order.id}")
+        self.assertNotContains(res_pending, f"Pick Order #{self.order.order_number or self.order.id}")
 
         # Cannot pick pending order
         pick_pending = self.client.post(
@@ -3396,7 +3396,7 @@ class OrderStatusProgressionTests(TestCase):
         self.order.status = "packed"
         self.order.save(update_fields=["status"])
         res_packed = self.client.get(f"{reverse('delivery_dashboard')}?tab=available")
-        self.assertNotContains(res_packed, f"Pick Order #{self.order.id}")
+        self.assertNotContains(res_packed, f"Pick Order #{self.order.order_number or self.order.id}")
 
         # Cannot pick packed order
         pick_packed = self.client.post(
@@ -4641,6 +4641,129 @@ class AdminUsersAndSalesReportTests(TestCase):
         self.assertEqual(len(order.order_number), 6)
         self.assertTrue(order.order_number.isdigit())
         self.assertEqual(order.display_order_number, f"#{order.order_number}")
+
+
+class DailyPromoPopupTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff_user = User.objects.create_user(
+            username="popup_admin", email="popup@admin.com", password="password123", is_staff=True
+        )
+        self.customer = User.objects.create_user(
+            username="popup_shopper", email="shopper@test.com", password="password123"
+        )
+        self.prod = Product.objects.create(
+            name="Sparkling Citrus Can",
+            price=Decimal("90.00"),
+            cost_price=Decimal("60.00"),
+            available=True,
+        )
+        self.combo = ComboOffer.objects.create(
+            name="Weekend Party Pack",
+            discount_type="percentage",
+            discount_value=Decimal("20.00"),
+            is_active=True,
+            description="6 pack of ice cold citrus soda",
+        )
+        self.coupon = Coupon.objects.create(
+            code="SAVE15",
+            discount_type="percentage",
+            discount_value=Decimal("15.00"),
+            min_order_amount=Decimal("200.00"),
+            is_active=True,
+        )
+        self.details = SiteDetails.get_solo()
+        self.details.popup_enabled = True
+        self.details.popup_offer_type = "combo"
+        self.details.popup_combo = self.combo
+        self.details.save()
+
+    def test_popup_returns_none_when_disabled(self):
+        self.details.popup_enabled = False
+        self.details.save()
+        self.assertIsNone(self.details.get_active_popup_offer())
+
+    def test_popup_returns_active_combo_offer(self):
+        offer = self.details.get_active_popup_offer()
+        self.assertIsNotNone(offer)
+        self.assertEqual(offer["type"], "combo")
+        self.assertEqual(offer["id"], self.combo.id)
+        self.assertEqual(offer["title"], "Special Deal of the Day!")
+        self.assertIn("20% OFF", offer["discount_display"])
+
+    def test_popup_returns_active_coupon_offer(self):
+        self.details.popup_offer_type = "coupon"
+        self.details.popup_coupon = self.coupon
+        self.details.popup_title = "Flash Discount Code"
+        self.details.save()
+
+        offer = self.details.get_active_popup_offer()
+        self.assertIsNotNone(offer)
+        self.assertEqual(offer["type"], "coupon")
+        self.assertEqual(offer["code"], "SAVE15")
+        self.assertEqual(offer["title"], "Flash Discount Code")
+        self.assertIn("15% OFF", offer["discount_display"])
+
+    def test_admin_details_save_popup_settings(self):
+        self.client.force_login(self.staff_user)
+        post_data = {
+            "action": "save_popup",
+            "popup_enabled": "on",
+            "popup_offer_type": "coupon",
+            "popup_coupon": str(self.coupon.id),
+            "popup_combo": "",
+            "popup_title": "Exclusive Today Only",
+            "popup_message": "Apply this code at checkout to save big!",
+            "popup_badge_text": "DAILY REWARD",
+        }
+        resp = self.client.post(f"{reverse('admin_details')}?tab=popup", data=post_data)
+        self.assertRedirects(resp, f"{reverse('admin_details')}?tab=popup")
+
+        self.details.refresh_from_db()
+        self.assertTrue(self.details.popup_enabled)
+        self.assertEqual(self.details.popup_offer_type, "coupon")
+        self.assertEqual(self.details.popup_coupon, self.coupon)
+        self.assertEqual(self.details.popup_title, "Exclusive Today Only")
+        self.assertEqual(self.details.popup_badge_text, "DAILY REWARD")
+
+    def test_admin_set_popup_offer_one_click_actions(self):
+        self.client.force_login(self.staff_user)
+
+        # 1-click feature coupon
+        resp = self.client.post(
+            reverse("admin_set_popup_offer"),
+            data={"offer_type": "coupon", "offer_id": str(self.coupon.id)},
+        )
+        self.assertRedirects(resp, reverse("admin_coupons"))
+        self.details.refresh_from_db()
+        self.assertTrue(self.details.popup_enabled)
+        self.assertEqual(self.details.popup_offer_type, "coupon")
+        self.assertEqual(self.details.popup_coupon, self.coupon)
+
+        # 1-click feature combo
+        resp = self.client.post(
+            reverse("admin_set_popup_offer"),
+            data={"offer_type": "combo", "offer_id": str(self.combo.id)},
+        )
+        self.assertRedirects(resp, reverse("admin_combos"))
+        self.details.refresh_from_db()
+        self.assertTrue(self.details.popup_enabled)
+        self.assertEqual(self.details.popup_offer_type, "combo")
+        self.assertEqual(self.details.popup_combo, self.combo)
+
+    def test_storefront_renders_popup_and_frequency_script(self):
+        # When popup enabled, modal is rendered with local storage frequency cap key
+        resp = self.client.get(reverse("home"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "dailyPromoModal")
+        self.assertContains(resp, "jcsd_daily_promo_seen_date")
+        self.assertContains(resp, "Weekend Party Pack")
+
+        # When popup disabled, modal is NOT rendered in DOM
+        self.details.popup_enabled = False
+        self.details.save()
+        resp_disabled = self.client.get(reverse("home"))
+        self.assertNotContains(resp_disabled, "dailyPromoModal")
 
 
 

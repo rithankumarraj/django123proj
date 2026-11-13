@@ -391,6 +391,20 @@
               </td>
               <td style="text-align: right;">
                 <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  {% if site_details.popup_enabled and site_details.popup_offer_type == 'combo' and site_details.popup_combo_id == combo.id %}
+                    <span class="status-pill status-pill-active" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.72rem; padding: 4px 8px; border-radius: 6px;" title="Currently featured in daily popup">
+                      ★ Popup Active
+                    </span>
+                  {% elif combo.is_valid_status %}
+                    <form method="post" action="{% url 'admin_set_popup_offer' %}" style="display: inline; margin: 0;">
+                      {% csrf_token %}
+                      <input type="hidden" name="offer_type" value="combo">
+                      <input type="hidden" name="offer_id" value="{{ combo.id }}">
+                      <button type="submit" class="btn-sm" style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); background: transparent;" title="Feature this combo in the daily storefront popup">
+                        ★ Feature in Popup
+                      </button>
+                    </form>
+                  {% endif %}
                   <button type="button" class="btn-sm btn-outline-info"
                     onclick="openEditComboModal({{ combo.id }})"
                     style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); background: transparent;">

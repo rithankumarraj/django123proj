@@ -36,6 +36,7 @@ from .forms import (
     CustomerAddressForm,
     CustomerProfileForm,
     CustomerRegistrationForm,
+    DailyPromoPopupForm,
     DeliveryAccountForm,
     DeliveryAddressForm,
     DeliveryPartnerApplicationForm,
@@ -2717,11 +2718,12 @@ def admin_order_detail(request, order_id):
 def admin_details(request):
     details = SiteDetails.get_solo()
     active_tab = request.GET.get("tab", "messages").strip().lower()
-    if active_tab not in {"messages", "about", "contact"}:
+    if active_tab not in {"messages", "about", "contact", "popup"}:
         active_tab = "messages"
 
     about_form = AboutDetailsForm(instance=details)
     contact_form = ContactDetailsForm(instance=details)
+    popup_form = DailyPromoPopupForm(instance=details)
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -2747,6 +2749,17 @@ def admin_details(request):
                 for err_list in contact_form.errors.values():
                     for err in err_list:
                         messages.error(request, err)
+        elif action == "save_popup":
+            popup_form = DailyPromoPopupForm(request.POST, instance=details)
+            if popup_form.is_valid():
+                popup_form.save()
+                messages.success(request, "Daily promotional popup settings updated successfully.")
+                return redirect(f"{reverse('admin_details')}?tab=popup")
+            else:
+                active_tab = "popup"
+                for err_list in popup_form.errors.values():
+                    for err in err_list:
+                        messages.error(request, err)
 
     contact_messages = ContactMessage.objects.all().order_by("-created_at")
     total_messages_count = contact_messages.count()
@@ -2758,6 +2771,10 @@ def admin_details(request):
         "details": details,
         "about_form": about_form,
         "contact_form": contact_form,
+        "popup_form": popup_form,
+        "current_popup_offer": details.get_active_popup_offer(),
+        "available_combos": ComboOffer.objects.filter(is_active=True).order_by("-created_at"),
+        "available_coupons": Coupon.objects.filter(is_active=True).order_by("-created_at"),
         "contact_messages": contact_messages,
         "total_messages_count": total_messages_count,
         "unread_messages_count": unread_messages_count,
@@ -2766,6 +2783,50 @@ def admin_details(request):
         "pending_orders_count": Order.objects.filter(status="pending").count(),
     }
     return render(request, "main/admin_details.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_set_popup_offer(request):
+    """
+    1-click action to feature a specific coupon or combo offer as the daily popup offer,
+    or toggle popup enabled state.
+    """
+    if request.method == "POST":
+        offer_type = request.POST.get("offer_type", "").strip()
+        offer_id = request.POST.get("offer_id", "").strip()
+        details = SiteDetails.get_solo()
+
+        if offer_type == "combo" and offer_id:
+            combo = get_object_or_404(ComboOffer, id=offer_id)
+            details.popup_enabled = True
+            details.popup_offer_type = "combo"
+            details.popup_combo = combo
+            details.save()
+            messages.success(request, f"Combo offer '{combo.name}' is now set as the active Daily Storefront Popup!")
+        elif offer_type == "coupon" and offer_id:
+            coupon = get_object_or_404(Coupon, id=offer_id)
+            details.popup_enabled = True
+            details.popup_offer_type = "coupon"
+            details.popup_coupon = coupon
+            details.save()
+            messages.success(request, f"Coupon '{coupon.code}' is now set as the active Daily Storefront Popup!")
+        elif offer_type == "toggle":
+            details.popup_enabled = not details.popup_enabled
+            details.save()
+            status_text = "enabled" if details.popup_enabled else "disabled"
+            messages.info(request, f"Daily promotional popup {status_text}.")
+
+        referrer = request.META.get("HTTP_REFERER")
+        if referrer and url_has_allowed_host_and_scheme(referrer, allowed_hosts={request.get_host()}):
+            return redirect(referrer)
+        if offer_type == "combo":
+            return redirect("admin_combos")
+        if offer_type == "coupon":
+            return redirect("admin_coupons")
+        return redirect(f"{reverse('admin_details')}?tab=popup")
+
+    return redirect("admin_details")
 
 
 @login_required

@@ -76,6 +76,17 @@
       </svg>
       Edit Contact Us Page
     </a>
+    <a href="?tab=popup" class="filter-tab {% if active_tab == 'popup' %}active{% endif %}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+      </svg>
+      Daily Promo Popup
+      {% if details.popup_enabled %}
+        <span class="tab-count" style="background: rgba(16,185,129,0.2); color: #34d399;">ON</span>
+      {% else %}
+        <span class="tab-count" style="background: rgba(239,68,68,0.2); color: #f87171;">OFF</span>
+      {% endif %}
+    </a>
   </div>
 
   <!-- TAB 1: User Messages -->
@@ -374,5 +385,207 @@
         </div>
       </section>
     </div>
+
+  <!-- TAB 4: Daily Promotional Popup Settings -->
+  {% elif active_tab == 'popup' %}
+    <div class="admin-split-grid">
+      <!-- Edit Popup Settings Form -->
+      <section class="admin-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+              </svg>
+              Daily Promotional Popup Configuration
+            </h2>
+            <p class="panel-subtitle">
+              Configure the promotional popup shown to visitors once per day. Choose whether to feature an active Combo Offer, a Coupon Code, or a custom announcement.
+            </p>
+          </div>
+        </div>
+
+        <form method="post" action="{% url 'admin_details' %}?tab=popup" class="admin-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_popup">
+
+          <!-- Enable / Disable Toggle -->
+          <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <label for="{{ popup_form.popup_enabled.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer; display: block;">
+                Enable Daily Promotional Popup
+              </label>
+              <div style="font-size: 0.8rem; color: var(--admin-text-muted); margin-top: 2px;">
+                When active, storefront visitors will see this modal once per calendar day (will not repeat).
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              {{ popup_form.popup_enabled }}
+            </div>
+          </div>
+
+          <!-- Offer Type Selection -->
+          <div class="form-group">
+            <label for="{{ popup_form.popup_offer_type.id_for_label }}" class="form-label">
+              Offer Type to Feature <span class="required-star">*</span>
+            </label>
+            {{ popup_form.popup_offer_type }}
+            <small class="form-help">Select whether to feature a Combo Offer, a Coupon Code, or a Custom Announcement.</small>
+          </div>
+
+          <!-- Combo Offer Selector -->
+          <div class="form-group" id="groupComboSelect">
+            <label for="{{ popup_form.popup_combo.id_for_label }}" class="form-label">
+              Select Featured Combo Offer
+            </label>
+            {{ popup_form.popup_combo }}
+            <small class="form-help">Choose which active combo deal to present in the popup. Only active combos are shown.</small>
+          </div>
+
+          <!-- Coupon Code Selector -->
+          <div class="form-group" id="groupCouponSelect">
+            <label for="{{ popup_form.popup_coupon.id_for_label }}" class="form-label">
+              Select Featured Coupon Code
+            </label>
+            {{ popup_form.popup_coupon }}
+            <small class="form-help">Choose which active coupon code to feature for 1-click copying. Only active coupons are shown.</small>
+          </div>
+
+          <!-- Badge / Tag Text -->
+          <div class="form-group">
+            <label for="{{ popup_form.popup_badge_text.id_for_label }}" class="form-label">
+              Popup Tag / Badge (Optional)
+            </label>
+            {{ popup_form.popup_badge_text }}
+            <small class="form-help">e.g. TODAY'S SPECIAL, FLASH DEAL, WEEKEND ONLY. Defaults to TODAY'S SPECIAL.</small>
+          </div>
+
+          <!-- Heading / Title -->
+          <div class="form-group">
+            <label for="{{ popup_form.popup_title.id_for_label }}" class="form-label">
+              Custom Heading / Title (Optional)
+            </label>
+            {{ popup_form.popup_title }}
+            <small class="form-help">Leave blank to use the selected offer's default name.</small>
+          </div>
+
+          <!-- Description / Message -->
+          <div class="form-group">
+            <label for="{{ popup_form.popup_message.id_for_label }}" class="form-label">
+              Custom Description / Note (Optional)
+            </label>
+            {{ popup_form.popup_message }}
+            <small class="form-help">Leave blank to use the offer's default description.</small>
+          </div>
+
+          <div class="form-actions" style="margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <button type="submit" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Save Popup Settings
+            </button>
+            <a href="{% url 'home' %}?preview_promo_popup=1" target="_blank" rel="noopener" class="btn-action-ghost" style="padding: 10px 16px; border-radius: 8px; text-decoration: none; color: #ff9142; border-color: rgba(255,107,0,0.4);" onclick="if(window.resetDailyPromoPopup){window.resetDailyPromoPopup();}">
+              👁️ Preview Popup on Storefront
+            </a>
+          </div>
+        </form>
+      </section>
+
+      <!-- Live Preview Card -->
+      <section class="admin-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Active Popup Status
+          </h2>
+          <span class="brand-badge">{% if details.popup_enabled %}ACTIVE{% else %}DISABLED{% endif %}</span>
+        </div>
+
+        {% if current_popup_offer %}
+          <div style="background: rgba(255, 107, 0, 0.05); border: 1px solid rgba(255, 107, 0, 0.25); border-radius: 16px; padding: 20px; text-align: center;">
+            <span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: rgba(255,107,0,0.15); border: 1px solid rgba(255,107,0,0.4); color: #ff9142; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;">
+              {{ current_popup_offer.badge }}
+            </span>
+            <h3 style="font-size: 1.3rem; font-weight: 800; color: #fff; margin: 12px 0 6px;">{{ current_popup_offer.title }}</h3>
+            <p style="font-size: 0.86rem; color: #94a3b8; margin: 0 auto 16px; max-width: 340px; line-height: 1.4;">
+              {{ current_popup_offer.description }}
+            </p>
+
+            {% if current_popup_offer.type == 'combo' %}
+              <div style="background: rgba(0,0,0,0.4); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-around; margin-bottom: 14px;">
+                <div>
+                  <div style="font-size: 0.72rem; color: #94a3b8;">Regular</div>
+                  <s style="color: #64748b; font-weight: 600;">₹{{ current_popup_offer.regular_price|floatformat:0 }}</s>
+                </div>
+                <div style="font-size: 1.3rem; font-weight: 900; color: #10b981;">
+                  ₹{{ current_popup_offer.discounted_price|floatformat:0 }}
+                </div>
+                <div>
+                  <span style="background: rgba(16,185,129,0.18); color: #34d399; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px;">
+                    {{ current_popup_offer.discount_display }}
+                  </span>
+                </div>
+              </div>
+            {% elif current_popup_offer.type == 'coupon' %}
+              <div style="background: rgba(0,0,0,0.4); border: 2px dashed rgba(255,107,0,0.4); border-radius: 12px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-size: 1.3rem; font-weight: 900; color: #ff9142; letter-spacing: 0.08em; font-family: monospace;">
+                  {{ current_popup_offer.code }}
+                </div>
+                <div style="font-size: 0.8rem; color: #34d399; font-weight: 700; margin-top: 4px;">
+                  {{ current_popup_offer.discount_display }}
+                </div>
+              </div>
+            {% endif %}
+
+            <div style="font-size: 0.76rem; color: #64748b;">
+              Frequency Capping: Showing exactly once per day per visitor (suppressed on subsequent visits the same day).
+            </div>
+          </div>
+        {% else %}
+          <div style="padding: 30px 16px; text-align: center; color: var(--admin-text-muted);">
+            <div style="font-size: 2rem; margin-bottom: 8px;">⚠️</div>
+            <div style="font-weight: 700; color: #fff;">Popup Currently Inactive</div>
+            <p style="font-size: 0.84rem; margin-top: 4px;">
+              {% if not details.popup_enabled %}
+                The popup is turned off in the settings above.
+              {% else %}
+                No active {{ details.popup_offer_type }} offer is available to display.
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+
+        <div style="margin-top: 20px; padding: 16px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0; margin-bottom: 6px;">💡 Quick Feature from Catalogs</div>
+          <p style="font-size: 0.78rem; color: #94a3b8; margin: 0; line-height: 1.45;">
+            You can also feature any offer directly by clicking the <strong>★ Daily Popup</strong> button inside the <a href="{% url 'admin_combos' %}" style="color: #ff9142;">Combo Offers</a> or <a href="{% url 'admin_coupons' %}" style="color: #ff9142;">Coupons</a> catalog.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      (function() {
+        var offerTypeSelect = document.getElementById('{{ popup_form.popup_offer_type.id_for_label }}');
+        var comboGroup = document.getElementById('groupComboSelect');
+        var couponGroup = document.getElementById('groupCouponSelect');
+
+        function updateOfferVisibility() {
+          if (!offerTypeSelect) return;
+          var val = offerTypeSelect.value;
+          if (comboGroup) comboGroup.style.display = (val === 'combo') ? 'block' : 'none';
+          if (couponGroup) couponGroup.style.display = (val === 'coupon') ? 'block' : 'none';
+        }
+
+        if (offerTypeSelect) {
+          offerTypeSelect.addEventListener('change', updateOfferVisibility);
+          updateOfferVisibility();
+        }
+      })();
+    </script>
   {% endif %}
 {% endblock %}

@@ -962,6 +962,61 @@ class SiteDetails(models.Model):
         verbose_name="GST Rate (%)"
     )
 
+    # Daily Promotional Popup Configuration
+    popup_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Enable Daily Promotional Popup",
+        help_text="Show a promotional popup to storefront visitors once per day.",
+    )
+    popup_offer_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("combo", "Combo Bundle Offer"),
+            ("coupon", "Coupon Code Discount"),
+            ("custom", "Custom Promotional Announcement"),
+        ],
+        default="combo",
+        verbose_name="Featured Offer Type",
+        help_text="Select whether to show a combo offer, a coupon code, or custom announcement in the popup.",
+    )
+    popup_combo = models.ForeignKey(
+        ComboOffer,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="featured_popups",
+        verbose_name="Featured Combo Offer",
+        help_text="Select an active combo offer to showcase.",
+    )
+    popup_coupon = models.ForeignKey(
+        Coupon,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="featured_popups",
+        verbose_name="Featured Coupon",
+        help_text="Select an active coupon code to showcase.",
+    )
+    popup_title = models.CharField(
+        max_length=200,
+        blank=True,
+        default="Special Deal of the Day!",
+        verbose_name="Popup Heading",
+        help_text="Custom title for popup. Leave blank to use offer's default.",
+    )
+    popup_message = models.TextField(
+        blank=True,
+        default="Mix and match handcrafted canned drinks to unlock special bundle savings!",
+        verbose_name="Popup Description",
+        help_text="Custom promo message. Leave blank to use offer's default description.",
+    )
+    popup_badge_text = models.CharField(
+        max_length=100,
+        blank=True,
+        default="TODAY'S SPECIAL",
+        verbose_name="Popup Tag / Badge",
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
@@ -1010,6 +1065,80 @@ class SiteDetails(models.Model):
             sub = Decimal("0.00")
         rate = (self.gst_rate or Decimal("18.00")) / Decimal("100")
         return (sub * rate).quantize(Decimal("0.01"))
+
+    def get_active_popup_offer(self):
+        """
+        Returns a dictionary with normalized offer details if popup is enabled and
+        an active offer is found, else None.
+        """
+        if not self.popup_enabled:
+            return None
+
+        if self.popup_offer_type == "combo":
+            combo = self.popup_combo
+            if not combo or not combo.is_valid_status:
+                combo = ComboOffer.objects.filter(is_active=True).first()
+                if combo and not combo.is_valid_status:
+                    combo = None
+            if combo:
+                title = self.popup_title.strip() if self.popup_title else combo.name
+                badge = self.popup_badge_text.strip() if self.popup_badge_text else (combo.badge_text or "COMBO DEAL")
+                desc = self.popup_message.strip() if self.popup_message else (combo.description or "Mix and match our handcrafted cans to unlock special combo bundle pricing!")
+                return {
+                    "type": "combo",
+                    "id": combo.id,
+                    "title": title,
+                    "badge": badge,
+                    "description": desc,
+                    "discount_display": combo.discount_display,
+                    "regular_price": combo.bundle_regular_price,
+                    "discounted_price": combo.bundle_discounted_price,
+                    "savings": combo.bundle_savings,
+                    "items_display": combo.bundle_items_display,
+                    "image_url": combo.image_url,
+                    "bundle_cans": combo.total_bundle_cans,
+                    "url": f"/#combo-{combo.id}",
+                    "combo_obj": combo,
+                }
+        elif self.popup_offer_type == "coupon":
+            coupon = self.popup_coupon
+            if not coupon or not coupon.is_active or coupon.is_expired:
+                coupon = Coupon.objects.filter(is_active=True).first()
+                if coupon and coupon.is_expired:
+                    coupon = None
+            if coupon:
+                title = self.popup_title.strip() if self.popup_title else f"Special Code: {coupon.code}"
+                badge = self.popup_badge_text.strip() if self.popup_badge_text else "EXCLUSIVE COUPON"
+                if self.popup_message and self.popup_message.strip():
+                    desc = self.popup_message.strip()
+                else:
+                    if coupon.min_order_amount > 0:
+                        desc = f"Get {coupon.discount_display} off on orders over ₹{coupon.min_order_amount:.0f}! Use code at checkout."
+                    else:
+                        desc = f"Get {coupon.discount_display} off your order today! Use code at checkout."
+                return {
+                    "type": "coupon",
+                    "id": coupon.id,
+                    "code": coupon.code,
+                    "title": title,
+                    "badge": badge,
+                    "description": desc,
+                    "discount_display": coupon.discount_display,
+                    "min_order": coupon.min_order_amount,
+                    "expire_date": coupon.expire_date,
+                    "coupon_obj": coupon,
+                }
+        elif self.popup_offer_type == "custom":
+            if self.popup_title or self.popup_message:
+                return {
+                    "type": "custom",
+                    "id": 0,
+                    "title": self.popup_title.strip() if self.popup_title else "Today's Special Announcement",
+                    "badge": self.popup_badge_text.strip() if self.popup_badge_text else "TODAY'S SPECIAL",
+                    "description": self.popup_message.strip() if self.popup_message else "Welcome to J CSD! Grab your handcrafted drinks today.",
+                    "url": "/#shop",
+                }
+        return None
 
     def __str__(self):
         return "Store & Site Details"
