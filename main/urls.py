@@ -51,6 +51,11 @@ urlpatterns = [
     path("webhooks/payment/", views.payment_webhook, name="payment_webhook"),
     path("webhooks/razorpay/", views.razorpay_webhook, name="razorpay_webhook"),
     path("admin-profile/", views.admin_dashboard, name="admin_dashboard"),
+    path(
+        "admin-profile/dashboard/export/",
+        views.admin_dashboard_export_csv,
+        name="admin_dashboard_export_csv",
+    ),
     path("admin-profile/products/", views.admin_products, name="admin_products"),
     path("admin-profile/products/bulk-add/", views.admin_bulk_add_products, name="admin_bulk_add_products"),
     path(
@@ -97,6 +102,11 @@ urlpatterns = [
         "admin-profile/delivery-status/",
         views.admin_delivery_status,
         name="admin_delivery_status",
+    ),
+    path(
+        "admin-profile/orders/export/",
+        views.admin_orders_export_csv,
+        name="admin_orders_export_csv",
     ),
     path(
         "admin-profile/orders/<int:order_id>/",

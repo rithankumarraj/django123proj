@@ -7,6 +7,15 @@ delivery partner verification requests.{% endblock %}
 
 {% block topbar_actions %}
 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+  <a href="{% url 'admin_dashboard_export_csv' %}" class="btn-secondary"
+    style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;" title="Export complete Operations Dashboard workbook to CSV">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    <span>Export Dashboard (CSV)</span>
+  </a>
   <a href="{% url 'admin_reports' %}" class="btn-secondary"
     style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -676,12 +685,21 @@ delivery partner verification requests.{% endblock %}
       </h2>
       <span class="section-count-chip chip-amber">{{ new_orders_count }} New</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
       <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
         Showing only unprocessed customer orders requiring packing & confirmation.
       </span>
       <button type="button" class="btn-table-view is-all-toggle" onclick="selectDashboardSection('all')"
         style="font-size: 0.74rem; padding: 4px 10px; display: none;">Show All Tables</button>
+      <a href="{% url 'admin_dashboard_export_csv' %}?section=new_orders" class="btn-table-view"
+        style="padding: 5px 12px; font-size: 0.78rem; text-decoration: none; color: #f6be5d; border-color: rgba(246,190,93,0.35);" title="Export New Incoming Orders to CSV">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Export Table CSV</span>
+      </a>
     </div>
   </div>
 
@@ -849,6 +867,15 @@ delivery partner verification requests.{% endblock %}
       </span>
       <button type="button" class="btn-table-view is-all-toggle" onclick="selectDashboardSection('all')"
         style="font-size: 0.74rem; padding: 4px 10px; display: none;">Show All Tables</button>
+      <a href="{% url 'admin_dashboard_export_csv' %}?section=delivery_requested" class="btn-table-view"
+        style="padding: 5px 12px; font-size: 0.78rem; text-decoration: none; color: #5aa3ff; border-color: rgba(90,163,255,0.35);" title="Export Delivery Queue to CSV">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Export Table CSV</span>
+      </a>
       <a href="{% url 'admin_delivery_status' %}" class="btn-table-view"
         style="padding: 5px 12px; font-size: 0.78rem; text-decoration: none;">
         <span>Full Order Tracker</span>
@@ -1064,12 +1091,21 @@ delivery partner verification requests.{% endblock %}
       <span class="section-count-chip chip-purple">0 Pending</span>
       {% endif %}
     </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
       <span style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">
         Review driver applications, verify license & vehicle credentials, and approve access.
       </span>
       <button type="button" class="btn-table-view is-all-toggle" onclick="selectDashboardSection('all')"
         style="font-size: 0.74rem; padding: 4px 10px; display: none;">Show All Tables</button>
+      <a href="{% url 'admin_dashboard_export_csv' %}?section=partner_approvals" class="btn-table-view"
+        style="padding: 5px 12px; font-size: 0.78rem; text-decoration: none; color: #a855f7; border-color: rgba(168,85,247,0.35);" title="Export Partner Applications to CSV">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Export Table CSV</span>
+      </a>
     </div>
   </div>
 

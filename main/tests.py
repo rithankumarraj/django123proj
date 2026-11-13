@@ -4766,6 +4766,171 @@ class DailyPromoPopupTests(TestCase):
         self.assertNotContains(resp_disabled, "dailyPromoModal")
 
 
+class TableCsvExportsTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff_user = User.objects.create_user(
+            username="export_admin", email="admin@export.com", password="password123", is_staff=True
+        )
+        self.normal_user = User.objects.create_user(
+            username="regular_shopper", email="shopper@export.com", password="password123"
+        )
+        self.driver_user = User.objects.create_user(
+            username="delivery_pro", email="pro@driver.com", password="password123"
+        )
+        self.driver_profile = DeliveryProfile.objects.create(
+            user=self.driver_user,
+            phone="9876501234",
+            vehicle_type="bike",
+            vehicle_number="TN-01-AB-9999",
+            driving_license="DL12345678",
+            aadhar_number="9876-5432-1098",
+            serviceable_pincodes="600001, 600002",
+            status="pending",
+            is_approved=False,
+        )
+        self.product = Product.objects.create(
+            name="Ginger Fizz Can",
+            price=Decimal("90.00"),
+            cost_price=Decimal("60.00"),
+            category="ginger_fizz",
+            available=True,
+        )
+        self.pending_order = Order.objects.create(
+            customer=self.normal_user,
+            customer_name="John Shopper",
+            customer_phone="9876543210",
+            delivery_address="12 Ocean Drive",
+            delivery_city="Chennai",
+            delivery_postal_code="600001",
+            product=self.product,
+            quantity=3,
+            total_amount=Decimal("270.00"),
+            status="pending",
+            payment_status="paid",
+        )
+        self.packed_order = Order.objects.create(
+            customer=self.normal_user,
+            customer_name="Mary Jane",
+            customer_phone="9123456789",
+            delivery_address="34 Marina View",
+            delivery_city="Chennai",
+            delivery_postal_code="600002",
+            product=self.product,
+            quantity=2,
+            total_amount=Decimal("180.00"),
+            status="packed",
+            payment_status="paid",
+        )
+
+    def test_anonymous_and_non_staff_denied_from_exports(self):
+        endpoints = [
+            reverse("admin_reports_export_csv"),
+            reverse("admin_orders_export_csv"),
+            reverse("admin_dashboard_export_csv"),
+        ]
+        for url in endpoints:
+            with self.subTest(url=url):
+                # Anonymous
+                resp_anon = self.client.get(url)
+                self.assertEqual(resp_anon.status_code, 302)
+
+                # Non-staff
+                self.client.force_login(self.normal_user)
+                resp_norm = self.client.get(url)
+                self.assertEqual(resp_norm.status_code, 302)
+
+    def test_admin_reports_table_csv_exports(self):
+        self.client.force_login(self.staff_user)
+
+        # 1. Full report
+        resp_all = self.client.get(f"{reverse('admin_reports_export_csv')}?table=all")
+        self.assertEqual(resp_all.status_code, 200)
+        self.assertEqual(resp_all["Content-Type"], "text/csv")
+        content_all = resp_all.content.decode("utf-8")
+        self.assertIn("J CSD SALES & PROFIT/LOSS REPORT", content_all)
+        self.assertIn("Ginger Fizz Can", content_all)
+
+        # 2. Table: Selling Most
+        resp_selling = self.client.get(f"{reverse('admin_reports_export_csv')}?table=selling_most")
+        self.assertEqual(resp_selling.status_code, 200)
+        content_selling = resp_selling.content.decode("utf-8")
+        self.assertIn("Rank,Product Name,Category", content_selling)
+        self.assertIn("Ginger Fizz Can", content_selling)
+
+        # 3. Table: Buying Most
+        resp_buying = self.client.get(f"{reverse('admin_reports_export_csv')}?table=buying_most")
+        self.assertEqual(resp_buying.status_code, 200)
+        content_buying = resp_buying.content.decode("utf-8")
+        self.assertIn("Orders Appeared In", content_buying)
+        self.assertIn("Order Inclusion Rate", content_buying)
+
+        # 4. Table: Categories
+        resp_cat = self.client.get(f"{reverse('admin_reports_export_csv')}?table=categories")
+        self.assertEqual(resp_cat.status_code, 200)
+        content_cat = resp_cat.content.decode("utf-8")
+        self.assertIn("Category,Units Sold", content_cat)
+
+        # 5. Table: Orders Log
+        resp_log = self.client.get(f"{reverse('admin_reports_export_csv')}?table=orders_log")
+        self.assertEqual(resp_log.status_code, 200)
+        content_log = resp_log.content.decode("utf-8")
+        self.assertIn("John Shopper", content_log)
+        self.assertIn("Order Net Profit", content_log)
+
+    def test_admin_customer_orders_csv_export(self):
+        self.client.force_login(self.staff_user)
+
+        # Export all orders
+        resp = self.client.get(reverse("admin_orders_export_csv"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/csv")
+        content = resp.content.decode("utf-8")
+        self.assertIn("John Shopper", content)
+        self.assertIn("Mary Jane", content)
+        self.assertIn("12 Ocean Drive", content)
+
+        # Export filtered by status=pending
+        resp_pending = self.client.get(f"{reverse('admin_orders_export_csv')}?status=pending")
+        self.assertEqual(resp_pending.status_code, 200)
+        content_pending = resp_pending.content.decode("utf-8")
+        self.assertIn("John Shopper", content_pending)
+        self.assertNotIn("Mary Jane", content_pending)
+
+    def test_admin_dashboard_csv_exports(self):
+        self.client.force_login(self.staff_user)
+
+        # 1. Full dashboard workbook
+        resp_dash_all = self.client.get(reverse("admin_dashboard_export_csv"))
+        self.assertEqual(resp_dash_all.status_code, 200)
+        self.assertEqual(resp_dash_all["Content-Type"], "text/csv")
+        content_dash_all = resp_dash_all.content.decode("utf-8")
+        self.assertIn("NEW INCOMING ORDERS", content_dash_all)
+        self.assertIn("DELIVERY DISPATCH QUEUE", content_dash_all)
+        self.assertIn("DELIVERY PARTNER APPROVAL REQUESTS", content_dash_all)
+
+        # 2. Section: new_orders
+        resp_new = self.client.get(f"{reverse('admin_dashboard_export_csv')}?section=new_orders")
+        self.assertEqual(resp_new.status_code, 200)
+        content_new = resp_new.content.decode("utf-8")
+        self.assertIn("John Shopper", content_new)
+        self.assertNotIn("Mary Jane", content_new)
+
+        # 3. Section: delivery_requested
+        resp_deliv = self.client.get(f"{reverse('admin_dashboard_export_csv')}?section=delivery_requested")
+        self.assertEqual(resp_deliv.status_code, 200)
+        content_deliv = resp_deliv.content.decode("utf-8")
+        self.assertIn("Mary Jane", content_deliv)
+        self.assertNotIn("John Shopper", content_deliv)
+
+        # 4. Section: partner_approvals
+        resp_part = self.client.get(f"{reverse('admin_dashboard_export_csv')}?section=partner_approvals")
+        self.assertEqual(resp_part.status_code, 200)
+        content_part = resp_part.content.decode("utf-8")
+        self.assertIn("delivery_pro", content_part)
+        self.assertIn("TN-01-AB-9999", content_part)
+
+
 
 
 

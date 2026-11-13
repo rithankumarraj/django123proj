@@ -6,13 +6,13 @@
 
 {% block topbar_actions %}
   <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-    <a href="{% url 'admin_reports_export_csv' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+    <a href="{% url 'admin_reports_export_csv' %}?table=all{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;" title="Export complete multi-table financial report to CSV">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
         <polyline points="7 10 12 15 17 10"></polyline>
         <line x1="12" y1="15" x2="12" y2="3"></line>
       </svg>
-      <span>Export CSV</span>
+      <span>Export Full Report (CSV)</span>
     </a>
     <button type="button" onclick="window.print()" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.8rem; cursor: pointer;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -460,6 +460,14 @@
         Ranked by total cans/units sold, total revenue earned, inventory cost, and net profit contribution.
       </p>
     </div>
+    <a href="{% url 'admin_reports_export_csv' %}?table=selling_most{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.76rem; text-decoration: none;" title="Export Volume & Sales Ranking Table to CSV">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Export Table CSV</span>
+    </a>
   </div>
 
   <div style="overflow-x: auto;">
@@ -561,6 +569,14 @@
         Identifies which products customers add to cart most frequently across completed transactions and average cans per order.
       </p>
     </div>
+    <a href="{% url 'admin_reports_export_csv' %}?table=buying_most{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.76rem; text-decoration: none;" title="Export Buying Frequency Table to CSV">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Export Table CSV</span>
+    </a>
   </div>
 
   <div style="overflow-x: auto;">
@@ -632,6 +648,14 @@
       </svg>
       <span>Category Breakdown</span>
     </h2>
+    <a href="{% url 'admin_reports_export_csv' %}?table=categories{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.76rem; text-decoration: none;" title="Export Category Breakdown to CSV">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Export Table CSV</span>
+    </a>
   </div>
 
   <div style="overflow-x: auto;">
@@ -688,6 +712,14 @@
         Realized revenue, product costs, and individual profit generated per order.
       </p>
     </div>
+    <a href="{% url 'admin_reports_export_csv' %}?table=orders_log{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.76rem; text-decoration: none;" title="Export Orders Profitability Log to CSV">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Export Table CSV</span>
+    </a>
   </div>
 
   <div style="overflow-x: auto;">

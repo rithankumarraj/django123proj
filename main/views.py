@@ -3635,24 +3635,12 @@ def admin_users(request):
     return render(request, "main/admin_users.html", context)
 
 
-@login_required
-def admin_reports(request):
+def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str=None):
     """
-    Admin view for sales, profit/loss, and product purchase/selling performance report.
-    - Shows Profit / Loss with gross revenue, cost of goods sold (COGS), discounts, net profit, and margin %.
-    - Shows "Which Product Sells More" (highest unit sales and revenue generation).
-    - Shows "Which Product is More Buying" (highest order inclusion rate and frequency).
-    - Category breakdown, fulfillment status, and payment mode analysis.
-    - Time range filtering (All time, Today, Last 7 days, Last 30 days, Year, Custom range).
+    Computes aggregated sales, COGS, profit/loss, and product ranking data for reports.
     """
-    if not request.user.is_staff:
-        return redirect("home")
-
     from datetime import datetime
 
-    range_filter = request.GET.get("range", "all")
-    start_date_str = (request.GET.get("start_date") or "").strip()
-    end_date_str = (request.GET.get("end_date") or "").strip()
     now = timezone.now()
     today = timezone.localdate()
 
@@ -3883,13 +3871,9 @@ def admin_reports(request):
 
     category_report_list.sort(key=lambda x: x["revenue"], reverse=True)
 
-    # 1. Which product sells more (Ranked by Units Sold & Revenue)
     products_selling_most = sorted(product_report_list, key=lambda x: (x["units_sold"], x["revenue"]), reverse=True)
-
-    # 2. Which product is more buying (Ranked by Order Inclusion & Frequency)
     products_buying_most = sorted(product_report_list, key=lambda x: (x["orders_count"], x["units_sold"]), reverse=True)
 
-    # Net Profit / Loss Financials
     net_profit = gross_sales - total_cogs
     if gross_sales > Decimal("0.00"):
         overall_margin_pct = ((net_profit / gross_sales) * Decimal("100")).quantize(Decimal("0.1"))
@@ -3901,10 +3885,9 @@ def admin_reports(request):
 
     order_audit_rows.sort(key=lambda x: x["created_at"], reverse=True)
 
-    context = {
-        "active_page": "reports",
-        "filter_label": filter_label,
+    return {
         "range_filter": range_filter,
+        "filter_label": filter_label,
         "start_date": start_date_str,
         "end_date": end_date_str,
         "gross_sales": gross_sales,
@@ -3931,7 +3914,60 @@ def admin_reports(request):
         "products_selling_most": products_selling_most,
         "products_buying_most": products_buying_most,
         "category_report_list": category_report_list,
-        "order_audit_rows": order_audit_rows[:25],
+        "order_audit_rows": order_audit_rows,
+    }
+
+
+@login_required
+def admin_reports(request):
+    """
+    Admin view for sales, profit/loss, and product purchase/selling performance report.
+    - Shows Profit / Loss with gross revenue, cost of goods sold (COGS), discounts, net profit, and margin %.
+    - Shows "Which Product Sells More" (highest unit sales and revenue generation).
+    - Shows "Which Product is More Buying" (highest order inclusion rate and frequency).
+    - Category breakdown, fulfillment status, and payment mode analysis.
+    - Time range filtering (All time, Today, Last 7 days, Last 30 days, Year, Custom range).
+    """
+    if not request.user.is_staff:
+        return redirect("home")
+
+    range_filter = request.GET.get("range", "all")
+    start_date_str = (request.GET.get("start_date") or "").strip()
+    end_date_str = (request.GET.get("end_date") or "").strip()
+
+    data = _get_sales_report_data(range_filter, start_date_str, end_date_str)
+
+    context = {
+        "active_page": "reports",
+        "filter_label": data["filter_label"],
+        "range_filter": data["range_filter"],
+        "start_date": data["start_date"],
+        "end_date": data["end_date"],
+        "gross_sales": data["gross_sales"],
+        "total_cogs": data["total_cogs"],
+        "total_discounts": data["total_discounts"],
+        "total_shipping_revenue": data["total_shipping_revenue"],
+        "total_packing_revenue": data["total_packing_revenue"],
+        "net_profit": data["net_profit"],
+        "overall_margin_pct": data["overall_margin_pct"],
+        "is_profitable": data["is_profitable"],
+        "avg_order_value": data["avg_order_value"],
+        "total_units_sold": data["total_units_sold"],
+        "total_orders_in_period": data["total_orders_in_period"],
+        "active_orders_count": data["active_orders_count"],
+        "delivered_orders_count": data["delivered_orders_count"],
+        "shipped_orders_count": data["shipped_orders_count"],
+        "packed_orders_count": data["packed_orders_count"],
+        "pending_orders_count": data["pending_orders_count"],
+        "cancelled_orders_count": data["cancelled_orders_count"],
+        "online_orders_count": data["online_orders_count"],
+        "online_orders_revenue": data["online_orders_revenue"],
+        "cod_orders_count": data["cod_orders_count"],
+        "cod_orders_revenue": data["cod_orders_revenue"],
+        "products_selling_most": data["products_selling_most"],
+        "products_buying_most": data["products_buying_most"],
+        "category_report_list": data["category_report_list"],
+        "order_audit_rows": data["order_audit_rows"][:25],
     }
     return render(request, "main/admin_reports.html", context)
 
@@ -3939,81 +3975,507 @@ def admin_reports(request):
 @login_required
 def admin_reports_export_csv(request):
     """
-    Exports product sales and profit/loss report as a clean CSV download.
+    Exports product sales and profit/loss report as CSV downloads.
+    Supports individual table export via ?table=selling_most, ?table=buying_most,
+    ?table=categories, ?table=orders_log, or ?table=all (default).
     """
     if not request.user.is_staff:
         return redirect("home")
     import csv
 
+    range_filter = request.GET.get("range", "all")
+    start_date_str = (request.GET.get("start_date") or "").strip()
+    end_date_str = (request.GET.get("end_date") or "").strip()
+    table = request.GET.get("table", "all").strip().lower()
+
+    data = _get_sales_report_data(range_filter, start_date_str, end_date_str)
+    date_str = str(timezone.localdate())
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="jcsd_profit_loss_report_{timezone.localdate()}.csv"'
+
+    if table == "selling_most":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_product_sales_ranking_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Rank",
+            "Product Name",
+            "Category",
+            "Cost Price (INR)",
+            "Selling Price (INR)",
+            "Units Sold",
+            "Gross Revenue (INR)",
+            "Product Cost (INR)",
+            "Net Profit (INR)",
+            "Profit Margin (%)",
+        ])
+        for idx, p in enumerate(data["products_selling_most"], 1):
+            writer.writerow([
+                idx,
+                p["name"],
+                p["category"],
+                f"{p['cost_price']:.2f}",
+                f"{p['selling_price']:.2f}",
+                p["units_sold"],
+                f"{p['revenue']:.2f}",
+                f"{p['cost']:.2f}",
+                f"{p['profit']:.2f}",
+                f"{p['margin_pct']}%",
+            ])
+        return response
+
+    elif table == "buying_most":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_product_buying_frequency_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Rank",
+            "Product Name",
+            "Category",
+            "Orders Appeared In",
+            "Total Orders in Period",
+            "Order Inclusion Rate (%)",
+            "Average Cans Per Order",
+            "Cart Popularity Status",
+        ])
+        for idx, p in enumerate(data["products_buying_most"], 1):
+            status = "High Cart Demand" if p["inclusion_rate_pct"] >= 40 else ("Regular Selection" if p["inclusion_rate_pct"] >= 20 else "Niche Choice")
+            writer.writerow([
+                idx,
+                p["name"],
+                p["category"],
+                p["orders_count"],
+                data["active_orders_count"],
+                f"{p['inclusion_rate_pct']}%",
+                f"{p['avg_units_per_order']}",
+                status,
+            ])
+        return response
+
+    elif table == "categories":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_category_breakdown_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Category",
+            "Units Sold",
+            "Store Volume Share (%)",
+            "Gross Revenue (INR)",
+            "Inventory Cost (INR)",
+            "Net Profit (INR)",
+            "Profit Margin (%)",
+        ])
+        for cat in data["category_report_list"]:
+            writer.writerow([
+                cat["name"],
+                cat["units_sold"],
+                f"{cat['share_pct']}%",
+                f"{cat['revenue']:.2f}",
+                f"{cat['cost']:.2f}",
+                f"{cat['profit']:.2f}",
+                f"{cat['margin_pct']}%",
+            ])
+        return response
+
+    elif table == "orders_log":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_orders_profitability_log_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Order #",
+            "Customer Name",
+            "Date Placed",
+            "Items Summary",
+            "Fulfillment Status",
+            "Payment Status",
+            "Gross Revenue (INR)",
+            "Product Cost (INR)",
+            "Order Net Profit (INR)",
+        ])
+        for r in data["order_audit_rows"]:
+            writer.writerow([
+                f"#{r['order_number']}",
+                r["customer_name"],
+                r["created_at"].strftime("%Y-%m-%d %H:%M"),
+                r["items_display"],
+                r["status_display"],
+                r["payment_status"].capitalize() if r["payment_status"] else "Pending",
+                f"{r['revenue']:.2f}",
+                f"{r['cost']:.2f}",
+                f"{r['profit']:.2f}",
+            ])
+        return response
+
+    else:
+        # Full Comprehensive Sales & Profit/Loss Report
+        response["Content-Disposition"] = f'attachment; filename="jcsd_full_sales_report_{date_str}.csv"'
+        writer = csv.writer(response)
+
+        # Overview summary
+        writer.writerow(["=== J CSD SALES & PROFIT/LOSS REPORT ==="])
+        writer.writerow(["Reporting Period", data["filter_label"]])
+        writer.writerow(["Gross Revenue (INR)", f"{data['gross_sales']:.2f}"])
+        writer.writerow(["Total Cost of Goods Sold (INR)", f"{data['total_cogs']:.2f}"])
+        writer.writerow(["Net Realized Profit (INR)", f"{data['net_profit']:.2f}"])
+        writer.writerow(["Profit Margin (%)", f"{data['overall_margin_pct']}%"])
+        writer.writerow(["Total Units Sold (Cans)", data["total_units_sold"]])
+        writer.writerow(["Total Active Orders", data["active_orders_count"]])
+        writer.writerow([])
+
+        # Table 1: Which Product Sells More
+        writer.writerow(["=== TABLE 1: WHICH PRODUCT SELLS MORE (VOLUME & SALES RANKING) ==="])
+        writer.writerow([
+            "Rank", "Product Name", "Category", "Cost Price (INR)", "Selling Price (INR)",
+            "Units Sold", "Gross Revenue (INR)", "Product Cost (INR)", "Net Profit (INR)", "Margin (%)"
+        ])
+        for idx, p in enumerate(data["products_selling_most"], 1):
+            writer.writerow([
+                idx, p["name"], p["category"], f"{p['cost_price']:.2f}", f"{p['selling_price']:.2f}",
+                p["units_sold"], f"{p['revenue']:.2f}", f"{p['cost']:.2f}", f"{p['profit']:.2f}", f"{p['margin_pct']}%"
+            ])
+
+        writer.writerow([])
+        # Table 2: Which Product is More Buying
+        writer.writerow(["=== TABLE 2: WHICH PRODUCT IS MORE BUYING (CART POPULARITY & FREQUENCY) ==="])
+        writer.writerow([
+            "Rank", "Product Name", "Category", "Orders Appeared In", "Total Orders",
+            "Inclusion Rate (%)", "Avg Units / Order", "Demand Status"
+        ])
+        for idx, p in enumerate(data["products_buying_most"], 1):
+            status = "High Cart Demand" if p["inclusion_rate_pct"] >= 40 else ("Regular Selection" if p["inclusion_rate_pct"] >= 20 else "Niche Choice")
+            writer.writerow([
+                idx, p["name"], p["category"], p["orders_count"], data["active_orders_count"],
+                f"{p['inclusion_rate_pct']}%", f"{p['avg_units_per_order']}", status
+            ])
+
+        writer.writerow([])
+        # Table 3: Category Breakdown
+        writer.writerow(["=== TABLE 3: CATEGORY PERFORMANCE BREAKDOWN ==="])
+        writer.writerow([
+            "Category", "Units Sold", "Volume Share (%)", "Gross Revenue (INR)", "Inventory Cost (INR)", "Net Profit (INR)", "Margin (%)"
+        ])
+        for cat in data["category_report_list"]:
+            writer.writerow([
+                cat["name"], cat["units_sold"], f"{cat['share_pct']}%", f"{cat['revenue']:.2f}",
+                f"{cat['cost']:.2f}", f"{cat['profit']:.2f}", f"{cat['margin_pct']}%"
+            ])
+
+        writer.writerow([])
+        # Table 4: Orders Profitability Log
+        writer.writerow(["=== TABLE 4: RECENT ORDERS PROFITABILITY AUDIT LOG ==="])
+        writer.writerow([
+            "Order #", "Customer Name", "Placed At", "Items Summary", "Fulfillment Status", "Payment Status",
+            "Gross Revenue (INR)", "Cost (INR)", "Order Net Profit (INR)"
+        ])
+        for r in data["order_audit_rows"]:
+            writer.writerow([
+                f"#{r['order_number']}", r["customer_name"], r["created_at"].strftime("%Y-%m-%d %H:%M"),
+                r["items_display"], r["status_display"], r["payment_status"].capitalize() if r["payment_status"] else "Pending",
+                f"{r['revenue']:.2f}", f"{r['cost']:.2f}", f"{r['profit']:.2f}"
+            ])
+
+        return response
+
+
+@login_required
+def admin_orders_export_csv(request):
+    """
+    Exports customer orders as a CSV download.
+    Supports filtering by ?status=... and search query ?q=...
+    """
+    if not request.user.is_staff:
+        return redirect("home")
+    import csv
+
+    status_filter = request.GET.get("status", "all").strip().lower()
+    if status_filter == "returned":
+        status_filter = "cancelled"
+    search_query = request.GET.get("q", "").strip()
+
+    orders_queryset = (
+        Order.objects.select_related("product", "delivery_user", "customer")
+        .prefetch_related("items__product")
+        .order_by("-created_at")
+    )
+
+    valid_statuses = {choice for choice, _ in Order.STATUS_CHOICES}
+    if status_filter in valid_statuses:
+        filtered_orders = orders_queryset.filter(status=status_filter)
+    else:
+        status_filter = "all"
+        filtered_orders = orders_queryset
+
+    if search_query:
+        clean_search = search_query.removeprefix("#").strip()
+        filtered_orders = filtered_orders.filter(
+            Q(order_number__icontains=clean_search)
+            | Q(id__icontains=clean_search)
+            | Q(customer_name__icontains=search_query)
+            | Q(customer_phone__icontains=search_query)
+            | Q(delivery_address__icontains=search_query)
+            | Q(delivery_city__icontains=search_query)
+        )
+
+    response = HttpResponse(content_type="text/csv")
+    status_slug = status_filter if status_filter != "all" else "all_orders"
+    response["Content-Disposition"] = f'attachment; filename="jcsd_customer_orders_{status_slug}_{timezone.localdate()}.csv"'
 
     writer = csv.writer(response)
     writer.writerow([
-        "Product Name",
-        "Category",
-        "Cost Price (INR)",
-        "Selling Price (INR)",
-        "Units Sold",
-        "Order Count",
-        "Inclusion Rate (%)",
-        "Gross Revenue (INR)",
-        "Total Cost (INR)",
-        "Net Profit (INR)",
-        "Margin (%)",
+        "Order #",
+        "Date Placed",
+        "Customer Name",
+        "Customer Phone",
+        "Customer Email",
+        "Delivery Address",
+        "City",
+        "Postal Code",
+        "Items Ordered",
+        "Total Quantity",
+        "Order Total (INR)",
+        "Payment Status",
+        "Order Status",
+        "Assigned Delivery Partner",
+        "Partner Phone",
     ])
 
-    active_orders = list(Order.objects.exclude(status="cancelled").prefetch_related("items", "items__product"))
-    all_products = Product.objects.all()
-    stats = {}
-    for p in all_products:
-        stats[p.id] = {
-            "name": p.name,
-            "category": p.category_display,
-            "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
-            "selling_price": p.price,
-            "units": 0,
-            "orders": set(),
-            "revenue": Decimal("0.00"),
-            "cost": Decimal("0.00"),
-        }
+    for o in filtered_orders:
+        items = list(o.items.all())
+        if items:
+            items_str = ", ".join(f"{it.quantity}x {it.product.name}" for it in items)
+            total_qty = sum(it.quantity for it in items)
+        elif o.product:
+            items_str = f"{o.quantity}x {o.product.name}"
+            total_qty = o.quantity
+        else:
+            items_str = f"{o.quantity}x Drink"
+            total_qty = o.quantity
 
-    for o in active_orders:
-        if o.items.exists():
-            for it in o.items.all():
-                pid = it.product_id
-                if pid in stats:
-                    stats[pid]["units"] += it.quantity
-                    stats[pid]["orders"].add(o.id)
-                    stats[pid]["revenue"] += it.line_total
-                    stats[pid]["cost"] += it.quantity * stats[pid]["cost_price"]
-        elif o.product_id and o.product_id in stats:
-            pid = o.product_id
-            stats[pid]["units"] += o.quantity
-            stats[pid]["orders"].add(o.id)
-            stats[pid]["revenue"] += o.quantity * stats[pid]["selling_price"]
-            stats[pid]["cost"] += o.quantity * stats[pid]["cost_price"]
+        driver_name = o.delivery_user.get_full_name() or o.delivery_user.username if o.delivery_user else "Unassigned"
+        driver_phone = ""
+        if o.delivery_user and hasattr(o.delivery_user, "delivery_profile"):
+            driver_phone = getattr(o.delivery_user.delivery_profile, "phone", "")
 
-    total_orders = len(active_orders) or 1
-    for pinfo in sorted(stats.values(), key=lambda x: x["units"], reverse=True):
-        profit = pinfo["revenue"] - pinfo["cost"]
-        margin = round((profit / pinfo["revenue"] * 100), 1) if pinfo["revenue"] > 0 else 0
-        inc_rate = round((len(pinfo["orders"]) / total_orders * 100), 1)
+        customer_email = o.customer.email if o.customer and o.customer.email else ""
+
         writer.writerow([
-            pinfo["name"],
-            pinfo["category"],
-            f"{pinfo['cost_price']:.2f}",
-            f"{pinfo['selling_price']:.2f}",
-            pinfo["units"],
-            len(pinfo["orders"]),
-            f"{inc_rate}%",
-            f"{pinfo['revenue']:.2f}",
-            f"{pinfo['cost']:.2f}",
-            f"{profit:.2f}",
-            f"{margin}%",
+            f"#{o.order_number or o.id}",
+            o.created_at.strftime("%Y-%m-%d %H:%M"),
+            o.customer_name,
+            o.customer_phone,
+            customer_email,
+            o.delivery_address,
+            o.delivery_city,
+            o.delivery_postal_code,
+            items_str,
+            total_qty,
+            f"{o.total_amount:.2f}",
+            o.payment_status.capitalize() if o.payment_status else "Pending",
+            o.get_status_display(),
+            driver_name,
+            driver_phone,
         ])
 
     return response
+
+
+@login_required
+def admin_dashboard_export_csv(request):
+    """
+    Exports Operations Dashboard tables to CSV.
+    Supports ?section=new_orders, ?section=delivery_requested, ?section=partner_approvals, or ?section=all
+    """
+    if not request.user.is_staff:
+        return redirect("home")
+    import csv
+
+    section = request.GET.get("section", "all").strip().lower()
+    response = HttpResponse(content_type="text/csv")
+    date_str = str(timezone.localdate())
+
+    if section == "new_orders":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_dashboard_new_orders_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Order #",
+            "Placed At",
+            "Customer Name",
+            "Customer Phone",
+            "Customer Email",
+            "Items Ordered",
+            "Total Quantity",
+            "Total Amount (INR)",
+            "Payment Status",
+            "Delivery Address",
+            "City",
+            "Postal Code",
+        ])
+        orders = (
+            Order.objects.filter(status="pending")
+            .select_related("product", "customer")
+            .prefetch_related("items__product")
+            .order_by("-created_at")
+        )
+        for o in orders:
+            items = list(o.items.all())
+            items_str = ", ".join(f"{it.quantity}x {it.product.name}" for it in items) if items else (f"{o.quantity}x {o.product.name}" if o.product else f"{o.quantity}x Drink")
+            total_qty = sum(it.quantity for it in items) if items else o.quantity
+            email = o.customer.email if o.customer and o.customer.email else ""
+            writer.writerow([
+                f"#{o.order_number or o.id}",
+                o.created_at.strftime("%Y-%m-%d %H:%M"),
+                o.customer_name,
+                o.customer_phone,
+                email,
+                items_str,
+                total_qty,
+                f"{o.total_amount:.2f}",
+                o.payment_status.capitalize() if o.payment_status else "Pending",
+                o.delivery_address,
+                o.delivery_city,
+                o.delivery_postal_code,
+            ])
+        return response
+
+    elif section == "delivery_requested":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_dashboard_delivery_requested_orders_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Order #",
+            "Placed At",
+            "Customer Name",
+            "Customer Phone",
+            "Destination Address",
+            "City",
+            "Postal Code",
+            "Items Ordered",
+            "Total Quantity",
+            "Total Amount (INR)",
+            "Delivery Status",
+            "Assigned Driver",
+            "Driver Phone",
+        ])
+        orders = (
+            Order.objects.filter(status__in=["packed", "shipped", "out_for_delivery"])
+            .select_related("product", "delivery_user", "customer")
+            .prefetch_related("items__product")
+            .order_by("-created_at")
+        )
+        for o in orders:
+            items = list(o.items.all())
+            items_str = ", ".join(f"{it.quantity}x {it.product.name}" for it in items) if items else (f"{o.quantity}x {o.product.name}" if o.product else f"{o.quantity}x Drink")
+            total_qty = sum(it.quantity for it in items) if items else o.quantity
+            driver_name = o.delivery_user.get_full_name() or o.delivery_user.username if o.delivery_user else "Unassigned"
+            driver_phone = getattr(o.delivery_user.delivery_profile, "phone", "") if (o.delivery_user and hasattr(o.delivery_user, "delivery_profile")) else ""
+            writer.writerow([
+                f"#{o.order_number or o.id}",
+                o.created_at.strftime("%Y-%m-%d %H:%M"),
+                o.customer_name,
+                o.customer_phone,
+                o.delivery_address,
+                o.delivery_city,
+                o.delivery_postal_code,
+                items_str,
+                total_qty,
+                f"{o.total_amount:.2f}",
+                o.get_status_display(),
+                driver_name,
+                driver_phone,
+            ])
+        return response
+
+    elif section == "partner_approvals":
+        response["Content-Disposition"] = f'attachment; filename="jcsd_dashboard_partner_requests_{date_str}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            "Applicant Name",
+            "Username",
+            "Email",
+            "Phone",
+            "City / Address",
+            "Vehicle Type",
+            "Vehicle Number",
+            "Driving Licence",
+            "Aadhaar Number",
+            "Serviceable PINs",
+            "Applied Date",
+            "Verification Status",
+        ])
+        profiles = (
+            DeliveryProfile.objects.filter(Q(status="pending") | Q(is_approved=False))
+            .select_related("user")
+            .order_by("-created_at")
+        )
+        for p in profiles:
+            name = p.user.get_full_name() or p.user.username
+            writer.writerow([
+                name,
+                p.user.username,
+                p.user.email,
+                p.phone,
+                p.address,
+                p.get_vehicle_type_display(),
+                p.vehicle_number,
+                p.driving_license,
+                p.aadhar_number,
+                p.serviceable_pincodes or "All Areas",
+                p.created_at.strftime("%Y-%m-%d %H:%M"),
+                p.status.capitalize(),
+            ])
+        return response
+
+    else:
+        # Combined full operations dashboard workbook
+        response["Content-Disposition"] = f'attachment; filename="jcsd_dashboard_operations_full_{date_str}.csv"'
+        writer = csv.writer(response)
+
+        # 1. New Orders
+        writer.writerow(["=== 1. NEW INCOMING ORDERS (ACTION REQUIRED) ==="])
+        writer.writerow([
+            "Order #", "Placed At", "Customer Name", "Customer Phone", "Customer Email",
+            "Items Ordered", "Total Quantity", "Total Amount (INR)", "Payment Status", "Delivery Address", "City", "PIN Code"
+        ])
+        for o in Order.objects.filter(status="pending").select_related("customer").order_by("-created_at"):
+            items = list(o.items.all())
+            items_str = ", ".join(f"{it.quantity}x {it.product.name}" for it in items) if items else (f"{o.quantity}x {o.product.name}" if o.product else f"{o.quantity}x Drink")
+            total_qty = sum(it.quantity for it in items) if items else o.quantity
+            email = o.customer.email if o.customer and o.customer.email else ""
+            writer.writerow([
+                f"#{o.order_number or o.id}", o.created_at.strftime("%Y-%m-%d %H:%M"),
+                o.customer_name, o.customer_phone, email, items_str, total_qty, f"{o.total_amount:.2f}",
+                o.payment_status.capitalize() if o.payment_status else "Pending",
+                o.delivery_address, o.delivery_city, o.delivery_postal_code
+            ])
+
+        writer.writerow([])
+        # 2. Delivery Queue
+        writer.writerow(["=== 2. DELIVERY DISPATCH QUEUE (PACKED & IN TRANSIT) ==="])
+        writer.writerow([
+            "Order #", "Placed At", "Customer Name", "Customer Phone", "Destination", "City", "PIN Code",
+            "Items Ordered", "Total Quantity", "Total Amount (INR)", "Delivery Status", "Assigned Driver", "Driver Phone"
+        ])
+        for o in Order.objects.filter(status__in=["packed", "shipped", "out_for_delivery"]).select_related("delivery_user").order_by("-created_at"):
+            items = list(o.items.all())
+            items_str = ", ".join(f"{it.quantity}x {it.product.name}" for it in items) if items else (f"{o.quantity}x {o.product.name}" if o.product else f"{o.quantity}x Drink")
+            total_qty = sum(it.quantity for it in items) if items else o.quantity
+            driver_name = o.delivery_user.get_full_name() or o.delivery_user.username if o.delivery_user else "Unassigned"
+            driver_phone = getattr(o.delivery_user.delivery_profile, "phone", "") if (o.delivery_user and hasattr(o.delivery_user, "delivery_profile")) else ""
+            writer.writerow([
+                f"#{o.order_number or o.id}", o.created_at.strftime("%Y-%m-%d %H:%M"),
+                o.customer_name, o.customer_phone, o.delivery_address, o.delivery_city, o.delivery_postal_code,
+                items_str, total_qty, f"{o.total_amount:.2f}", o.get_status_display(), driver_name, driver_phone
+            ])
+
+        writer.writerow([])
+        # 3. Partner Requests
+        writer.writerow(["=== 3. DELIVERY PARTNER APPROVAL REQUESTS ==="])
+        writer.writerow([
+            "Applicant Name", "Username", "Email", "Phone", "City / Address", "Vehicle Type",
+            "Vehicle Number", "Licence #", "Aadhaar #", "PIN Codes", "Applied Date", "Status"
+        ])
+        for p in DeliveryProfile.objects.filter(Q(status="pending") | Q(is_approved=False)).select_related("user").order_by("-created_at"):
+            writer.writerow([
+                p.user.get_full_name() or p.user.username, p.user.username, p.user.email, p.phone,
+                p.address, p.get_vehicle_type_display(), p.vehicle_number, p.driving_license, p.aadhar_number,
+                p.serviceable_pincodes or "All Areas", p.created_at.strftime("%Y-%m-%d %H:%M"), p.status.capitalize()
+            ])
+
+        return response
 
 
 

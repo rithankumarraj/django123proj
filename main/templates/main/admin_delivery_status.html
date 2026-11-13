@@ -5,6 +5,17 @@
 {% block page_heading %}Customer Orders{% endblock %}
 {% block page_description %}Monitor live customer orders, verify destination addresses, and update fulfillment statuses.{% endblock %}
 
+{% block topbar_actions %}
+  <a href="{% url 'admin_orders_export_csv' %}?status={{ current_status_filter|default:'all' }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;" title="Export customer orders to CSV">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    <span>Export Orders CSV</span>
+  </a>
+{% endblock %}
+
 {% block admin_content %}
   <style>
     /* Segmented 3 in a row layout for orders stats grid on mobile matching other admin pages */
@@ -144,24 +155,34 @@
         <p class="panel-subtitle">Review shipment progress, pack orders for driver pickup, and track assigned delivery partners.</p>
       </div>
 
-      <!-- Quick Search Bar -->
-      <form method="get" action="{% url 'admin_delivery_status' %}" style="display: flex; gap: 8px; align-items: center; margin: 0;">
-        {% if current_status_filter != 'all' %}
-          <input type="hidden" name="status" value="{{ current_status_filter }}">
-        {% endif %}
-        <input 
-          type="text" 
-          name="q" 
-          value="{{ search_query }}" 
-          placeholder="Search order #, customer..." 
-          class="form-control" 
-          style="padding: 7px 12px; font-size: 0.8rem; width: 220px;"
-        >
-        <button type="submit" class="btn-mini" style="padding: 7px 12px;">Search</button>
-        {% if search_query %}
-          <a href="?status={{ current_status_filter }}" class="btn-mini" title="Clear search">Clear</a>
-        {% endif %}
-      </form>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <!-- Quick Search Bar -->
+        <form method="get" action="{% url 'admin_delivery_status' %}" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+          {% if current_status_filter != 'all' %}
+            <input type="hidden" name="status" value="{{ current_status_filter }}">
+          {% endif %}
+          <input 
+            type="text" 
+            name="q" 
+            value="{{ search_query }}" 
+            placeholder="Search order #, customer..." 
+            class="form-control" 
+            style="padding: 7px 12px; font-size: 0.8rem; width: 190px;"
+          >
+          <button type="submit" class="btn-mini" style="padding: 7px 12px;">Search</button>
+          {% if search_query %}
+            <a href="?status={{ current_status_filter }}" class="btn-mini" title="Clear search">Clear</a>
+          {% endif %}
+        </form>
+        <a href="{% url 'admin_orders_export_csv' %}?status={{ current_status_filter|default:'all' }}{% if search_query %}&q={{ search_query }}{% endif %}" class="btn-mini" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; text-decoration: none; color: #f6be5d; border-color: rgba(246,190,93,0.35);" title="Export currently filtered orders table to CSV">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Export Table CSV</span>
+        </a>
+      </div>
     </div>
 
     <!-- Filter Tabs -->
