@@ -40,7 +40,10 @@
                         <h1>{{ product.name }}</h1>
                         <div class="product-meta-row">
                             <span>{{ product.volume }}</span>
-                            <strong>₹{{ product.price }}</strong>
+                            <div style="display: flex; align-items: baseline; gap: 8px;">
+                                <strong>₹{{ product.price }}</strong>
+                                <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;">(Inclusive of all taxes)</span>
+                            </div>
                         </div>
                         <p class="product-description">{{ product.description }}</p>
 
@@ -52,7 +55,10 @@
                                 <button type="button" class="qty-btn" data-quantity-increase aria-label="Increase quantity">+</button>
                             </div>
                             <div class="summary-row total-row">
-                                <span>Subtotal</span>
+                                <div>
+                                    <span>Subtotal</span>
+                                    <span style="font-size: 0.72rem; color: #64748b; display: block; font-weight: 500;">(Inclusive of all taxes)</span>
+                                </div>
                                 <strong data-quantity-total data-unit-price="{{ product.price }}">₹{{ product.price }}</strong>
                             </div>
 

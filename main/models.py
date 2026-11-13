@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -65,6 +65,12 @@ class Product(models.Model):
         ("energy_drink", "Energy Drink"),
         ("others", "Others"),
     ]
+    GST_CHOICES = [
+        (0, "0%"),
+        (5, "5%"),
+        (18, "18%"),
+        (40, "40%"),
+    ]
 
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=60, default="others")
@@ -76,7 +82,26 @@ class Product(models.Model):
         verbose_name="Cost Price (₹)",
         help_text="Store wholesale/cost price per unit (recommended ₹60.00)."
     )
-    price = models.DecimalField(max_digits=8, decimal_places=2, default=90)
+    gst_rate = models.PositiveIntegerField(
+        default=18,
+        choices=GST_CHOICES,
+        verbose_name="GST Rate (%)",
+        help_text="GST percentage rate (0%, 5%, 18%, or 40%)."
+    )
+    base_price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal("76.27"),
+        verbose_name="Base Price (₹) (Excl. GST)",
+        help_text="Unit selling price before GST."
+    )
+    price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal("90.00"),
+        verbose_name="Selling Price (₹) (Incl. GST)",
+        help_text="Customer retail price inclusive of GST."
+    )
     volume = models.CharField(max_length=20, default="330 ml")
     image = models.CharField(max_length=255)
     available_pincodes = models.TextField(
@@ -89,18 +114,83 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if self.gst_rate is None:
+            self.gst_rate = 18
+        else:
+            try:
+                self.gst_rate = int(self.gst_rate)
+            except (TypeError, ValueError):
+                self.gst_rate = 18
+
+        if self.cost_price is None:
+            self.cost_price = Decimal("60.00")
+        else:
+            try:
+                self.cost_price = Decimal(str(self.cost_price))
+            except (TypeError, ValueError, InvalidOperation):
+                self.cost_price = Decimal("60.00")
+
+        if self.price is not None:
+            try:
+                self.price = Decimal(str(self.price))
+            except (TypeError, ValueError, InvalidOperation):
+                self.price = Decimal("0.00")
+            self.base_price = self.base_price_per_unit
+        elif self.base_price is not None:
+            try:
+                self.base_price = Decimal(str(self.base_price))
+            except (TypeError, ValueError, InvalidOperation):
+                self.base_price = Decimal("0.00")
+            rate = Decimal(str(self.gst_rate or 0))
+            self.price = (self.base_price * (Decimal("1") + rate / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        super().save(*args, **kwargs)
+
+    @property
+    def gst_amount_per_unit(self):
+        try:
+            sp = Decimal(str(self.price)) if self.price is not None else Decimal("0.00")
+        except (TypeError, ValueError, InvalidOperation):
+            sp = Decimal("0.00")
+        try:
+            rate = Decimal(str(self.gst_rate if self.gst_rate is not None else 18))
+        except (TypeError, ValueError, InvalidOperation):
+            rate = Decimal("18")
+        if rate <= Decimal("0"):
+            return Decimal("0.00")
+        factor = Decimal("1") + (rate / Decimal("100"))
+        base = (sp / factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return max(Decimal("0.00"), sp - base)
+
+    @property
+    def base_price_per_unit(self):
+        try:
+            sp = Decimal(str(self.price)) if self.price is not None else Decimal("0.00")
+        except (TypeError, ValueError, InvalidOperation):
+            sp = Decimal("0.00")
+        return max(Decimal("0.00"), sp - self.gst_amount_per_unit)
+
+    @property
+    def net_profit_per_unit(self):
+        try:
+            cp = Decimal(str(self.cost_price)) if self.cost_price is not None else Decimal("60.00")
+        except (TypeError, ValueError, InvalidOperation):
+            cp = Decimal("60.00")
+        return self.base_price_per_unit - cp
+
     @property
     def profit_amount(self):
-        cp = self.cost_price if self.cost_price is not None else Decimal("60.00")
-        sp = self.price if self.price is not None else Decimal("0.00")
-        return max(Decimal("0.00"), sp - cp)
+        return max(Decimal("0.00"), self.net_profit_per_unit)
 
     @property
     def profit_margin_percent(self):
-        cp = self.cost_price if self.cost_price is not None else Decimal("60.00")
-        sp = self.price if self.price is not None else Decimal("0.00")
-        if sp > Decimal("0.00"):
-            return round(((sp - cp) / sp) * Decimal("100.0"), 1)
+        bp = self.base_price_per_unit
+        if bp > Decimal("0.00"):
+            try:
+                cp = Decimal(str(self.cost_price)) if self.cost_price is not None else Decimal("60.00")
+            except (TypeError, ValueError, InvalidOperation):
+                cp = Decimal("60.00")
+            return round(((bp - cp) / bp) * Decimal("100.0"), 1)
         return Decimal("0.0")
 
     def get_available_pincodes_list(self):
@@ -841,13 +931,14 @@ class Order(models.Model):
 
     @property
     def items_subtotal(self):
+        if hasattr(self, "items") and self.items.exists():
+            return sum((item.subtotal for item in self.items.all()), Decimal("0.00"))
         sub = (
             self.total_amount
             + self.discount_amount
             + self.combo_discount
             - self.shipping_fee
             - self.packing_fee
-            - self.gst_amount
         )
         return sub if sub > 0 else self.total_amount
 
@@ -897,6 +988,10 @@ class OrderItem(models.Model):
     @property
     def line_total(self):
         return self.unit_price * self.quantity
+
+    @property
+    def subtotal(self):
+        return self.line_total
 
     def __str__(self):
         return f"{self.product.name} × {self.quantity}"

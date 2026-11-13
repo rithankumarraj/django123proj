@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import os
 import re
 from django import forms
@@ -425,12 +425,26 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ["name", "category", "description", "cost_price", "price", "volume", "image", "available_pincodes", "available"]
+        fields = [
+            "name",
+            "category",
+            "description",
+            "cost_price",
+            "base_price",
+            "gst_rate",
+            "price",
+            "volume",
+            "image",
+            "available_pincodes",
+            "available",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Fresh Lime"}),
             "category": forms.Select(attrs={"class": "form-control", "id": "id_category"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Enter product description..."}),
             "cost_price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "id": "id_cost_price", "placeholder": "60.00"}),
+            "base_price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "id": "id_base_price", "placeholder": "76.27"}),
+            "gst_rate": forms.Select(attrs={"class": "form-control", "id": "id_gst_rate"}),
             "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "id": "id_price", "placeholder": "90.00"}),
             "volume": forms.TextInput(attrs={"class": "form-control", "placeholder": "330 ml"}),
             "image": forms.TextInput(attrs={"class": "form-control", "id": "id_image_path", "placeholder": "main/images/cola.png"}),
@@ -443,10 +457,19 @@ class ProductForm(forms.ModelForm):
         if not self.instance.pk:
             if not self.initial.get("cost_price"):
                 self.initial["cost_price"] = Decimal("60.00")
+            if not self.initial.get("gst_rate"):
+                self.initial["gst_rate"] = 18
+            if not self.initial.get("base_price"):
+                self.initial["base_price"] = Decimal("76.27")
             if not self.initial.get("price"):
                 self.initial["price"] = Decimal("90.00")
             if not self.initial.get("volume"):
                 self.initial["volume"] = "330 ml"
+        else:
+            if self.instance.base_price:
+                self.initial["base_price"] = self.instance.base_price
+            if self.instance.gst_rate is not None:
+                self.initial["gst_rate"] = self.instance.gst_rate
         choices = [
             ("cola", "Cola"),
             ("energy_drink", "Energy Drink"),
@@ -462,6 +485,8 @@ class ProductForm(forms.ModelForm):
         self.fields["category"].choices = choices
         self.fields["image"].required = False
         self.fields["cost_price"].required = False
+        self.fields["gst_rate"].required = False
+        self.fields["base_price"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -499,6 +524,26 @@ class ProductForm(forms.ModelForm):
         image_path = (cleaned_data.get("image") or "").strip()
         if not self.instance.pk and not image_file and not image_path:
             cleaned_data["image"] = "main/images/cola.png"
+
+        gst_rate = cleaned_data.get("gst_rate")
+        if gst_rate is None or gst_rate == "":
+            gst_rate = 18
+            cleaned_data["gst_rate"] = 18
+        try:
+            rate = Decimal(str(gst_rate))
+        except (TypeError, ValueError):
+            rate = Decimal("18")
+            cleaned_data["gst_rate"] = 18
+
+        base_price = cleaned_data.get("base_price")
+        price = cleaned_data.get("price")
+
+        if base_price is not None and (price is None or price == Decimal("0.00")):
+            factor = Decimal("1") + (rate / Decimal("100"))
+            cleaned_data["price"] = (base_price * factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        elif price is not None:
+            factor = Decimal("1") + (rate / Decimal("100"))
+            cleaned_data["base_price"] = (price / factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         return cleaned_data
 

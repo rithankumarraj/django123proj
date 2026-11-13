@@ -247,12 +247,12 @@
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                   <div style="display: flex; align-items: baseline; gap: 6px;">
                     <strong style="font-size: 0.92rem; color: #fff;">₹{{ product.price }}</strong>
-                    <span style="font-size: 0.72rem; color: var(--admin-text-muted);">retail</span>
+                    <span style="font-size: 0.70rem; color: #a1a1aa; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px;">Incl. {{ product.gst_rate|default:18 }}% GST</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 0.74rem;">
                     <span style="color: rgba(255,255,255,0.5);">Cost: ₹{{ product.cost_price|default:"60.00" }}</span>
-                    <span style="color: #2fcf7a; font-weight: 700; font-size: 0.72rem; background: rgba(47, 207, 122, 0.12); padding: 1px 5px; border-radius: 4px;" title="Estimated profit margin">
-                      +₹{{ product.profit_amount|floatformat:2 }} ({{ product.profit_margin_percent|floatformat:0 }}%)
+                    <span style="color: #2fcf7a; font-weight: 700; font-size: 0.72rem; background: rgba(47, 207, 122, 0.12); padding: 1px 5px; border-radius: 4px;" title="Net profit excluding GST">
+                      +₹{{ product.profit_amount|floatformat:2 }} net ({{ product.profit_margin_percent|floatformat:0 }}%)
                     </span>
                   </div>
                 </div>
@@ -444,7 +444,7 @@
           </div>
         </div>
 
-        <!-- Pricing: Cost Price & Selling Price -->
+        <!-- Pricing: Cost Price, GST %, Base Price, and Selling Price -->
         <div class="form-row-2">
           <!-- Cost Price -->
           <div class="form-group">
@@ -452,7 +452,7 @@
               <label class="form-label" for="id_cost_price" style="margin: 0;">Cost Price (₹)</label>
               <button 
                 type="button" 
-                onclick="document.getElementById('id_cost_price').value='60.00'; updateModalMargin();"
+                onclick="document.getElementById('id_cost_price').value='60.00'; updateModalMargin('cost');"
                 style="background: rgba(246, 190, 93, 0.12); color: #f6be5d; border: 1px solid rgba(246, 190, 93, 0.35); border-radius: 6px; padding: 2px 7px; font-size: 0.70rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;"
                 title="Click to apply recommended ₹60.00 cost"
               >
@@ -468,12 +468,41 @@
             {% endif %}
           </div>
 
-          <!-- Selling Price -->
+          <!-- GST Rate Input -->
           <div class="form-group">
-            <label class="form-label" for="id_price">Selling Price (₹)</label>
+            <label class="form-label" for="id_gst_rate">GST Rate (%)</label>
+            {{ product_form.gst_rate }}
+            <span class="form-help" style="font-size: 0.72rem; color: var(--admin-text-muted);">
+              Slab: 0%, 5%, 18%, or 40%.
+            </span>
+            {% if product_form.gst_rate.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ product_form.gst_rate.errors|first }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <!-- Base Price (Excl. GST) -->
+          <div class="form-group">
+            <label class="form-label" for="id_base_price">Base Price (₹) <span style="font-size: 0.74rem; color: #a1a1aa; font-weight: normal;">(Excl. GST)</span></label>
+            {{ product_form.base_price }}
+            <span class="form-help" style="font-size: 0.72rem; color: var(--admin-text-muted);">
+              Unit price before tax.
+            </span>
+            {% if product_form.base_price.errors %}
+              <span class="form-help" style="color: var(--admin-red);">{{ product_form.base_price.errors|first }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Selling Price (Incl. GST) -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <label class="form-label" for="id_price" style="margin: 0;">Selling Price (₹)</label>
+              <span style="font-size: 0.68rem; color: #2fcf7a; font-weight: 700; background: rgba(47,207,122,0.12); padding: 1px 6px; border-radius: 4px;">Inclusive of all taxes</span>
+            </div>
             {{ product_form.price }}
             <span class="form-help" style="font-size: 0.72rem; color: var(--admin-text-muted);">
-              Retail price shown to customers.
+              Retail price shown to customers (Base + GST).
             </span>
             {% if product_form.price.errors %}
               <span class="form-help" style="color: var(--admin-red);">{{ product_form.price.errors|first }}</span>
@@ -482,15 +511,21 @@
         </div>
 
         <!-- Live Profit & Margin Indicator Box -->
-        <div id="modalMarginPreview" style="background: rgba(47, 207, 122, 0.08); border: 1px solid rgba(47, 207, 122, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2fcf7a" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-            <span style="color: rgba(255,255,255,0.7);">Estimated Profit / Can:</span>
-            <strong id="marginProfitAmount" style="color: #2fcf7a; font-size: 0.9rem;">₹30.00</strong>
+        <div id="modalMarginPreview" style="background: rgba(47, 207, 122, 0.08); border: 1px solid rgba(47, 207, 122, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2fcf7a" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+              <span style="color: rgba(255,255,255,0.7);">Estimated Net Profit / Can (excl. GST):</span>
+              <strong id="marginProfitAmount" style="color: #2fcf7a; font-size: 0.92rem;">+₹16.27</strong>
+            </div>
+            <div>
+              <span style="color: rgba(255,255,255,0.7);">Net Margin:</span>
+              <span id="marginPercentBadge" style="font-weight: 800; color: #2fcf7a; background: rgba(47, 207, 122, 0.15); padding: 2px 8px; border-radius: 999px; margin-left: 4px;">21.3%</span>
+            </div>
           </div>
-          <div>
-            <span style="color: rgba(255,255,255,0.7);">Profit Margin:</span>
-            <span id="marginPercentBadge" style="font-weight: 800; color: #2fcf7a; background: rgba(47, 207, 122, 0.15); padding: 2px 8px; border-radius: 999px; margin-left: 4px;">33.3%</span>
+          <div id="modalTaxFormula" style="font-size: 0.73rem; color: #9aa2a9; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+            <span>Base: <strong id="formulaBase" style="color: #fff;">₹76.27</strong> + GST (<span id="formulaGstRate">18%</span>): <strong id="formulaGst" style="color: #f6be5d;">₹13.73</strong> = Selling Price: <strong id="formulaSp" style="color: #2fcf7a;">₹90.00</strong></span>
+            <span style="color: rgba(255,255,255,0.5); font-style: italic;">(Inclusive of all taxes)</span>
           </div>
         </div>
 
@@ -653,29 +688,65 @@
   </div>
 
   <script>
-    function updateModalMargin() {
+    function updateModalMargin(source) {
       var costInput = document.getElementById('id_cost_price');
+      var gstSelect = document.getElementById('id_gst_rate');
+      var baseInput = document.getElementById('id_base_price');
       var priceInput = document.getElementById('id_price');
       var profitEl = document.getElementById('marginProfitAmount');
       var marginEl = document.getElementById('marginPercentBadge');
-      if (!costInput || !priceInput || !profitEl || !marginEl) return;
+      var fBase = document.getElementById('formulaBase');
+      var fGst = document.getElementById('formulaGst');
+      var fRate = document.getElementById('formulaGstRate');
+      var fSp = document.getElementById('formulaSp');
 
+      if (!costInput || !priceInput || !baseInput || !gstSelect) return;
+
+      var rate = parseFloat(gstSelect.value) || 0;
+      var factor = 1 + (rate / 100);
       var cp = parseFloat(costInput.value) || 0;
-      var sp = parseFloat(priceInput.value) || 0;
-      var profit = sp - cp;
-      var margin = sp > 0 ? ((profit / sp) * 100).toFixed(1) : 0;
 
-      profitEl.textContent = (profit >= 0 ? '+₹' : '-₹') + Math.abs(profit).toFixed(2);
-      marginEl.textContent = margin + '%';
-      if (profit >= 0) {
-        profitEl.style.color = '#2fcf7a';
-        marginEl.style.color = '#2fcf7a';
-        marginEl.style.background = 'rgba(47, 207, 122, 0.15)';
-      } else {
-        profitEl.style.color = '#ff7676';
-        marginEl.style.color = '#ff7676';
-        marginEl.style.background = 'rgba(255, 118, 118, 0.15)';
+      if (source === 'base') {
+        var bp = parseFloat(baseInput.value) || 0;
+        var sp = bp * factor;
+        priceInput.value = sp > 0 ? sp.toFixed(2) : '';
+      } else if (source === 'price' || (!source && priceInput.value && !baseInput.value)) {
+        var sp = parseFloat(priceInput.value) || 0;
+        var bp = factor > 0 ? sp / factor : sp;
+        baseInput.value = bp > 0 ? bp.toFixed(2) : '';
+      } else if (source === 'gst') {
+        if (baseInput.value) {
+          var bp = parseFloat(baseInput.value) || 0;
+          var sp = bp * factor;
+          priceInput.value = sp > 0 ? sp.toFixed(2) : '';
+        } else if (priceInput.value) {
+          var sp = parseFloat(priceInput.value) || 0;
+          var bp = factor > 0 ? sp / factor : sp;
+          baseInput.value = bp > 0 ? bp.toFixed(2) : '';
+        }
       }
+
+      var currentBp = parseFloat(baseInput.value) || 0;
+      var currentSp = parseFloat(priceInput.value) || 0;
+      var currentGst = Math.max(0, currentSp - currentBp);
+
+      var profit = currentBp - cp;
+      var margin = currentBp > 0 ? ((profit / currentBp) * 100).toFixed(1) : 0;
+
+      if (profitEl) {
+        profitEl.textContent = (profit >= 0 ? '+₹' : '-₹') + Math.abs(profit).toFixed(2);
+        profitEl.style.color = profit >= 0 ? '#2fcf7a' : '#ff7676';
+      }
+      if (marginEl) {
+        marginEl.textContent = margin + '%';
+        marginEl.style.color = profit >= 0 ? '#2fcf7a' : '#ff7676';
+        marginEl.style.background = profit >= 0 ? 'rgba(47, 207, 122, 0.15)' : 'rgba(255, 118, 118, 0.15)';
+      }
+
+      if (fBase) fBase.textContent = '₹' + currentBp.toFixed(2);
+      if (fGst) fGst.textContent = '₹' + currentGst.toFixed(2);
+      if (fRate) fRate.textContent = rate + '%';
+      if (fSp) fSp.textContent = '₹' + currentSp.toFixed(2);
     }
 
     function openProductModal() {
@@ -982,12 +1053,16 @@
         });
       }
 
-      // Cost price & selling price live margin calculation
+      // Cost price, GST rate, base price & selling price live margin calculation
       var costInput = document.getElementById('id_cost_price');
+      var gstSelect = document.getElementById('id_gst_rate');
+      var baseInput = document.getElementById('id_base_price');
       var priceInput = document.getElementById('id_price');
-      if (costInput) costInput.addEventListener('input', updateModalMargin);
-      if (priceInput) priceInput.addEventListener('input', updateModalMargin);
-      updateModalMargin();
+      if (costInput) costInput.addEventListener('input', function() { updateModalMargin('cost'); });
+      if (gstSelect) gstSelect.addEventListener('change', function() { updateModalMargin('gst'); });
+      if (baseInput) baseInput.addEventListener('input', function() { updateModalMargin('base'); });
+      if (priceInput) priceInput.addEventListener('input', function() { updateModalMargin('price'); });
+      updateModalMargin('price');
 
       // Live Image Preview
       var fileInput = document.getElementById('id_image_file');

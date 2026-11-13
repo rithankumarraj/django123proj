@@ -236,14 +236,16 @@
           <thead>
             <tr>
               <th style="width: 36px; text-align: center;">#</th>
-              <th style="min-width: 170px;">Product Name *</th>
-              <th style="min-width: 140px;">Category</th>
-              <th style="min-width: 110px;">Cost Price (₹)</th>
-              <th style="min-width: 110px;">Selling Price (₹)</th>
-              <th style="min-width: 115px; text-align: center;">Profit / Margin</th>
-              <th style="min-width: 95px;">Volume</th>
-              <th style="min-width: 130px;">Image File</th>
-              <th style="min-width: 130px;">Available PINs</th>
+              <th style="min-width: 160px;">Product Name *</th>
+              <th style="min-width: 130px;">Category</th>
+              <th style="min-width: 100px;">Cost Price (₹)</th>
+              <th style="min-width: 80px;">GST Rate</th>
+              <th style="min-width: 100px;">Base (Excl. GST)</th>
+              <th style="min-width: 105px;">Selling (Incl. GST)</th>
+              <th style="min-width: 115px; text-align: center;">Net Profit / Margin</th>
+              <th style="min-width: 90px;">Volume</th>
+              <th style="min-width: 125px;">Image File</th>
+              <th style="min-width: 120px;">Available PINs</th>
               <th style="width: 50px; text-align: center;">Active</th>
               <th style="width: 40px; text-align: center;"></th>
             </tr>
@@ -311,6 +313,8 @@
         name: '',
         category: 'others',
         cost: '60.00',
+        gst: '18',
+        base_price: '76.27',
         price: '90.00',
         volume: '330 ml',
         pincodes: '',
@@ -344,18 +348,33 @@
         '<!-- Cost Price (Recommended 60) -->' +
         '<td>' +
           '<div style="position: relative;">' +
-            '<input type="number" step="0.01" name="cost_price_' + idx + '" class="bulk-input input-cost" id="cost_' + idx + '" placeholder="60.00" value="' + (data.cost || '60.00') + '" oninput="recalcRow(' + idx + ')">' +
+            '<input type="number" step="0.01" name="cost_price_' + idx + '" class="bulk-input input-cost" id="cost_' + idx + '" placeholder="60.00" value="' + (data.cost || '60.00') + '" oninput="recalcRow(' + idx + ', \'cost\')">' +
           '</div>' +
         '</td>' +
 
-        '<!-- Selling Price (Retail 90) -->' +
+        '<!-- GST Rate (0, 5, 18, 40) -->' +
         '<td>' +
-          '<input type="number" step="0.01" name="price_' + idx + '" class="bulk-input input-price" id="price_' + idx + '" placeholder="90.00" value="' + (data.price || '90.00') + '" oninput="recalcRow(' + idx + ')">' +
+          '<select name="gst_rate_' + idx + '" class="bulk-select" id="gst_' + idx + '" onchange="recalcRow(' + idx + ', \'gst\')" style="font-weight: 600;">' +
+            '<option value="0"' + (data.gst === '0' ? ' selected' : '') + '>0%</option>' +
+            '<option value="5"' + (data.gst === '5' ? ' selected' : '') + '>5%</option>' +
+            '<option value="18"' + (data.gst === '18' || !data.gst ? ' selected' : '') + '>18%</option>' +
+            '<option value="40"' + (data.gst === '40' ? ' selected' : '') + '>40%</option>' +
+          '</select>' +
+        '</td>' +
+
+        '<!-- Base Price (Excl. GST) -->' +
+        '<td>' +
+          '<input type="number" step="0.01" name="base_price_' + idx + '" class="bulk-input" id="base_' + idx + '" placeholder="76.27" value="' + (data.base_price || '76.27') + '" oninput="recalcRow(' + idx + ', \'base\')">' +
+        '</td>' +
+
+        '<!-- Selling Price (Incl. GST) -->' +
+        '<td>' +
+          '<input type="number" step="0.01" name="price_' + idx + '" class="bulk-input input-price" id="price_' + idx + '" placeholder="90.00" value="' + (data.price || '90.00') + '" oninput="recalcRow(' + idx + ', \'price\')">' +
         '</td>' +
 
         '<!-- Live Margin Preview -->' +
         '<td style="text-align: center;" id="marginCell_' + idx + '">' +
-          '<span class="bulk-margin-pill pill-profit-positive" id="marginPill_' + idx + '">+₹30.00 (33%)</span>' +
+          '<span class="bulk-margin-pill pill-profit-positive" id="marginPill_' + idx + '">+₹16.27 (21%)</span>' +
         '</td>' +
 
         '<!-- Volume -->' +
@@ -426,16 +445,39 @@
       document.getElementById('rowCountDisplay').textContent = rows.length;
     }
 
-    function recalcRow(idx) {
+    function recalcRow(idx, source) {
       var costEl = document.getElementById('cost_' + idx);
+      var gstEl = document.getElementById('gst_' + idx);
+      var baseEl = document.getElementById('base_' + idx);
       var priceEl = document.getElementById('price_' + idx);
       var pill = document.getElementById('marginPill_' + idx);
-      if (!costEl || !priceEl || !pill) return;
+      if (!costEl || !gstEl || !baseEl || !priceEl || !pill) return;
 
+      var rate = parseFloat(gstEl.value) || 0;
+      var factor = 1 + (rate / 100);
       var cp = parseFloat(costEl.value) || 0;
-      var sp = parseFloat(priceEl.value) || 0;
-      var profit = sp - cp;
-      var margin = sp > 0 ? ((profit / sp) * 100).toFixed(0) : 0;
+
+      if (source === 'base') {
+        var bp = parseFloat(baseEl.value) || 0;
+        var sp = bp * factor;
+        priceEl.value = sp > 0 ? sp.toFixed(2) : '';
+      } else if (source === 'price') {
+        var sp = parseFloat(priceEl.value) || 0;
+        var bp = factor > 0 ? sp / factor : sp;
+        baseEl.value = bp > 0 ? bp.toFixed(2) : '';
+      } else if (source === 'gst') {
+        if (baseEl.value) {
+          var bp = parseFloat(baseEl.value) || 0;
+          priceEl.value = (bp * factor).toFixed(2);
+        } else if (priceEl.value) {
+          var sp = parseFloat(priceEl.value) || 0;
+          baseEl.value = (sp / factor).toFixed(2);
+        }
+      }
+
+      var currentBp = parseFloat(baseEl.value) || 0;
+      var profit = currentBp - cp;
+      var margin = currentBp > 0 ? ((profit / currentBp) * 100).toFixed(0) : 0;
 
       pill.textContent = (profit >= 0 ? '+₹' : '-₹') + Math.abs(profit).toFixed(2) + ' (' + margin + '%)';
       if (profit >= 0) {

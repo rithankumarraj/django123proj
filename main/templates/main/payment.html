@@ -592,14 +592,16 @@
         style="margin: 16px 0 8px; padding: 12px 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.9rem;">
         <div
           style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.75);">
-          <span>Items Subtotal</span>
+          <span>Items Subtotal <span style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.55); font-weight: normal;">(Incl. of all taxes)</span></span>
           <span>₹{{ order.items_subtotal|floatformat:2 }}</span>
         </div>
+        {% if order.gst_amount and order.gst_amount > 0 %}
         <div
-          style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.75);">
-          <span>GST (18%)</span>
+          style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.55); font-size: 0.8rem;">
+          <span>Included GST</span>
           <span>₹{{ order.gst_amount|floatformat:2 }}</span>
         </div>
+        {% endif %}
         <div
           style="display: flex; justify-content: space-between; margin-bottom: 6px; color: rgba(255, 255, 255, 0.75);">
           <span>Packing Cost</span>

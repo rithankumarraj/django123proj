@@ -188,7 +188,10 @@
               <h2>{{ product.name }}</h2>
               <div class="wishlist-product-meta">
                 <span>{{ product.volume }}</span>
-                <strong>₹{{ product.price }}</strong>
+                <div>
+                  <strong>₹{{ product.price }}</strong>
+                  <span style="font-size: 0.70rem; color: #64748b; font-weight: 500; display: block;">(Inclusive of all taxes)</span>
+                </div>
               </div>
               <div class="wishlist-card-actions">
                 <form method="post" action="{% url 'add_to_cart' product.id %}">

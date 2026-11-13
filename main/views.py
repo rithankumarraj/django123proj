@@ -1,4 +1,4 @@
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json
 import logging
 import re
@@ -875,7 +875,7 @@ def update_cart(request):
         site_details = SiteDetails.get_solo()
         cart_count = sum(item["quantity"] for item in items)
         cart_total = sum((item["line_total"] for item in items), Decimal("0.00"))
-        gst_amount = site_details.calculate_gst(cart_total)
+        gst_amount = sum((item["product"].gst_amount_per_unit * item["quantity"]) for item in items)
         packing_fee = site_details.calculate_packing_fee(cart_count)
         combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, cart_total)
         distinct_count = len({it["product"].id for it in items})
@@ -930,8 +930,8 @@ def cart_page(request):
     initial_shipping_fee = site_details.calculate_shipping_fee(initial_state)
     cart_count = sum(item["quantity"] for item in items)
     initial_packing_fee = site_details.calculate_packing_fee(cart_count)
-    initial_gst_amount = site_details.calculate_gst(total)
-    total_with_shipping = total + initial_gst_amount + initial_packing_fee + initial_shipping_fee
+    initial_gst_amount = sum((it["product"].gst_amount_per_unit * it["quantity"]) for it in items)
+    total_with_shipping = total + initial_packing_fee + initial_shipping_fee
 
     combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, total)
     applied_combo_name = combo_details.get("badge_text") or (combo_obj.name if combo_obj else "")
@@ -1276,7 +1276,7 @@ def cart_checkout(request):
     site_details = SiteDetails.get_solo()
     packing_fee = site_details.calculate_packing_fee(total_quantity)
     shipping_fee = site_details.calculate_shipping_fee(details.get("state") or "")
-    gst_amount = site_details.calculate_gst(items_subtotal)
+    gst_amount = sum((it["product"].gst_amount_per_unit * it["quantity"]) for it in items)
 
     payment_method = (request.POST.get("payment_method") or "online").strip().lower()
     if payment_method not in ["online", "cod"]:
@@ -1301,7 +1301,7 @@ def cart_checkout(request):
                 applied_coupon = coupon_obj
                 Coupon.objects.filter(pk=coupon_obj.pk).update(times_used=models.F("times_used") + 1)
 
-    total_amount = max(Decimal("0.00"), items_subtotal - combo_discount - discount_amount) + gst_amount + packing_fee + shipping_fee
+    total_amount = max(Decimal("0.00"), items_subtotal - combo_discount - discount_amount) + packing_fee + shipping_fee
     guest_checkout = not request.user.is_authenticated
     with transaction.atomic():
         customer = _checkout_customer(request, details)
@@ -1390,7 +1390,7 @@ def checkout(request, product_id):
             return redirect(f"{reverse('checkout', kwargs={'product_id': product.id})}?qty={quantity}")
 
         state = details.get("state") or ""
-        gst_amount = site_details.calculate_gst(items_subtotal)
+        gst_amount = product.gst_amount_per_unit * quantity
         packing_fee = site_details.calculate_packing_fee(quantity)
         shipping_fee = site_details.calculate_shipping_fee(state)
 
@@ -1418,7 +1418,7 @@ def checkout(request, product_id):
                     applied_coupon = coupon_obj
                     Coupon.objects.filter(pk=coupon_obj.pk).update(times_used=models.F("times_used") + 1)
 
-        total_price = max(Decimal("0.00"), items_subtotal - combo_discount - discount_amount) + gst_amount + packing_fee + shipping_fee
+        total_price = max(Decimal("0.00"), items_subtotal - combo_discount - discount_amount) + packing_fee + shipping_fee
 
         guest_checkout = not request.user.is_authenticated
         with transaction.atomic():
@@ -1462,10 +1462,10 @@ def checkout(request, product_id):
     elif customer_profile and customer_profile.state:
         initial_state = customer_profile.state
 
-    initial_gst_amount = site_details.calculate_gst(items_subtotal)
+    initial_gst_amount = product.gst_amount_per_unit * quantity
     initial_packing_fee = site_details.calculate_packing_fee(quantity)
     initial_shipping_fee = site_details.calculate_shipping_fee(initial_state)
-    initial_total_with_shipping = items_subtotal + initial_gst_amount + initial_packing_fee + initial_shipping_fee
+    initial_total_with_shipping = items_subtotal + initial_packing_fee + initial_shipping_fee
 
     single_cart_item = [{"product": product, "quantity": quantity, "line_total": items_subtotal}]
     combo_obj, combo_discount, combo_details = _evaluate_cart_combos(single_cart_item, items_subtotal)
@@ -2314,12 +2314,42 @@ def admin_bulk_add_products(request):
                 except (InvalidOperation, ValueError):
                     cost_price = Decimal("60.00")
 
-                # Selling price with ₹90 default
-                price_str = (request.POST.get(f"price_{idx}") or "").strip()
+                # GST Rate (0, 5, 18, 40)
+                gst_str = (request.POST.get(f"gst_rate_{idx}") or "18").strip()
                 try:
-                    price = Decimal(price_str) if price_str else Decimal("90.00")
-                except (InvalidOperation, ValueError):
+                    gst_rate = int(gst_str)
+                    if gst_rate not in [0, 5, 18, 40]:
+                        gst_rate = 18
+                except (ValueError, TypeError):
+                    gst_rate = 18
+
+                # Base Price & Selling Price calculation
+                base_str = (request.POST.get(f"base_price_{idx}") or "").strip()
+                price_str = (request.POST.get(f"price_{idx}") or "").strip()
+                price = None
+                base_price = None
+                if price_str:
+                    try:
+                        price = Decimal(price_str)
+                    except (InvalidOperation, ValueError):
+                        price = None
+                if base_str:
+                    try:
+                        base_price = Decimal(base_str)
+                    except (InvalidOperation, ValueError):
+                        base_price = None
+
+                factor = Decimal("1") + (Decimal(str(gst_rate)) / Decimal("100"))
+                if price is not None and base_price is None:
+                    base_price = (price / factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                elif base_price is not None and price is None:
+                    price = (base_price * factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                elif price is None and base_price is None:
                     price = Decimal("90.00")
+                    base_price = (price / factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                elif price is not None and base_price is not None:
+                    # ensure base_price matches price and gst
+                    base_price = (price / factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
                 volume = (request.POST.get(f"volume_{idx}") or "330 ml").strip()
                 pincodes = (request.POST.get(f"available_pincodes_{idx}") or "").strip()
@@ -2340,6 +2370,8 @@ def admin_bulk_add_products(request):
                     name=name,
                     category=cat,
                     cost_price=cost_price,
+                    gst_rate=gst_rate,
+                    base_price=base_price,
                     price=price,
                     volume=volume,
                     description=description,
@@ -3682,6 +3714,7 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
     active_orders_count = len(active_orders)
 
     gross_sales = Decimal("0.00")
+    total_gst_collected = Decimal("0.00")
     total_cogs = Decimal("0.00")
     total_discounts = Decimal("0.00")
     total_shipping_revenue = Decimal("0.00")
@@ -3702,11 +3735,15 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
             "name": p.name,
             "category": p.category_display,
             "selling_price": p.price,
+            "base_price": p.base_price_per_unit,
             "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+            "gst_rate": p.gst_rate or 18,
             "image_url": p.image_url,
             "units_sold": 0,
             "orders_count": 0,
             "revenue": Decimal("0.00"),
+            "gst_collected": Decimal("0.00"),
+            "net_revenue": Decimal("0.00"),
             "cost": Decimal("0.00"),
             "profit": Decimal("0.00"),
             "margin_pct": Decimal("0.00"),
@@ -3731,6 +3768,7 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
             online_orders_revenue += order_revenue
 
         order_cogs = Decimal("0.00")
+        order_gst_sum = Decimal("0.00")
         order_items_summary = []
         pids_in_this_order = set()
 
@@ -3745,11 +3783,15 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
                         "name": p.name,
                         "category": p.category_display,
                         "selling_price": p.price,
+                        "base_price": p.base_price_per_unit,
                         "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+                        "gst_rate": p.gst_rate or 18,
                         "image_url": p.image_url,
                         "units_sold": 0,
                         "orders_count": 0,
                         "revenue": Decimal("0.00"),
+                        "gst_collected": Decimal("0.00"),
+                        "net_revenue": Decimal("0.00"),
                         "cost": Decimal("0.00"),
                         "profit": Decimal("0.00"),
                         "margin_pct": Decimal("0.00"),
@@ -3757,14 +3799,19 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
                     }
                 item_qty = it.quantity
                 item_rev = it.line_total
+                item_gst = p.gst_amount_per_unit * item_qty
+                item_net_rev = item_rev - item_gst
                 item_cost = item_qty * prod_data[pid]["cost_price"]
 
                 prod_data[pid]["units_sold"] += item_qty
                 prod_data[pid]["revenue"] += item_rev
+                prod_data[pid]["gst_collected"] += item_gst
+                prod_data[pid]["net_revenue"] += item_net_rev
                 prod_data[pid]["cost"] += item_cost
                 pids_in_this_order.add(pid)
 
                 order_cogs += item_cost
+                order_gst_sum += item_gst
                 total_units_sold += item_qty
                 order_items_summary.append(f"{item_qty}× {p.name}")
         elif o.product:
@@ -3777,11 +3824,15 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
                     "name": p.name,
                     "category": p.category_display,
                     "selling_price": p.price,
+                    "base_price": p.base_price_per_unit,
                     "cost_price": getattr(p, "cost_price", Decimal("60.00")) or Decimal("60.00"),
+                    "gst_rate": p.gst_rate or 18,
                     "image_url": p.image_url,
                     "units_sold": 0,
                     "orders_count": 0,
                     "revenue": Decimal("0.00"),
+                    "gst_collected": Decimal("0.00"),
+                    "net_revenue": Decimal("0.00"),
                     "cost": Decimal("0.00"),
                     "profit": Decimal("0.00"),
                     "margin_pct": Decimal("0.00"),
@@ -3789,22 +3840,31 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
                 }
             item_qty = o.quantity
             item_rev = item_qty * p.price
+            item_gst = p.gst_amount_per_unit * item_qty
+            item_net_rev = item_rev - item_gst
             item_cost = item_qty * prod_data[pid]["cost_price"]
 
             prod_data[pid]["units_sold"] += item_qty
             prod_data[pid]["revenue"] += item_rev
+            prod_data[pid]["gst_collected"] += item_gst
+            prod_data[pid]["net_revenue"] += item_net_rev
             prod_data[pid]["cost"] += item_cost
             pids_in_this_order.add(pid)
 
             order_cogs += item_cost
+            order_gst_sum += item_gst
             total_units_sold += item_qty
             order_items_summary.append(f"{item_qty}× {p.name}")
+
+        actual_order_gst = o.gst_amount if (o.gst_amount and o.gst_amount > 0) else order_gst_sum
+        total_gst_collected += actual_order_gst
 
         for pid in pids_in_this_order:
             prod_data[pid]["order_ids"].add(o.id)
 
         total_cogs += order_cogs
-        order_profit = order_revenue - order_cogs
+        order_net_rev = max(Decimal("0.00"), order_revenue - actual_order_gst)
+        order_profit = order_net_rev - order_cogs
         order_audit_rows.append({
             "order": o,
             "id": o.id,
@@ -3816,6 +3876,8 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
             "payment_status": o.payment_status,
             "items_display": ", ".join(order_items_summary) or "1× Item",
             "revenue": order_revenue,
+            "gst_collected": actual_order_gst,
+            "net_revenue": order_net_rev,
             "cost": order_cogs,
             "profit": order_profit,
             "is_profitable": order_profit >= Decimal("0.00"),
@@ -3824,8 +3886,10 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
     product_report_list = []
     for pid, pinfo in prod_data.items():
         pinfo["orders_count"] = len(pinfo["order_ids"])
-        pinfo["profit"] = pinfo["revenue"] - pinfo["cost"]
-        if pinfo["revenue"] > Decimal("0.00"):
+        pinfo["profit"] = pinfo["net_revenue"] - pinfo["cost"]
+        if pinfo["net_revenue"] > Decimal("0.00"):
+            pinfo["margin_pct"] = ((pinfo["profit"] / pinfo["net_revenue"]) * Decimal("100")).quantize(Decimal("0.1"))
+        elif pinfo["revenue"] > Decimal("0.00"):
             pinfo["margin_pct"] = ((pinfo["profit"] / pinfo["revenue"]) * Decimal("100")).quantize(Decimal("0.1"))
         else:
             pinfo["margin_pct"] = Decimal("0.0")
@@ -3851,11 +3915,15 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
                 "name": cat_name,
                 "units_sold": 0,
                 "revenue": Decimal("0.00"),
+                "gst_collected": Decimal("0.00"),
+                "net_revenue": Decimal("0.00"),
                 "cost": Decimal("0.00"),
                 "profit": Decimal("0.00"),
             }
         cat_data[cat_name]["units_sold"] += pinfo["units_sold"]
         cat_data[cat_name]["revenue"] += pinfo["revenue"]
+        cat_data[cat_name]["gst_collected"] += pinfo["gst_collected"]
+        cat_data[cat_name]["net_revenue"] += pinfo["net_revenue"]
         cat_data[cat_name]["cost"] += pinfo["cost"]
         cat_data[cat_name]["profit"] += pinfo["profit"]
 
@@ -3863,7 +3931,9 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
 
     category_report_list = list(cat_data.values())
     for cat in category_report_list:
-        if cat["revenue"] > Decimal("0.00"):
+        if cat["net_revenue"] > Decimal("0.00"):
+            cat["margin_pct"] = ((cat["profit"] / cat["net_revenue"]) * Decimal("100")).quantize(Decimal("0.1"))
+        elif cat["revenue"] > Decimal("0.00"):
             cat["margin_pct"] = ((cat["profit"] / cat["revenue"]) * Decimal("100")).quantize(Decimal("0.1"))
         else:
             cat["margin_pct"] = Decimal("0.0")
@@ -3874,8 +3944,11 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
     products_selling_most = sorted(product_report_list, key=lambda x: (x["units_sold"], x["revenue"]), reverse=True)
     products_buying_most = sorted(product_report_list, key=lambda x: (x["orders_count"], x["units_sold"]), reverse=True)
 
-    net_profit = gross_sales - total_cogs
-    if gross_sales > Decimal("0.00"):
+    net_sales = max(Decimal("0.00"), gross_sales - total_gst_collected)
+    net_profit = net_sales - total_cogs
+    if net_sales > Decimal("0.00"):
+        overall_margin_pct = ((net_profit / net_sales) * Decimal("100")).quantize(Decimal("0.1"))
+    elif gross_sales > Decimal("0.00"):
         overall_margin_pct = ((net_profit / gross_sales) * Decimal("100")).quantize(Decimal("0.1"))
     else:
         overall_margin_pct = Decimal("0.0")
@@ -3891,6 +3964,8 @@ def _get_sales_report_data(range_filter="all", start_date_str=None, end_date_str
         "start_date": start_date_str,
         "end_date": end_date_str,
         "gross_sales": gross_sales,
+        "total_gst_collected": total_gst_collected,
+        "net_sales": net_sales,
         "total_cogs": total_cogs,
         "total_discounts": total_discounts,
         "total_shipping_revenue": total_shipping_revenue,
@@ -3944,6 +4019,8 @@ def admin_reports(request):
         "start_date": data["start_date"],
         "end_date": data["end_date"],
         "gross_sales": data["gross_sales"],
+        "total_gst_collected": data["total_gst_collected"],
+        "net_sales": data["net_sales"],
         "total_cogs": data["total_cogs"],
         "total_discounts": data["total_discounts"],
         "total_shipping_revenue": data["total_shipping_revenue"],
@@ -4000,9 +4077,13 @@ def admin_reports_export_csv(request):
             "Product Name",
             "Category",
             "Cost Price (INR)",
+            "Base Price (INR)",
+            "GST Rate (%)",
             "Selling Price (INR)",
             "Units Sold",
             "Gross Revenue (INR)",
+            "GST Collected (INR)",
+            "Net Revenue (INR)",
             "Product Cost (INR)",
             "Net Profit (INR)",
             "Profit Margin (%)",
@@ -4013,9 +4094,13 @@ def admin_reports_export_csv(request):
                 p["name"],
                 p["category"],
                 f"{p['cost_price']:.2f}",
+                f"{p['base_price']:.2f}",
+                f"{p['gst_rate']}%",
                 f"{p['selling_price']:.2f}",
                 p["units_sold"],
                 f"{p['revenue']:.2f}",
+                f"{p['gst_collected']:.2f}",
+                f"{p['net_revenue']:.2f}",
                 f"{p['cost']:.2f}",
                 f"{p['profit']:.2f}",
                 f"{p['margin_pct']}%",
@@ -4057,6 +4142,8 @@ def admin_reports_export_csv(request):
             "Units Sold",
             "Store Volume Share (%)",
             "Gross Revenue (INR)",
+            "GST Collected (INR)",
+            "Net Sales (INR)",
             "Inventory Cost (INR)",
             "Net Profit (INR)",
             "Profit Margin (%)",
@@ -4067,6 +4154,8 @@ def admin_reports_export_csv(request):
                 cat["units_sold"],
                 f"{cat['share_pct']}%",
                 f"{cat['revenue']:.2f}",
+                f"{cat['gst_collected']:.2f}",
+                f"{cat['net_revenue']:.2f}",
                 f"{cat['cost']:.2f}",
                 f"{cat['profit']:.2f}",
                 f"{cat['margin_pct']}%",
@@ -4084,6 +4173,8 @@ def admin_reports_export_csv(request):
             "Fulfillment Status",
             "Payment Status",
             "Gross Revenue (INR)",
+            "GST Collected (INR)",
+            "Net Revenue (INR)",
             "Product Cost (INR)",
             "Order Net Profit (INR)",
         ])
@@ -4096,6 +4187,8 @@ def admin_reports_export_csv(request):
                 r["status_display"],
                 r["payment_status"].capitalize() if r["payment_status"] else "Pending",
                 f"{r['revenue']:.2f}",
+                f"{r['gst_collected']:.2f}",
+                f"{r['net_revenue']:.2f}",
                 f"{r['cost']:.2f}",
                 f"{r['profit']:.2f}",
             ])
@@ -4110,6 +4203,8 @@ def admin_reports_export_csv(request):
         writer.writerow(["=== J CSD SALES & PROFIT/LOSS REPORT ==="])
         writer.writerow(["Reporting Period", data["filter_label"]])
         writer.writerow(["Gross Revenue (INR)", f"{data['gross_sales']:.2f}"])
+        writer.writerow(["Total GST Collected (INR)", f"{data['total_gst_collected']:.2f}"])
+        writer.writerow(["Net Sales (Excl. GST) (INR)", f"{data['net_sales']:.2f}"])
         writer.writerow(["Total Cost of Goods Sold (INR)", f"{data['total_cogs']:.2f}"])
         writer.writerow(["Net Realized Profit (INR)", f"{data['net_profit']:.2f}"])
         writer.writerow(["Profit Margin (%)", f"{data['overall_margin_pct']}%"])
@@ -4120,13 +4215,13 @@ def admin_reports_export_csv(request):
         # Table 1: Which Product Sells More
         writer.writerow(["=== TABLE 1: WHICH PRODUCT SELLS MORE (VOLUME & SALES RANKING) ==="])
         writer.writerow([
-            "Rank", "Product Name", "Category", "Cost Price (INR)", "Selling Price (INR)",
-            "Units Sold", "Gross Revenue (INR)", "Product Cost (INR)", "Net Profit (INR)", "Margin (%)"
+            "Rank", "Product Name", "Category", "Cost Price (INR)", "Base Price (INR)", "GST Rate (%)", "Selling Price (INR)",
+            "Units Sold", "Gross Revenue (INR)", "GST Collected (INR)", "Net Sales (INR)", "Product Cost (INR)", "Net Profit (INR)", "Margin (%)"
         ])
         for idx, p in enumerate(data["products_selling_most"], 1):
             writer.writerow([
-                idx, p["name"], p["category"], f"{p['cost_price']:.2f}", f"{p['selling_price']:.2f}",
-                p["units_sold"], f"{p['revenue']:.2f}", f"{p['cost']:.2f}", f"{p['profit']:.2f}", f"{p['margin_pct']}%"
+                idx, p["name"], p["category"], f"{p['cost_price']:.2f}", f"{p['base_price']:.2f}", f"{p['gst_rate']}%", f"{p['selling_price']:.2f}",
+                p["units_sold"], f"{p['revenue']:.2f}", f"{p['gst_collected']:.2f}", f"{p['net_revenue']:.2f}", f"{p['cost']:.2f}", f"{p['profit']:.2f}", f"{p['margin_pct']}%"
             ])
 
         writer.writerow([])
@@ -4147,11 +4242,11 @@ def admin_reports_export_csv(request):
         # Table 3: Category Breakdown
         writer.writerow(["=== TABLE 3: CATEGORY PERFORMANCE BREAKDOWN ==="])
         writer.writerow([
-            "Category", "Units Sold", "Volume Share (%)", "Gross Revenue (INR)", "Inventory Cost (INR)", "Net Profit (INR)", "Margin (%)"
+            "Category", "Units Sold", "Volume Share (%)", "Gross Revenue (INR)", "GST Collected (INR)", "Net Sales (INR)", "Inventory Cost (INR)", "Net Profit (INR)", "Margin (%)"
         ])
         for cat in data["category_report_list"]:
             writer.writerow([
-                cat["name"], cat["units_sold"], f"{cat['share_pct']}%", f"{cat['revenue']:.2f}",
+                cat["name"], cat["units_sold"], f"{cat['share_pct']}%", f"{cat['revenue']:.2f}", f"{cat['gst_collected']:.2f}", f"{cat['net_revenue']:.2f}",
                 f"{cat['cost']:.2f}", f"{cat['profit']:.2f}", f"{cat['margin_pct']}%"
             ])
 
@@ -4160,13 +4255,13 @@ def admin_reports_export_csv(request):
         writer.writerow(["=== TABLE 4: RECENT ORDERS PROFITABILITY AUDIT LOG ==="])
         writer.writerow([
             "Order #", "Customer Name", "Placed At", "Items Summary", "Fulfillment Status", "Payment Status",
-            "Gross Revenue (INR)", "Cost (INR)", "Order Net Profit (INR)"
+            "Gross Revenue (INR)", "GST Collected (INR)", "Net Revenue (INR)", "Cost (INR)", "Order Net Profit (INR)"
         ])
         for r in data["order_audit_rows"]:
             writer.writerow([
                 f"#{r['order_number']}", r["customer_name"], r["created_at"].strftime("%Y-%m-%d %H:%M"),
                 r["items_display"], r["status_display"], r["payment_status"].capitalize() if r["payment_status"] else "Pending",
-                f"{r['revenue']:.2f}", f"{r['cost']:.2f}", f"{r['profit']:.2f}"
+                f"{r['revenue']:.2f}", f"{r['gst_collected']:.2f}", f"{r['net_revenue']:.2f}", f"{r['cost']:.2f}", f"{r['profit']:.2f}"
             ])
 
         return response

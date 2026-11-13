@@ -1182,13 +1182,11 @@
 
           <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
             <div class="summary-row">
-              <span>Items subtotal</span>
+              <div>
+                <span>Items subtotal</span>
+                <span style="font-size: 0.72rem; color: #a1a1aa; font-weight: 500; display: block;">(Inclusive of all taxes)</span>
+              </div>
               <strong id="cartSubtotalDisplay">₹{{ cart_total|floatformat:2 }}</strong>
-            </div>
-
-            <div class="summary-row">
-              <span>GST (18%)</span>
-              <strong id="cartGstDisplay">₹{{ gst_amount|floatformat:2 }}</strong>
             </div>
 
             <div class="summary-row">
@@ -1457,7 +1455,7 @@
         const activeComboDiscount = (cartComboActive && cartCurrentComboDiscount > 0) ? cartCurrentComboDiscount : 0.0;
         const totalDiscount = activeCouponDiscount + activeComboDiscount;
 
-        const rawGrandTotal = subtotal + gstAmount + packingFee + shippingFee;
+        const rawGrandTotal = subtotal + packingFee + shippingFee;
         const grandTotal = Math.max(0, rawGrandTotal - totalDiscount);
 
         if (subtotalDisplay) subtotalDisplay.textContent = '₹' + subtotal.toFixed(2);

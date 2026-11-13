@@ -544,11 +544,11 @@
     <section class="receipt-summary-wrap">
       <div class="receipt-summary-box">
         <div class="receipt-summary-row">
-          <span>Items subtotal</span>
+          <span>Items subtotal <small style="font-size: 0.72rem; color: #64748b; font-weight: normal;">(Incl. of all taxes)</small></span>
           <strong>₹{{ order.items_subtotal|floatformat:2 }}</strong>
         </div>
-        <div class="receipt-summary-row">
-          <span>GST (18%)</span>
+        <div class="receipt-summary-row" style="color: #64748b; font-size: 0.82rem;">
+          <span>Included GST</span>
           <strong>₹{{ order.gst_amount|floatformat:2 }}</strong>
         </div>
         <div class="receipt-summary-row">

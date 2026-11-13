@@ -493,12 +493,11 @@
                                     <strong>₹{{ unit_price }}</strong>
                                 </div>
                                 <div class="summary-row">
-                                    <span>Items subtotal</span>
+                                    <div>
+                                        <span>Items subtotal</span>
+                                        <span style="font-size: 0.72rem; color: #a1a1aa; font-weight: 500; display: block;">(Inclusive of all taxes)</span>
+                                    </div>
                                     <strong>₹{{ total_price|floatformat:2 }}</strong>
-                                </div>
-                                <div class="summary-row">
-                                    <span>GST (18%)</span>
-                                    <strong id="gstFeeDisplay">₹{{ gst_amount|floatformat:2 }}</strong>
                                 </div>
                                 <div class="summary-row">
                                     <span>Packing cost (<span id="packingNotice">{% if packing_fee > 0 %}₹{{ packing_fee|floatformat:0 }}{% else %}Free (First {{ packing_free_cans|default:6 }} cans){% endif %}</span>)</span>
@@ -692,7 +691,7 @@
                 gstFeeDisplay.textContent = '₹' + gstAmount.toFixed(2);
             }
 
-            var rawGrandTotal = subtotal + gstAmount + packingFee + fee;
+            var rawGrandTotal = subtotal + packingFee + fee;
             var isOnline = pmOnlineRadio ? pmOnlineRadio.checked : true;
             var activeDiscount = (isOnline && currentDiscount > 0) ? currentDiscount : 0.0;
             var totalDiscount = activeDiscount + chkComboDiscount;

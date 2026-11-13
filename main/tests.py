@@ -723,16 +723,16 @@ class CheckoutQuantityTests(TestCase):
         self.assertEqual(payment_page.status_code, 200)
         self.assertContains(payment_page, "Confirm demo payment")
         self.assertContains(payment_page, "₹270.00")
-        self.assertContains(payment_page, "₹48.60")
-        self.assertContains(payment_page, "₹418.60")
+        self.assertContains(payment_page, "₹41.19")
+        self.assertContains(payment_page, "₹370.00")
         self.assertContains(payment_page, "No card, bank, or UPI payment is made.")
         self.assertContains(payment_page, "payment-card--pending")
         self.assertContains(payment_page, "payment-status-hero--unpaid")
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "pending")
         self.assertEqual(order.quantity, 3)
-        self.assertEqual(str(order.total_amount), "418.60")
-        self.assertEqual(str(order.gst_amount), "48.60")
+        self.assertEqual(str(order.total_amount), "370.00")
+        self.assertEqual(str(order.gst_amount), "41.19")
         self.assertEqual(str(order.shipping_fee), "100.00")
         self.assertEqual(order.delivery_address, "1 Test Street")
         self.assertEqual(order.customer_phone, "+91 98765 43210")
@@ -1503,7 +1503,7 @@ class CartTests(TestCase):
         data = response.json()
         self.assertEqual(data["cart_count"], 5)
         self.assertEqual(data["cart_total"], "470.00")
-        self.assertEqual(data["gst_amount"], "84.60")
+        self.assertEqual(data["gst_amount"], "71.70")
         self.assertEqual(data["packing_fee"], "0.00")
         self.assertEqual(
             data["items"],
@@ -1573,8 +1573,8 @@ class CartTests(TestCase):
             response,
             reverse("payment_page", kwargs={"payment_reference": order.payment_reference}),
         )
-        self.assertEqual(order.total_amount, Decimal("442.20"))
-        self.assertEqual(order.gst_amount, Decimal("52.20"))
+        self.assertEqual(order.total_amount, Decimal("390.00"))
+        self.assertEqual(order.gst_amount, Decimal("44.24"))
         self.assertEqual(order.shipping_fee, Decimal("100.00"))
         self.assertEqual(order.items_subtotal, Decimal("290.00"))
         self.assertEqual(order.quantity, 3)
@@ -1588,7 +1588,7 @@ class CartTests(TestCase):
         self.assertContains(payment_page, "Cart Cola")
         self.assertContains(payment_page, "Cart Lime")
         self.assertContains(payment_page, "₹290.00")
-        self.assertContains(payment_page, "₹442.20")
+        self.assertContains(payment_page, "₹390.00")
         self.assertEqual(self.client.get(reverse("cart")).context["items"], [])
 
     def test_cart_checkout_rejects_missing_delivery_details_and_keeps_cart(self):
@@ -2582,8 +2582,8 @@ class ShippingFeeAndRegionalRulesTests(TestCase):
         self.assertIsNotNone(order)
         self.assertEqual(order.shipping_fee, Decimal("50.00"))
         self.assertEqual(order.items_subtotal, Decimal("150.00"))
-        self.assertEqual(order.gst_amount, Decimal("27.00"))
-        self.assertEqual(order.total_amount, Decimal("227.00"))
+        self.assertEqual(order.gst_amount, Decimal("22.88"))
+        self.assertEqual(order.total_amount, Decimal("200.00"))
         self.assertEqual(order.customer_phone, "+91 9842176565")
 
     def test_checkout_applies_correct_shipping_fee_other_state(self):
@@ -2604,8 +2604,8 @@ class ShippingFeeAndRegionalRulesTests(TestCase):
         self.assertIsNotNone(order)
         self.assertEqual(order.shipping_fee, Decimal("100.00"))
         self.assertEqual(order.items_subtotal, Decimal("150.00"))
-        self.assertEqual(order.gst_amount, Decimal("27.00"))
-        self.assertEqual(order.total_amount, Decimal("277.00"))
+        self.assertEqual(order.gst_amount, Decimal("22.88"))
+        self.assertEqual(order.total_amount, Decimal("250.00"))
 
     def test_admin_can_customize_shipping_rates_and_local_states(self):
         self.client.login(username="adminstaff_ship", password="staff-password")
@@ -2670,12 +2670,12 @@ class ShippingFeeAndRegionalRulesTests(TestCase):
         self.assertEqual(order.items_subtotal, Decimal("1200.00"))
         # Packing fee: ₹20
         self.assertEqual(order.packing_fee, Decimal("20.00"))
-        # GST (18% on 1200): ₹216.00
-        self.assertEqual(order.gst_amount, Decimal("216.00"))
+        # GST (18% included on 1200): ₹183.04
+        self.assertEqual(order.gst_amount, Decimal("183.04"))
         # Shipping fee: ₹50
         self.assertEqual(order.shipping_fee, Decimal("50.00"))
-        # Total: 1200 + 216 + 20 + 50 = 1486
-        self.assertEqual(order.total_amount, Decimal("1486.00"))
+        # Total: 1200 + 20 + 50 = 1270
+        self.assertEqual(order.total_amount, Decimal("1270.00"))
 
         # Check checkout GET page has no '(Local:' label
         checkout_get = self.client.get(f"/checkout/{self.product.id}/?qty=8")
@@ -2874,9 +2874,9 @@ class OrderReceiptTests(TestCase):
     def test_checkout_and_receipt_include_gst_18_percent(self):
         res = self.client.get(f"/checkout/{self.product.id}/?qty=1")
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "GST (18%)")
-        self.assertContains(res, "₹16.20")
-        self.assertContains(res, "₹156.20")
+        self.assertContains(res, "(Inclusive of all taxes)")
+        self.assertNotContains(res, "GST (18%)")
+        self.assertContains(res, "₹90.00")
 
         post_res = self.client.post(
             f"/checkout/{self.product.id}/?qty=1",
@@ -2895,16 +2895,16 @@ class OrderReceiptTests(TestCase):
         order = Order.objects.filter(customer_phone="+91 9842100000").first()
         self.assertIsNotNone(order)
         self.assertEqual(order.items_subtotal, Decimal("90.00"))
-        self.assertEqual(order.gst_amount, Decimal("16.20"))
+        self.assertEqual(order.gst_amount, Decimal("13.73"))
         self.assertEqual(order.shipping_fee, Decimal("50.00"))
         self.assertEqual(order.packing_fee, Decimal("0.00"))
-        self.assertEqual(order.total_amount, Decimal("156.20"))
+        self.assertEqual(order.total_amount, Decimal("140.00"))
 
         receipt_res = self.client.get(reverse("order_receipt", kwargs={"order_id": order.id}))
         self.assertEqual(receipt_res.status_code, 200)
-        self.assertContains(receipt_res, "GST (18%)")
-        self.assertContains(receipt_res, "₹16.20")
-        self.assertContains(receipt_res, "₹156.20")
+        self.assertContains(receipt_res, "Included GST")
+        self.assertContains(receipt_res, "₹13.73")
+        self.assertContains(receipt_res, "₹140.00")
 
 
 class DeliveryPartnerManagementTests(TestCase):
@@ -4471,16 +4471,25 @@ class ProductCostPriceAndBulkAddTests(TestCase):
     def test_product_default_cost_price_and_profit(self):
         product = Product.objects.create(name="Mango Spark", price=Decimal("90.00"))
         self.assertEqual(product.cost_price, Decimal("60.00"))
-        self.assertEqual(product.profit_amount, Decimal("30.00"))
-        self.assertEqual(product.profit_margin_percent, Decimal("33.3"))
+        # Pre-tax net profit: base price (76.27) - cost price (60.00) = 16.27 (margin 21.3%)
+        self.assertEqual(product.profit_amount, Decimal("16.27"))
+        self.assertEqual(product.profit_margin_percent, Decimal("21.3"))
 
     def test_custom_cost_price(self):
         product = Product.objects.create(
             name="Premium Cola", cost_price=Decimal("50.00"), price=Decimal("100.00")
         )
         self.assertEqual(product.cost_price, Decimal("50.00"))
-        self.assertEqual(product.profit_amount, Decimal("50.00"))
-        self.assertEqual(product.profit_margin_percent, Decimal("50.0"))
+        # Pre-tax net profit with 18% GST: base price (84.75) - cost price (50.00) = 34.75 (margin 41.0%)
+        self.assertEqual(product.profit_amount, Decimal("34.75"))
+        self.assertEqual(product.profit_margin_percent, Decimal("41.0"))
+
+        # Zero GST rate (0%): profit = 100.00 - 50.00 = 50.00 (margin 50.0%)
+        product_zero_gst = Product.objects.create(
+            name="Zero GST Drink", cost_price=Decimal("50.00"), price=Decimal("100.00"), gst_rate=0
+        )
+        self.assertEqual(product_zero_gst.profit_amount, Decimal("50.00"))
+        self.assertEqual(product_zero_gst.profit_margin_percent, Decimal("50.0"))
 
     def test_product_admin_displays_cost_and_bulk_button(self):
         self.client.force_login(self.staff_user)
@@ -4619,8 +4628,10 @@ class AdminUsersAndSalesReportTests(TestCase):
         self.assertContains(resp, "Which Product Is More Buying")
 
         self.assertEqual(resp.context["gross_sales"], Decimal("180.00"))
+        self.assertEqual(resp.context["total_gst_collected"], Decimal("27.46"))
+        self.assertEqual(resp.context["net_sales"], Decimal("152.54"))
         self.assertEqual(resp.context["total_cogs"], Decimal("120.00"))
-        self.assertEqual(resp.context["net_profit"], Decimal("60.00"))
+        self.assertEqual(resp.context["net_profit"], Decimal("32.54"))
         self.assertTrue(resp.context["is_profitable"])
 
     def test_admin_reports_export_csv(self):
@@ -4929,6 +4940,206 @@ class TableCsvExportsTests(TestCase):
         content_part = resp_part.content.decode("utf-8")
         self.assertIn("delivery_pro", content_part)
         self.assertIn("TN-01-AB-9999", content_part)
+
+
+class GSTRateAndInclusivePricingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.admin_user = User.objects.create_user(
+            username="gst_admin",
+            password="adminpassword123",
+            is_staff=True,
+        )
+        cls.customer = User.objects.create_user(
+            username="gst_shopper",
+            password="shopperpassword123",
+            is_staff=False,
+        )
+
+        # Products with each GST rate: 0%, 5%, 18%, 40%
+        cls.prod_0 = Product.objects.create(
+            name="Mineral Water Zero GST",
+            price=Decimal("50.00"),
+            cost_price=Decimal("30.00"),
+            gst_rate=0,
+            available=True,
+        )
+        cls.prod_5 = Product.objects.create(
+            name="Milk Drink Five GST",
+            price=Decimal("105.00"),
+            cost_price=Decimal("70.00"),
+            gst_rate=5,
+            available=True,
+        )
+        cls.prod_18 = Product.objects.create(
+            name="Soda Eighteen GST",
+            price=Decimal("118.00"),
+            cost_price=Decimal("60.00"),
+            gst_rate=18,
+            available=True,
+        )
+        cls.prod_40 = Product.objects.create(
+            name="Caffeinated Energy Forty GST",
+            price=Decimal("140.00"),
+            cost_price=Decimal("60.00"),
+            gst_rate=40,
+            available=True,
+        )
+
+    def test_gst_rates_and_base_price_auto_calculation(self):
+        # 0% GST: Base price == Selling price
+        self.prod_0.refresh_from_db()
+        self.assertEqual(self.prod_0.base_price, Decimal("50.00"))
+        self.assertEqual(self.prod_0.gst_amount_per_unit, Decimal("0.00"))
+        self.assertEqual(self.prod_0.net_profit_per_unit, Decimal("20.00"))
+
+        # 5% GST on 105: Base = 105 / 1.05 = 100.00, GST = 5.00, Profit = 100 - 70 = 30.00
+        self.prod_5.refresh_from_db()
+        self.assertEqual(self.prod_5.base_price, Decimal("100.00"))
+        self.assertEqual(self.prod_5.gst_amount_per_unit, Decimal("5.00"))
+        self.assertEqual(self.prod_5.net_profit_per_unit, Decimal("30.00"))
+
+        # 18% GST on 118: Base = 118 / 1.18 = 100.00, GST = 18.00, Profit = 100 - 60 = 40.00
+        self.prod_18.refresh_from_db()
+        self.assertEqual(self.prod_18.base_price, Decimal("100.00"))
+        self.assertEqual(self.prod_18.gst_amount_per_unit, Decimal("18.00"))
+        self.assertEqual(self.prod_18.net_profit_per_unit, Decimal("40.00"))
+
+        # 40% GST on 140: Base = 140 / 1.40 = 100.00, GST = 40.00, Profit = 100 - 60 = 40.00
+        self.prod_40.refresh_from_db()
+        self.assertEqual(self.prod_40.base_price, Decimal("100.00"))
+        self.assertEqual(self.prod_40.gst_amount_per_unit, Decimal("40.00"))
+        self.assertEqual(self.prod_40.net_profit_per_unit, Decimal("40.00"))
+
+    def test_admin_single_product_form_gst_choices_and_saving(self):
+        self.client.force_login(self.admin_user)
+        res = self.client.get(reverse("admin_products"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "GST Rate (%)")
+        self.assertContains(res, '<option value="0">0%</option>')
+        self.assertContains(res, '<option value="5">5%</option>')
+        self.assertContains(res, '<option value="18" selected>18%</option>')
+        self.assertContains(res, '<option value="40">40%</option>')
+
+        post_data = {
+            "name": "Super Spark 40%",
+            "category": "energy",
+            "volume": "330 ml",
+            "cost_price": "60.00",
+            "gst_rate": "40",
+            "base_price": "100.00",
+            "price": "140.00",
+            "available": True,
+            "featured": False,
+            "display_order": 1,
+        }
+        create_res = self.client.post(reverse("admin_products"), post_data)
+        self.assertEqual(create_res.status_code, 302)
+        created_prod = Product.objects.filter(name="Super Spark 40%").first()
+        self.assertIsNotNone(created_prod)
+        self.assertEqual(created_prod.gst_rate, 40)
+        self.assertEqual(created_prod.base_price, Decimal("100.00"))
+        self.assertEqual(created_prod.price, Decimal("140.00"))
+        self.assertEqual(created_prod.net_profit_per_unit, Decimal("40.00"))
+
+    def test_admin_bulk_add_products_with_gst_rates(self):
+        self.client.force_login(self.admin_user)
+        bulk_data = {
+            "row_count": "2",
+            "name_0": "Bulk Zero 0",
+            "category_0": "soda",
+            "volume_0": "330 ml",
+            "cost_price_0": "40.00",
+            "gst_rate_0": "0",
+            "base_price_0": "70.00",
+            "price_0": "70.00",
+            "name_1": "Bulk Concessional 5",
+            "category_1": "juice",
+            "volume_1": "330 ml",
+            "cost_price_1": "50.00",
+            "gst_rate_1": "5",
+            "base_price_1": "100.00",
+            "price_1": "105.00",
+        }
+        res = self.client.post(reverse("admin_bulk_add_products"), bulk_data)
+        self.assertEqual(res.status_code, 302)
+        p0 = Product.objects.filter(name="Bulk Zero 0").first()
+        self.assertIsNotNone(p0)
+        self.assertEqual(p0.gst_rate, 0)
+        self.assertEqual(p0.price, Decimal("70.00"))
+        self.assertEqual(p0.base_price, Decimal("70.00"))
+
+        p1 = Product.objects.filter(name="Bulk Concessional 5").first()
+        self.assertIsNotNone(p1)
+        self.assertEqual(p1.gst_rate, 5)
+        self.assertEqual(p1.price, Decimal("105.00"))
+        self.assertEqual(p1.base_price, Decimal("100.00"))
+
+    def test_storefront_inclusive_taxes_notes(self):
+        home_res = self.client.get(reverse("home"))
+        self.assertEqual(home_res.status_code, 200)
+        self.assertContains(home_res, "Inclusive of all taxes")
+
+        detail_res = self.client.get(reverse("product_detail", kwargs={"product_id": self.prod_18.id}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, "(Inclusive of all taxes)")
+
+    def test_checkout_does_not_charge_extra_gst(self):
+        self.client.force_login(self.customer)
+        post_data = {
+            "first_name": "GST",
+            "last_name": "Buyer",
+            "email": "gstbuyer@example.com",
+            "phone": "+91 9123456789",
+            "address": "40 Luxury Road",
+            "city": "Chennai",
+            "state": "Tamil Nadu",
+            "postal_code": "600001",
+        }
+        res = self.client.post(f"/checkout/{self.prod_40.id}/?qty=1", post_data)
+        self.assertEqual(res.status_code, 302)
+        order = Order.objects.filter(customer_phone="+91 9123456789").first()
+        self.assertIsNotNone(order)
+        self.assertEqual(order.items_subtotal, Decimal("140.00"))
+        self.assertEqual(order.shipping_fee, Decimal("50.00"))
+        self.assertEqual(order.total_amount, Decimal("190.00"))
+        self.assertEqual(order.gst_amount, Decimal("40.00"))
+
+    def test_reports_show_gst_collected_and_accurate_net_profit(self):
+        order = Order.objects.create(
+            customer=self.customer,
+            customer_name="GST Test Shopper",
+            customer_phone="9876500001",
+            delivery_address="100 Tax Street",
+            delivery_city="Chennai",
+            product=self.prod_18,
+            quantity=2,
+            total_amount=Decimal("236.00"),
+            gst_amount=Decimal("36.00"),
+            status="delivered",
+            payment_status="paid",
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.prod_18,
+            quantity=2,
+            unit_price=Decimal("118.00"),
+        )
+
+        self.client.force_login(self.admin_user)
+        res = self.client.get(reverse("admin_reports"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "GST Collected")
+        self.assertContains(res, "Net Sales")
+        self.assertContains(res, "Government Tax Liability")
+        self.assertContains(res, "profit-equation-banner")
+
+        csv_res = self.client.get(reverse("admin_reports_export_csv"))
+        self.assertEqual(csv_res.status_code, 200)
+        csv_content = csv_res.content.decode("utf-8")
+        self.assertIn("GST Collected", csv_content)
+        self.assertIn("Net Sales", csv_content)
 
 
 
