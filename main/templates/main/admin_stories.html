@@ -1,0 +1,630 @@
+{% extends "main/admin_base.html" %}
+
+{% block title %}Stories Management | Admin{% endblock %}
+{% block page_heading %}Stories & Culture Lineup{% endblock %}
+{% block page_description %}Manage side-scrollable brand and culture stories displayed between the Hero and Video sections.{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'home' %}#stories" target="_blank" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+      <polyline points="15 3 21 3 21 9"></polyline>
+      <line x1="10" y1="14" x2="21" y2="3"></line>
+    </svg>
+    <span>View on Store ↗</span>
+  </a>
+  <button type="button" class="btn-primary" onclick="openCreateStoryModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    <span>Create New Story</span>
+  </button>
+{% endblock %}
+
+{% block admin_content %}
+<style>
+  /* Stats Grid */
+  .stories-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 992px) {
+    .stories-stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 12px !important;
+    }
+  }
+  @media (max-width: 576px) {
+    .stories-stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+    .stories-stats-grid .stat-card {
+      padding: 12px 10px !important;
+      border-radius: 14px !important;
+    }
+  }
+
+  /* Table Controls */
+  .table-controls-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--admin-line);
+    border-radius: 14px;
+  }
+  .search-sort-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .control-input-search {
+    background: #0d1114;
+    border: 1px solid var(--admin-line);
+    color: #fff;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    width: 250px;
+    transition: border-color 0.15s ease;
+  }
+  .control-input-search:focus {
+    outline: none;
+    border-color: #ff5722;
+  }
+  .filter-chips-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-chip-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--admin-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .filter-chip-btn.active, .filter-chip-btn:hover {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+  }
+
+  /* Stories Card Grid */
+  .stories-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .story-admin-card {
+    background: var(--admin-card-bg, #14171a);
+    border: 1px solid var(--admin-line, rgba(255, 255, 255, 0.08));
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .story-admin-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+  }
+  .story-admin-thumb-wrap {
+    height: 180px;
+    width: 100%;
+    position: relative;
+    background: #1b1e22;
+    overflow: hidden;
+  }
+  .story-admin-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .story-admin-badges {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .badge-category {
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .badge-order {
+    background: rgba(255, 87, 34, 0.9);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .story-admin-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .story-admin-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .story-admin-excerpt {
+    font-size: 0.82rem;
+    color: #8b949e;
+    line-height: 1.45;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .story-admin-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #8b949e;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--admin-line, rgba(255, 255, 255, 0.08));
+  }
+  .story-admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--admin-line, rgba(255, 255, 255, 0.06));
+  }
+
+  /* Form Modal */
+  .admin-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    z-index: 1050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .admin-modal-backdrop.is-open {
+    display: flex;
+  }
+  .admin-modal-dialog {
+    background: #161b22;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  }
+  .admin-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .admin-modal-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+  }
+  .admin-modal-close {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .admin-modal-close:hover {
+    color: #fff;
+  }
+  .admin-modal-body {
+    padding: 24px;
+  }
+  .admin-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Quick category chips in modal */
+  .quick-cat-chip {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    user-select: none;
+  }
+  .quick-cat-chip:hover {
+    background: #fff;
+    color: #000;
+  }
+</style>
+
+<!-- Stats Grid -->
+<div class="stories-stats-grid">
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-label">TOTAL STORIES</span>
+      <span class="stat-tag">Lineup</span>
+    </div>
+    <div class="stat-value">{{ total_stories_count }}</div>
+    <div class="stat-footer">Featured brand & culture articles</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-label">ACTIVE / PUBLISHED</span>
+      <span class="stat-tag" style="background: rgba(34, 197, 94, 0.15); color: #4ade80;">Live</span>
+    </div>
+    <div class="stat-value" style="color: #4ade80;">{{ active_stories_count }}</div>
+    <div class="stat-footer">Visible on homepage storefront</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-label">HIDDEN / DRAFTS</span>
+      <span class="stat-tag" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">Draft</span>
+    </div>
+    <div class="stat-value">{{ inactive_stories_count }}</div>
+    <div class="stat-footer">Hidden from storefront</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-label">CATEGORIES</span>
+      <span class="stat-tag">Tags</span>
+    </div>
+    <div class="stat-value">{{ categories_count }}</div>
+    <div class="stat-footer">Distinct culture topics</div>
+  </div>
+</div>
+
+<!-- Controls & Search -->
+<div class="table-controls-bar">
+  <div class="search-sort-group">
+    <input
+      type="text"
+      class="control-input-search"
+      id="storySearchInput"
+      placeholder="Search stories by title or category..."
+      onkeyup="filterStories()"
+    >
+  </div>
+  <div class="filter-chips-group">
+    <button type="button" class="filter-chip-btn active" data-filter="all" onclick="setFilterStatus('all', this)">All ({{ total_stories_count }})</button>
+    <button type="button" class="filter-chip-btn" data-filter="active" onclick="setFilterStatus('active', this)">Active ({{ active_stories_count }})</button>
+    <button type="button" class="filter-chip-btn" data-filter="hidden" onclick="setFilterStatus('hidden', this)">Hidden ({{ inactive_stories_count }})</button>
+  </div>
+</div>
+
+<!-- Stories Cards Grid -->
+<div class="stories-admin-grid" id="storiesAdminGrid">
+  {% for story in stories %}
+  <div class="story-admin-card" data-title="{{ story.title|lower }}" data-category="{{ story.category|lower }}" data-status="{% if story.is_active %}active{% else %}hidden{% endif %}">
+    <div class="story-admin-thumb-wrap">
+      <img src="{{ story.display_image }}" alt="{{ story.title }}" class="story-admin-thumb" onerror="this.src='/static/main/images/cola.png'">
+      <div class="story-admin-badges">
+        <span class="badge-category">{{ story.category }}</span>
+        <span class="badge-order">#{{ story.order }}</span>
+      </div>
+    </div>
+    <div class="story-admin-body">
+      <h3 class="story-admin-title" title="{{ story.title }}">{{ story.title }}</h3>
+      <p class="story-admin-excerpt">{{ story.excerpt }}</p>
+      <div class="story-admin-meta">
+        <span>⏱ {{ story.read_time }}</span>
+        <span>
+          {% if story.is_active %}
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 4px;"></span> Active
+          {% else %}
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; margin-right: 4px;"></span> Hidden
+          {% endif %}
+        </span>
+      </div>
+    </div>
+    <div class="story-admin-actions">
+      <!-- Edit button -->
+      <button
+        type="button"
+        class="btn-secondary"
+        style="flex: 1; padding: 6px 12px; font-size: 0.8rem; justify-content: center;"
+        onclick="openEditStoryModal(
+          '{{ story.id }}',
+          '{{ story.title|escapejs }}',
+          '{{ story.category|escapejs }}',
+          '{{ story.read_time|escapejs }}',
+          '{{ story.order }}',
+          '{{ story.excerpt|escapejs }}',
+          '{{ story.content|escapejs }}',
+          '{{ story.link_url|escapejs }}',
+          '{{ story.image_data_url|escapejs }}',
+          {% if story.is_active %}true{% else %}false{% endif %}
+        )"
+      >
+        ✏️ Edit
+      </button>
+
+      <!-- Toggle Active Status Form -->
+      <form method="post" action="{% url 'admin_toggle_story' story.id %}" style="margin: 0;">
+        {% csrf_token %}
+        <button
+          type="submit"
+          class="btn-secondary"
+          style="padding: 6px 12px; font-size: 0.8rem;"
+          title="{% if story.is_active %}Deactivate Story{% else %}Activate Story{% endif %}"
+        >
+          {% if story.is_active %}Hide{% else %}Show{% endif %}
+        </button>
+      </form>
+
+      <!-- Delete button -->
+      <button
+        type="button"
+        class="btn-secondary"
+        style="padding: 6px 10px; font-size: 0.8rem; color: #f87171; border-color: rgba(239, 68, 68, 0.3);"
+        onclick="openDeleteStoryModal('{{ story.id }}', '{{ story.title|escapejs }}')"
+        title="Delete Story"
+      >
+        🗑️
+      </button>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column: 1 / -1; padding: 60px 20px; text-align: center; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--admin-line); border-radius: 16px;">
+    <p style="color: #94a3b8; font-size: 1.05rem; margin-bottom: 16px;">No stories created yet.</p>
+    <button type="button" class="btn-primary" onclick="openCreateStoryModal()">+ Add Your First Story</button>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- CREATE / EDIT STORY MODAL -->
+<div class="admin-modal-backdrop" id="storyModal">
+  <div class="admin-modal-dialog">
+    <div class="admin-modal-header">
+      <h3 class="admin-modal-title" id="storyModalTitle">Create New Story</h3>
+      <button type="button" class="admin-modal-close" onclick="closeStoryModal()">&times;</button>
+    </div>
+    <form method="post" id="storyForm" enctype="multipart/form-data" action="{% url 'admin_stories' %}">
+      {% csrf_token %}
+      <div class="admin-modal-body">
+        <!-- Title -->
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #fff;">Story Title *</label>
+          <input type="text" name="title" id="modalStoryTitle" class="form-control" required placeholder="e.g. Sandro Dias breaks two world records on the biggest skate ramp ever">
+        </div>
+
+        <div class="row mb-3">
+          <!-- Category -->
+          <div class="col-md-6">
+            <label class="form-label" style="font-weight: 600; color: #fff;">Category / Tag *</label>
+            <input type="text" name="category" id="modalStoryCategory" class="form-control" required placeholder="e.g. SKATEBOARDING, MUSIC, LIFESTYLE">
+            <div class="d-flex gap-1 flex-wrap mt-1">
+              <span class="quick-cat-chip" onclick="document.getElementById('modalStoryCategory').value='SKATEBOARDING'">Skateboarding</span>
+              <span class="quick-cat-chip" onclick="document.getElementById('modalStoryCategory').value='MUSIC'">Music</span>
+              <span class="quick-cat-chip" onclick="document.getElementById('modalStoryCategory').value='BREAKING'">Breaking</span>
+              <span class="quick-cat-chip" onclick="document.getElementById('modalStoryCategory').value='LIFESTYLE'">Lifestyle</span>
+              <span class="quick-cat-chip" onclick="document.getElementById('modalStoryCategory').value='EVENTS'">Events</span>
+            </div>
+          </div>
+
+          <!-- Read Time -->
+          <div class="col-md-3">
+            <label class="form-label" style="font-weight: 600; color: #fff;">Read Time</label>
+            <input type="text" name="read_time" id="modalStoryReadTime" class="form-control" placeholder="e.g. 5 min read" value="5 min read">
+          </div>
+
+          <!-- Order Index -->
+          <div class="col-md-3">
+            <label class="form-label" style="font-weight: 600; color: #fff;">Display Order</label>
+            <input type="number" name="order" id="modalStoryOrder" class="form-control" min="0" value="0">
+          </div>
+        </div>
+
+        <!-- Excerpt -->
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #fff;">Short Excerpt (Card Summary) *</label>
+          <textarea name="excerpt" id="modalStoryExcerpt" class="form-control" rows="2" required placeholder="Brief 1-2 sentence hook displayed on the homepage card..."></textarea>
+        </div>
+
+        <!-- Full Story Content -->
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #fff;">Full Story Article Content</label>
+          <textarea name="content" id="modalStoryContent" class="form-control" rows="4" placeholder="Full narrative / article text when a visitor opens this story..."></textarea>
+        </div>
+
+        <!-- Cover Image -->
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #fff;">Cover Image File</label>
+          <input type="file" name="image" id="modalStoryImage" class="form-control" accept="image/*">
+          <small class="text-muted d-block mt-1">Upload a high-quality photo (16:10 or landscape recommended).</small>
+        </div>
+
+        <!-- Image URL / Base64 fallback -->
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #fff;">Or Image URL / Base64</label>
+          <input type="text" name="image_data_url" id="modalStoryImageDataUrl" class="form-control" placeholder="https://... or data:image/...">
+        </div>
+
+        <!-- Custom Link URL -->
+        <div class="mb-3">
+          <label class="form-label" style="font-weight: 600; color: #fff;">Custom Link URL (Optional)</label>
+          <input type="text" name="link_url" id="modalStoryLinkUrl" class="form-control" placeholder="e.g. https://... or leave blank for built-in reader modal">
+        </div>
+
+        <!-- Is Active Checkbox -->
+        <div class="form-check form-switch mt-2">
+          <input class="form-check-input" type="checkbox" name="is_active" id="modalStoryIsActive" checked>
+          <label class="form-check-label" for="modalStoryIsActive" style="color: #fff; font-weight: 600;">
+            Story is Active (Visible on storefront)
+          </label>
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeStoryModal()">Cancel</button>
+        <button type="submit" class="btn-primary" id="storyModalSubmitBtn">Save Story</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="admin-modal-backdrop" id="deleteStoryModal">
+  <div class="admin-modal-dialog" style="max-width: 440px;">
+    <div class="admin-modal-header">
+      <h3 class="admin-modal-title" style="color: #f87171;">Delete Story</h3>
+      <button type="button" class="admin-modal-close" onclick="closeDeleteStoryModal()">&times;</button>
+    </div>
+    <form method="post" id="deleteStoryForm" action="">
+      {% csrf_token %}
+      <div class="admin-modal-body">
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 8px;">
+          Are you sure you want to permanently delete this story?
+        </p>
+        <p style="color: #fff; font-weight: 700; font-size: 1rem; word-break: break-word;" id="deleteStoryTitleDisplay"></p>
+        <p style="color: #f87171; font-size: 0.8rem; margin-top: 12px; margin-bottom: 0;">
+          This action cannot be undone.
+        </p>
+      </div>
+      <div class="admin-modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeDeleteStoryModal()">Cancel</button>
+        <button type="submit" class="btn-primary" style="background: #ef4444; border-color: #ef4444; color: #fff;">Delete Permanently</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let currentFilter = 'all';
+
+  function openCreateStoryModal() {
+    document.getElementById('storyModalTitle').textContent = 'Create New Story';
+    document.getElementById('storyModalSubmitBtn').textContent = 'Create Story';
+    document.getElementById('storyForm').action = "{% url 'admin_stories' %}";
+    document.getElementById('modalStoryTitle').value = '';
+    document.getElementById('modalStoryCategory').value = 'LIFESTYLE';
+    document.getElementById('modalStoryReadTime').value = '5 min read';
+    document.getElementById('modalStoryOrder').value = '0';
+    document.getElementById('modalStoryExcerpt').value = '';
+    document.getElementById('modalStoryContent').value = '';
+    document.getElementById('modalStoryImage').value = '';
+    document.getElementById('modalStoryImageDataUrl').value = '';
+    document.getElementById('modalStoryLinkUrl').value = '';
+    document.getElementById('modalStoryIsActive').checked = true;
+    document.getElementById('storyModal').classList.add('is-open');
+  }
+
+  function openEditStoryModal(id, title, category, readTime, order, excerpt, content, linkUrl, imageDataUrl, isActive) {
+    document.getElementById('storyModalTitle').textContent = 'Edit Story';
+    document.getElementById('storyModalSubmitBtn').textContent = 'Update Story';
+    document.getElementById('storyForm').action = '/admin-profile/stories/' + id + '/edit/';
+    document.getElementById('modalStoryTitle').value = title;
+    document.getElementById('modalStoryCategory').value = category;
+    document.getElementById('modalStoryReadTime').value = readTime || '5 min read';
+    document.getElementById('modalStoryOrder').value = order || '0';
+    document.getElementById('modalStoryExcerpt').value = excerpt;
+    document.getElementById('modalStoryContent').value = content;
+    document.getElementById('modalStoryImage').value = '';
+    document.getElementById('modalStoryImageDataUrl').value = imageDataUrl || '';
+    document.getElementById('modalStoryLinkUrl').value = linkUrl || '';
+    document.getElementById('modalStoryIsActive').checked = !!isActive;
+    document.getElementById('storyModal').classList.add('is-open');
+  }
+
+  function closeStoryModal() {
+    document.getElementById('storyModal').classList.remove('is-open');
+  }
+
+  function openDeleteStoryModal(id, title) {
+    document.getElementById('deleteStoryTitleDisplay').textContent = title;
+    document.getElementById('deleteStoryForm').action = '/admin-profile/stories/' + id + '/delete/';
+    document.getElementById('deleteStoryModal').classList.add('is-open');
+  }
+
+  function closeDeleteStoryModal() {
+    document.getElementById('deleteStoryModal').classList.remove('is-open');
+  }
+
+  function setFilterStatus(status, btn) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-chip-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterStories();
+  }
+
+  function filterStories() {
+    const query = document.getElementById('storySearchInput').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.story-admin-card');
+
+    cards.forEach(card => {
+      const title = card.getAttribute('data-title') || '';
+      const category = card.getAttribute('data-category') || '';
+      const status = card.getAttribute('data-status') || '';
+
+      const matchesSearch = !query || title.includes(query) || category.includes(query);
+      const matchesFilter = currentFilter === 'all' || status === currentFilter;
+
+      if (matchesSearch && matchesFilter) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  {% if show_modal %}
+  document.addEventListener('DOMContentLoaded', function() {
+    openCreateStoryModal();
+  });
+  {% endif %}
+</script>
+{% endblock %}

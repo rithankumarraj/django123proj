@@ -17,6 +17,7 @@ from .models import (
     Product,
     ProductCategory,
     SiteDetails,
+    Story,
 )
 
 
@@ -953,4 +954,100 @@ class ComboOfferForm(forms.ModelForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+class StoryForm(forms.ModelForm):
+    class Meta:
+        model = Story
+        fields = [
+            "title",
+            "category",
+            "read_time",
+            "excerpt",
+            "content",
+            "image",
+            "image_data_url",
+            "link_url",
+            "order",
+            "is_active",
+        ]
+        labels = {
+            "title": "Story Title",
+            "category": "Category / Tag",
+            "read_time": "Estimated Read Time",
+            "excerpt": "Short Summary (Card Preview)",
+            "content": "Full Story Content",
+            "image": "Cover Image File",
+            "image_data_url": "Image URL or Base64 (Optional)",
+            "link_url": "Custom Link URL (Optional)",
+            "order": "Display Order",
+            "is_active": "Story is Active",
+        }
+        widgets = {
+            "title": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. Sandro Dias breaks two world records on the biggest skate ramp ever",
+                "required": True,
+            }),
+            "category": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. SKATEBOARDING, MUSIC, LIFESTYLE",
+                "required": True,
+            }),
+            "read_time": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. 5 min read",
+            }),
+            "excerpt": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Brief 1-2 sentence hook displayed on the homepage card...",
+                "required": True,
+            }),
+            "content": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 6,
+                "placeholder": "Full story / article text to display when user clicks on this story...",
+            }),
+            "image": forms.FileInput(attrs={
+                "class": "form-control",
+                "accept": "image/*",
+            }),
+            "image_data_url": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "https://... or paste data:image/... URL",
+            }),
+            "link_url": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. https://... or /about/ (optional)",
+            }),
+            "order": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": "0",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+            }),
+        }
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        uploaded = self.cleaned_data.get("image")
+        if uploaded:
+            try:
+                uploaded.seek(0)
+                data = uploaded.read()
+                if data:
+                    import base64
+                    mime = getattr(uploaded, "content_type", "image/png") or "image/png"
+                    instance.image_data_url = f"data:{mime};base64,{base64.b64encode(data).decode('utf-8')}"
+            except Exception:
+                pass
+        elif not instance.image_data_url and self.cleaned_data.get("image_data_url"):
+            instance.image_data_url = self.cleaned_data.get("image_data_url").strip()
+
+        if commit:
+            instance.save()
+        return instance
+
 

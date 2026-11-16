@@ -189,6 +189,26 @@ urlpatterns = [
         name="admin_delete_combo",
     ),
     path(
+        "admin-profile/stories/",
+        views.admin_stories,
+        name="admin_stories",
+    ),
+    path(
+        "admin-profile/stories/<int:story_id>/toggle/",
+        views.admin_toggle_story,
+        name="admin_toggle_story",
+    ),
+    path(
+        "admin-profile/stories/<int:story_id>/edit/",
+        views.admin_edit_story,
+        name="admin_edit_story",
+    ),
+    path(
+        "admin-profile/stories/<int:story_id>/delete/",
+        views.admin_delete_story,
+        name="admin_delete_story",
+    ),
+    path(
         "admin-profile/visitors/",
         views.admin_visitors,
         name="admin_visitors",

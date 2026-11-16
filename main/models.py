@@ -1451,3 +1451,61 @@ class WebsiteView(models.Model):
             return record
         except Exception:
             return None
+
+
+class Story(models.Model):
+    """
+    Side-scrollable brand and culture stories showcased between Hero and Video.
+    Fully editable and manageable from the Admin Portal.
+    """
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
+    excerpt = models.TextField(help_text="Short summary shown on the card")
+    content = models.TextField(blank=True, default="", help_text="Full story / article text (optional)")
+    image = models.ImageField(upload_to="stories/", blank=True, null=True, help_text="Upload story cover image")
+    image_data_url = models.TextField(blank=True, default="", help_text="Base64 or external URL for image")
+    category = models.CharField(max_length=80, default="LIFESTYLE", help_text="e.g. SKATEBOARDING, MUSIC, LIFESTYLE")
+    read_time = models.CharField(max_length=50, default="5 min read", help_text="e.g. 5 min read, 2 min read")
+    link_url = models.CharField(max_length=500, blank=True, default="", help_text="External or internal URL (optional)")
+    order = models.PositiveIntegerField(default=0, help_text="Order index for display (lower numbers first)")
+    is_active = models.BooleanField(default=True, help_text="Whether this story is visible on the storefront")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "-created_at"]
+        verbose_name = "Story"
+        verbose_name_plural = "Stories"
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            base_slug = slugify(self.title)[:250] or "story"
+            slug = base_slug
+            idx = 1
+            while Story.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{idx}"
+                idx += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    @property
+    def display_image(self):
+        if self.image_data_url and self.image_data_url.strip():
+            return self.image_data_url.strip()
+        if self.image:
+            try:
+                url = self.image.url
+                if url:
+                    return url
+            except Exception:
+                pass
+            name = str(self.image).strip()
+            if name:
+                if name.startswith("http://") or name.startswith("https://") or name.startswith("/") or name.startswith("data:"):
+                    return name
+                return f"/media/{name}"
+        return "/static/main/images/cola.png"

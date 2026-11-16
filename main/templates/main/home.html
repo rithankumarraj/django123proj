@@ -59,7 +59,441 @@
 
         <main>
             <!-- ═════════════════════════════════════════════════════════════════════════
-                 FULLSCREEN YOUTUBE BRAND FILM SECTION (BETWEEN HERO & PRODUCTS)
+                 STORIES SECTION (BETWEEN HERO & VIDEO)
+                 Side-scrollable visual brand and culture stories cards
+                 ═════════════════════════════════════════════════════════════════════════ -->
+            {% if stories %}
+            <section class="stories-section" id="stories" aria-label="Brand & Culture Stories">
+                <style>
+                    /* ─── Stories Section Styles ─── */
+                    .stories-section {
+                        background: #ffffff;
+                        padding: 60px 0 0;
+                        position: relative;
+                        z-index: 5;
+                    }
+
+                    .stories-header-row {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 24px;
+                    }
+
+                    .stories-main-title {
+                        font-family: 'Cabinet Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                        font-size: clamp(2.2rem, 4.2vw, 3rem);
+                        font-weight: 900;
+                        letter-spacing: -0.035em;
+                        color: #111111;
+                        margin: 0;
+                        line-height: 1.1;
+                    }
+
+                    .stories-nav-arrows {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+
+                    .stories-arrow-btn {
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 50%;
+                        border: 1px solid rgba(0, 0, 0, 0.14);
+                        background: #ffffff;
+                        color: #111111;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                    }
+
+                    .stories-arrow-btn:hover {
+                        background: #000000;
+                        color: #ffffff;
+                        border-color: #000000;
+                        transform: scale(1.06);
+                    }
+
+                    /* Horizontal Side-Scroll Wrapper */
+                    .stories-carousel-wrap {
+                        position: relative;
+                        margin: 0 -15px;
+                        padding: 0 15px;
+                    }
+
+                    .stories-scroll-container {
+                        display: flex;
+                        gap: 24px;
+                        overflow-x: auto;
+                        scroll-snap-type: x mandatory;
+                        scroll-behavior: smooth;
+                        -webkit-overflow-scrolling: touch;
+                        scrollbar-width: none;
+                        padding: 8px 4px 36px;
+                    }
+
+                    .stories-scroll-container::-webkit-scrollbar {
+                        display: none;
+                    }
+
+                    /* Story Card Design matching Red Bull stories aesthetics */
+                    .story-card {
+                        flex: 0 0 300px;
+                        width: 300px;
+                        scroll-snap-align: start;
+                        background: #ffffff;
+                        border-radius: 18px;
+                        border: 1px solid rgba(0, 0, 0, 0.08);
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
+                        text-decoration: none;
+                        color: inherit;
+                        cursor: pointer;
+                        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+                    }
+
+                    @media (max-width: 576px) {
+                        .story-card {
+                            flex: 0 0 268px;
+                            width: 268px;
+                        }
+                    }
+
+                    .story-card:hover {
+                        transform: translateY(-8px);
+                        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+                        border-color: rgba(0, 0, 0, 0.18);
+                    }
+
+                    .story-card-image-wrap {
+                        height: 205px;
+                        width: 100%;
+                        overflow: hidden;
+                        background: #111113;
+                        position: relative;
+                    }
+
+                    .story-card-img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        transition: transform 0.45s ease;
+                    }
+
+                    .story-card:hover .story-card-img {
+                        transform: scale(1.06);
+                    }
+
+                    .story-card-body {
+                        padding: 20px 20px 18px;
+                        display: flex;
+                        flex-direction: column;
+                        flex: 1;
+                    }
+
+                    .story-card-title {
+                        font-family: 'Cabinet Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                        font-size: 1.08rem;
+                        font-weight: 800;
+                        line-height: 1.35;
+                        color: #0f172a;
+                        margin: 0 0 8px;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                        letter-spacing: -0.015em;
+                    }
+
+                    .story-card-excerpt {
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                        font-size: 0.85rem;
+                        line-height: 1.5;
+                        color: #64748b;
+                        margin: 0 0 18px;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+
+                    .story-card-footer {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-top: auto;
+                        padding-top: 14px;
+                        border-top: 1px solid #f1f5f9;
+                        font-family: 'Inter', sans-serif;
+                    }
+
+                    .story-card-category {
+                        font-size: 0.7rem;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                        color: #334155;
+                    }
+
+                    .story-card-read-time {
+                        font-size: 0.75rem;
+                        color: #94a3b8;
+                        font-weight: 500;
+                    }
+
+                    /* ─── Smooth Blend Transition into Fullscreen Video Section ─── */
+                    .stories-to-video-merge {
+                        width: 100%;
+                        height: 60px;
+                        background: linear-gradient(to bottom, #ffffff 0%, rgba(15, 17, 23, 0.45) 70%, #000000 100%);
+                    }
+
+                    /* ─── Fullscreen Story Reader Modal ─── */
+                    .story-reader-backdrop {
+                        position: fixed;
+                        inset: 0;
+                        background: rgba(0, 0, 0, 0.85);
+                        backdrop-filter: blur(10px);
+                        z-index: 99999;
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 20px;
+                    }
+                    .story-reader-backdrop.is-open {
+                        display: flex;
+                    }
+                    .story-reader-dialog {
+                        background: #0f1115;
+                        color: #ffffff;
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 20px;
+                        width: 100%;
+                        max-width: 680px;
+                        max-height: 88vh;
+                        overflow-y: auto;
+                        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+                    }
+                    .story-reader-cover {
+                        width: 100%;
+                        height: 280px;
+                        object-fit: cover;
+                        border-top-left-radius: 20px;
+                        border-top-right-radius: 20px;
+                    }
+                    .story-reader-body {
+                        padding: 28px 28px 32px;
+                    }
+                    .story-reader-meta-row {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 14px;
+                    }
+                    .story-reader-tag {
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                        background: rgba(255, 255, 255, 0.1);
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        color: #fff;
+                    }
+                    .story-reader-time {
+                        font-size: 0.78rem;
+                        color: #94a3b8;
+                    }
+                    .story-reader-title {
+                        font-family: 'Cabinet Grotesk', 'Inter', sans-serif;
+                        font-size: clamp(1.4rem, 3vw, 1.85rem);
+                        font-weight: 900;
+                        line-height: 1.25;
+                        color: #fff;
+                        margin-bottom: 16px;
+                    }
+                    .story-reader-content {
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.98rem;
+                        line-height: 1.7;
+                        color: #cbd5e1;
+                    }
+                    .story-reader-close-btn {
+                        position: absolute;
+                        top: 16px;
+                        right: 16px;
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        background: rgba(0, 0, 0, 0.7);
+                        color: #fff;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 1.2rem;
+                        cursor: pointer;
+                        transition: background 0.2s;
+                        z-index: 2;
+                    }
+                    .story-reader-close-btn:hover {
+                        background: #fff;
+                        color: #000;
+                    }
+                </style>
+
+                <div class="container px-3 px-md-5">
+                    <div class="stories-header-row">
+                        <h2 class="stories-main-title">Stories</h2>
+                        <div class="stories-nav-arrows">
+                            <button
+                                type="button"
+                                class="stories-arrow-btn"
+                                onclick="scrollStoriesCarousel(-1)"
+                                aria-label="Previous Stories"
+                                title="Previous Stories"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                                    <polyline points="12 19 5 12 12 5"></polyline>
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                class="stories-arrow-btn"
+                                onclick="scrollStoriesCarousel(1)"
+                                aria-label="Next Stories"
+                                title="Next Stories"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stories-carousel-wrap">
+                        <div class="stories-scroll-container" id="storiesScrollContainer">
+                            {% for story in stories %}
+                            <article
+                                class="story-card"
+                                role="button"
+                                tabindex="0"
+                                onclick="openStoryReader(
+                                    '{{ story.title|escapejs }}',
+                                    '{{ story.category|escapejs }}',
+                                    '{{ story.read_time|escapejs }}',
+                                    '{{ story.display_image|escapejs }}',
+                                    '{{ story.excerpt|escapejs }}',
+                                    '{{ story.content|default:story.excerpt|escapejs }}',
+                                    '{{ story.link_url|escapejs }}'
+                                )"
+                                onkeydown="if(event.key==='Enter'||event.key===' ')openStoryReader(
+                                    '{{ story.title|escapejs }}',
+                                    '{{ story.category|escapejs }}',
+                                    '{{ story.read_time|escapejs }}',
+                                    '{{ story.display_image|escapejs }}',
+                                    '{{ story.excerpt|escapejs }}',
+                                    '{{ story.content|default:story.excerpt|escapejs }}',
+                                    '{{ story.link_url|escapejs }}'
+                                )"
+                            >
+                                <div class="story-card-image-wrap">
+                                    <img
+                                        src="{{ story.display_image }}"
+                                        alt="{{ story.title }}"
+                                        class="story-card-img"
+                                        loading="lazy"
+                                        onerror="this.src='/static/main/images/cola.png'"
+                                    >
+                                </div>
+                                <div class="story-card-body">
+                                    <h3 class="story-card-title">{{ story.title }}</h3>
+                                    <p class="story-card-excerpt">{{ story.excerpt }}</p>
+                                    <div class="story-card-footer">
+                                        <span class="story-card-category">{{ story.category }}</span>
+                                        <span class="story-card-read-time">{{ story.read_time }}</span>
+                                    </div>
+                                </div>
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smooth Merge Divider into Video Section -->
+                <div class="stories-to-video-merge" aria-hidden="true"></div>
+            </section>
+
+            <!-- Story Reader Modal -->
+            <div class="story-reader-backdrop" id="storyReaderModal" onclick="if(event.target===this)closeStoryReader()">
+                <div class="story-reader-dialog" style="position: relative;">
+                    <button type="button" class="story-reader-close-btn" onclick="closeStoryReader()">&times;</button>
+                    <img src="" alt="" class="story-reader-cover" id="readerStoryCover" onerror="this.src='/static/main/images/cola.png'">
+                    <div class="story-reader-body">
+                        <div class="story-reader-meta-row">
+                            <span class="story-reader-tag" id="readerStoryCategory"></span>
+                            <span class="story-reader-time" id="readerStoryTime"></span>
+                        </div>
+                        <h3 class="story-reader-title" id="readerStoryTitle"></h3>
+                        <div class="story-reader-content" id="readerStoryContent"></div>
+                        <div id="readerStoryLinkWrap" style="margin-top: 24px; display: none;">
+                            <a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-light" id="readerStoryLinkBtn" style="font-weight: 700;">
+                                Read Full Story ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function scrollStoriesCarousel(direction) {
+                    var container = document.getElementById('storiesScrollContainer');
+                    if (!container) return;
+                    var scrollAmount = 320 * direction;
+                    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                }
+
+                function openStoryReader(title, category, readTime, image, excerpt, content, linkUrl) {
+                    if (linkUrl && linkUrl.trim()) {
+                        window.open(linkUrl, '_blank', 'noopener,noreferrer');
+                        return;
+                    }
+                    document.getElementById('readerStoryTitle').textContent = title;
+                    document.getElementById('readerStoryCategory').textContent = category;
+                    document.getElementById('readerStoryTime').textContent = readTime;
+                    document.getElementById('readerStoryCover').src = image;
+                    document.getElementById('readerStoryContent').textContent = content || excerpt;
+
+                    var linkWrap = document.getElementById('readerStoryLinkWrap');
+                    var linkBtn = document.getElementById('readerStoryLinkBtn');
+                    if (linkUrl && linkUrl.trim()) {
+                        linkBtn.href = linkUrl;
+                        linkWrap.style.display = 'block';
+                    } else {
+                        linkWrap.style.display = 'none';
+                    }
+
+                    document.getElementById('storyReaderModal').classList.add('is-open');
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeStoryReader() {
+                    document.getElementById('storyReaderModal').classList.remove('is-open');
+                    document.body.style.overflow = '';
+                }
+            </script>
+            {% endif %}
+
+            <!-- ═════════════════════════════════════════════════════════════════════════
+                 FULLSCREEN YOUTUBE BRAND FILM SECTION (MERGED SMOOTHLY BELOW STORIES)
                  -------------------------------------------------------------------------
                  EDIT INSTRUCTIONS:
                  1. EDIT VIA ADMIN DASHBOARD (No code needed):
@@ -85,16 +519,16 @@
                         justify-content: center;
                     }
 
-                    /* 16:9 Cover Scale Formula: Fills 100% viewport with zero letterbox bars */
+                    /* 16:9 Cover Scale Formula: Anchored at top:0 so TOP PART OF VIDEO IS FULLY VISIBLE */
                     .fullscreen-video-wrapper {
                         position: absolute;
-                        top: 50%;
+                        top: 0;
                         left: 50%;
                         width: 100vw;
                         height: 56.25vw; /* 16:9 aspect ratio */
-                        min-height: 100vh;
+                        min-height: 100%;
                         min-width: 177.78vh; /* 16:9 aspect ratio */
-                        transform: translate(-50%, -50%);
+                        transform: translateX(-50%);
                         pointer-events: auto;
                         z-index: 1;
                     }
@@ -106,16 +540,9 @@
                         display: block;
                     }
 
-                    /* Atmospheric Edge Vignettes */
+                    /* Atmospheric Edge Vignettes - Top blackout removed so top part of video is visible! */
                     .video-gradient-top {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        height: 140px;
-                        background: linear-gradient(to bottom, rgba(13, 13, 15, 0.95) 0%, rgba(13, 13, 15, 0.6) 45%, transparent 100%);
-                        pointer-events: none;
-                        z-index: 3;
+                        display: none;
                     }
 
                     .video-gradient-bottom {

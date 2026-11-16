@@ -47,6 +47,7 @@ from .forms import (
     ProductForm,
     ShippingChargesForm,
     ShippingSettingsForm,
+    StoryForm,
 )
 from .models import (
     ComboOffer,
@@ -61,6 +62,7 @@ from .models import (
     Product,
     ProductCategory,
     SiteDetails,
+    Story,
     WebsiteView,
 )
 from .payments import process_payment_webhook, sign_webhook_payload
@@ -612,6 +614,8 @@ def home(request):
                 "count": category_counts.get(slug, 0),
             })
 
+    stories = list(Story.objects.filter(is_active=True).order_by("order", "-created_at"))
+
     return render(
         request,
         "main/home.html",
@@ -620,6 +624,7 @@ def home(request):
             "display_products": display_products,
             "active_combos": active_combos,
             "combo_items": combo_items,
+            "stories": stories,
             "categories": categories,
             "category_counts": category_counts,
             "cart_count": _cart_quantity(request),
@@ -3276,6 +3281,84 @@ def admin_delete_combo(request, combo_id):
     combo.delete()
     messages.success(request, f"Combo offer '{name}' was permanently deleted.")
     return redirect("admin_combos")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_stories(request):
+    show_modal = False
+    if request.method == "POST":
+        form = StoryForm(request.POST, request.FILES)
+        if form.is_valid():
+            story = form.save()
+            messages.success(request, f"Story '{story.title}' created successfully!")
+            return redirect("admin_stories")
+        else:
+            show_modal = True
+            for field, errs in form.errors.items():
+                for e in errs:
+                    messages.error(request, f"{field.replace('_', ' ').capitalize()}: {e}")
+    else:
+        form = StoryForm()
+
+    stories = Story.objects.all().order_by("order", "-created_at")
+    categories_count = Story.objects.values("category").distinct().count()
+
+    context = {
+        "active_page": "stories",
+        "stories": stories,
+        "form": form,
+        "show_modal": show_modal,
+        "total_stories_count": stories.count(),
+        "active_stories_count": stories.filter(is_active=True).count(),
+        "inactive_stories_count": stories.filter(is_active=False).count(),
+        "categories_count": categories_count,
+        "pending_orders_count": Order.objects.filter(status="pending").count(),
+        "unread_messages_count": ContactMessage.objects.filter(is_read=False).count(),
+        "total_coupons_count": Coupon.objects.count(),
+        "total_delivery_users_count": DeliveryProfile.objects.count(),
+    }
+    return render(request, "main/admin_stories.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def admin_edit_story(request, story_id):
+    story = get_object_or_404(Story, pk=story_id)
+    if request.method == "POST":
+        form = StoryForm(request.POST, request.FILES, instance=story)
+        if form.is_valid():
+            updated = form.save()
+            messages.success(request, f"Story '{updated.title}' updated successfully!")
+            return redirect("admin_stories")
+        else:
+            for field, errs in form.errors.items():
+                for e in errs:
+                    messages.error(request, f"{field.replace('_', ' ').capitalize()}: {e}")
+    return redirect("admin_stories")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_delete_story(request, story_id):
+    story = get_object_or_404(Story, pk=story_id)
+    title = story.title
+    story.delete()
+    messages.success(request, f"Story '{title}' was permanently deleted.")
+    return redirect("admin_stories")
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+@require_POST
+def admin_toggle_story(request, story_id):
+    story = get_object_or_404(Story, pk=story_id)
+    story.is_active = not story.is_active
+    story.save(update_fields=["is_active"])
+    state = "activated" if story.is_active else "deactivated"
+    messages.success(request, f"Story '{story.title}' was {state}.")
+    return redirect("admin_stories")
 
 
 def combos_showcase(request):

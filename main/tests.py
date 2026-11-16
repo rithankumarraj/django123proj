@@ -23,6 +23,7 @@ from .models import (
     Product,
     ProductCategory,
     SiteDetails,
+    Story,
     WebsiteView,
 )
 from .payments import sign_webhook_payload
@@ -5139,6 +5140,149 @@ class GSTRateAndInclusivePricingTests(TestCase):
         csv_content = csv_res.content.decode("utf-8")
         self.assertIn("GST Collected", csv_content)
         self.assertIn("Net Sales", csv_content)
+
+
+class StoriesSectionAndAdminTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff_user = User.objects.create_user(
+            username="staff_editor",
+            email="staff@example.com",
+            password="secretpassword",
+            is_staff=True,
+        )
+        self.regular_user = User.objects.create_user(
+            username="regular_user",
+            email="regular@example.com",
+            password="secretpassword",
+            is_staff=False,
+        )
+        # Clear any auto-seeded stories so test runs deterministically
+        Story.objects.all().delete()
+        self.story1 = Story.objects.create(
+            title="Sandro Dias breaks two world records on the biggest skate ramp ever",
+            category="SKATEBOARDING",
+            read_time="6 min read",
+            excerpt="Skateboarding history made: Sandro Dias drops in from a 22 storey building.",
+            content="Full story narrative about the mega ramp drop.",
+            image_data_url="https://example.com/skate.jpg",
+            order=1,
+            is_active=True,
+        )
+        self.story2 = Story.objects.create(
+            title="What is Red Bull 64 Bars?",
+            category="MUSIC",
+            read_time="2 min read",
+            excerpt="A quick and simple explanation to the concept of raw lyrical rap.",
+            content="Full story content about 64 bars.",
+            image_data_url="https://example.com/music.jpg",
+            order=2,
+            is_active=False,
+        )
+
+    def test_homepage_renders_active_stories_section_between_hero_and_video(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="stories"')
+        self.assertContains(response, '<h2 class="stories-main-title">Stories</h2>')
+        self.assertContains(response, "Sandro Dias breaks two world records")
+        self.assertContains(response, "SKATEBOARDING")
+        self.assertContains(response, "6 min read")
+        self.assertContains(response, "stories-scroll-container")
+        self.assertContains(response, "stories-to-video-merge")
+        # Inactive story should NOT be rendered on storefront
+        self.assertNotContains(response, "What is Red Bull 64 Bars?")
+
+    def test_video_section_top_part_is_visible_and_anchored(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        # Top gradient is hidden so top part of video is not obscured
+        self.assertContains(response, ".video-gradient-top {")
+        self.assertContains(response, "display: none;")
+        # Video is anchored at top: 0 and transform: translateX(-50%)
+        self.assertContains(response, "top: 0;")
+        self.assertContains(response, "transform: translateX(-50%);")
+
+    def test_admin_stories_view_requires_staff(self):
+        # Anonymous redirects to login
+        res = self.client.get(reverse("admin_stories"))
+        self.assertEqual(res.status_code, 302)
+
+        # Non-staff gets redirected
+        self.client.login(username="regular_user", password="secretpassword")
+        res_user = self.client.get(reverse("admin_stories"))
+        self.assertEqual(res_user.status_code, 302)
+
+        # Staff user gets 200
+        self.client.login(username="staff_editor", password="secretpassword")
+        res_staff = self.client.get(reverse("admin_stories"))
+        self.assertEqual(res_staff.status_code, 200)
+        self.assertContains(res_staff, "Stories & Culture Lineup")
+        self.assertContains(res_staff, "Sandro Dias breaks two world records")
+        self.assertContains(res_staff, "What is Red Bull 64 Bars?")
+
+    def test_admin_can_create_new_story(self):
+        self.client.login(username="staff_editor", password="secretpassword")
+        create_res = self.client.post(
+            reverse("admin_stories"),
+            {
+                "title": "New Olympic Breaking Championship",
+                "category": "BREAKING",
+                "read_time": "4 min read",
+                "order": "3",
+                "excerpt": "A deep dive into the high-energy breaking moves defining this season.",
+                "content": "Full breaking details...",
+                "image_data_url": "https://example.com/break.jpg",
+                "is_active": "on",
+            },
+            follow=True,
+        )
+        self.assertEqual(create_res.status_code, 200)
+        self.assertTrue(Story.objects.filter(title="New Olympic Breaking Championship").exists())
+        new_story = Story.objects.get(title="New Olympic Breaking Championship")
+        self.assertEqual(new_story.category, "BREAKING")
+        self.assertTrue(new_story.is_active)
+
+    def test_admin_can_edit_story(self):
+        self.client.login(username="staff_editor", password="secretpassword")
+        edit_res = self.client.post(
+            reverse("admin_edit_story", kwargs={"story_id": self.story1.id}),
+            {
+                "title": "Sandro Dias Breaks 3 World Records!",
+                "category": "SKATEBOARDING",
+                "read_time": "7 min read",
+                "order": "1",
+                "excerpt": "Updated excerpt for Sandro Dias.",
+                "content": "Updated content.",
+                "image_data_url": "https://example.com/skate2.jpg",
+                "is_active": "on",
+            },
+            follow=True,
+        )
+        self.assertEqual(edit_res.status_code, 200)
+        self.story1.refresh_from_db()
+        self.assertEqual(self.story1.title, "Sandro Dias Breaks 3 World Records!")
+        self.assertEqual(self.story1.read_time, "7 min read")
+
+    def test_admin_can_toggle_and_delete_story(self):
+        self.client.login(username="staff_editor", password="secretpassword")
+        # Toggle
+        toggle_res = self.client.post(
+            reverse("admin_toggle_story", kwargs={"story_id": self.story1.id}),
+            follow=True,
+        )
+        self.assertEqual(toggle_res.status_code, 200)
+        self.story1.refresh_from_db()
+        self.assertFalse(self.story1.is_active)
+
+        # Delete
+        delete_res = self.client.post(
+            reverse("admin_delete_story", kwargs={"story_id": self.story1.id}),
+            follow=True,
+        )
+        self.assertEqual(delete_res.status_code, 200)
+        self.assertFalse(Story.objects.filter(pk=self.story1.id).exists())
+
 
 
 
