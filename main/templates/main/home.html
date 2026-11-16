@@ -423,10 +423,6 @@
                         <div>
                             <p class="section-kicker">The lineup</p>
                             <h2>Pick your flavour.</h2>
-                            <div class="product-quick-add-hint">
-                                <span class="quick-add-pill-tag">✨ DOUBLE-CLICK</span>
-                                <span class="quick-add-pill-text">Double-click any can to add it to your cart</span>
-                            </div>
                         </div>
                         <span class="product-total">{{ products|length }} products</span>
                     </div>
@@ -558,31 +554,7 @@
             {% if active_combos %}
             <section class="combos-section" id="combos" aria-label="Curated Combo Packs & Deals">
                 <style>
-                    /* ─── Double-Click Add To Cart Prominence ─── */
-                    .product-quick-add-hint {
-                        margin: 0.85rem 0 0;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        background: rgba(0, 0, 0, 0.05);
-                        border: 1px solid rgba(0, 0, 0, 0.1);
-                        padding: 6px 14px;
-                        border-radius: 999px;
-                    }
-                    .quick-add-pill-tag {
-                        background: #000000;
-                        color: #ffffff;
-                        font-size: 0.68rem;
-                        font-weight: 800;
-                        letter-spacing: 0.06em;
-                        padding: 3px 8px;
-                        border-radius: 999px;
-                    }
-                    .quick-add-pill-text {
-                        font-size: 0.88rem;
-                        font-weight: 700;
-                        color: #111111;
-                    }
+                    /* ─── Product Tile Hover Tooltip (Bigger & Fits with Other Elements) ─── */
                     .product-tile-image {
                         position: relative;
                         display: block;
@@ -593,27 +565,36 @@
                         position: absolute;
                         top: 50%;
                         left: 50%;
-                        transform: translate(-50%, -50%) scale(0.9);
-                        background: rgba(0, 0, 0, 0.88);
-                        backdrop-filter: blur(6px);
+                        transform: translate(-50%, -50%) scale(0.92);
+                        background: #000000;
                         color: #ffffff;
                         font-family: 'Inter', sans-serif;
-                        font-size: 0.72rem;
+                        font-size: 0.86rem;
                         font-weight: 800;
-                        letter-spacing: 0.04em;
+                        letter-spacing: 0.05em;
                         text-transform: uppercase;
-                        padding: 6px 14px;
+                        padding: 12px 24px;
                         border-radius: 999px;
+                        border: 1px solid rgba(255, 255, 255, 0.22);
                         white-space: nowrap;
                         opacity: 0;
                         pointer-events: none;
                         transition: opacity 0.2s ease, transform 0.2s ease;
-                        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-                        z-index: 5;
+                        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+                        z-index: 10;
                     }
                     .product-tile:hover .tile-quick-add-badge {
                         opacity: 1;
                         transform: translate(-50%, -50%) scale(1);
+                    }
+
+                    .section-sub-desc {
+                        margin: 0.4rem 0 0;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.85rem;
+                        color: #666666;
+                        font-weight: 500;
+                        line-height: 1.4;
                     }
 
                     /* ─── Dedicated Combos Switcher Styling (Pure B&W Street Aesthetic) ─── */
@@ -952,7 +933,7 @@
                         <div>
                             <p class="section-kicker" style="color: #555555 !important; font-weight: 700;">Curated packs</p>
                             <h2 style="color: #000000 !important; font-weight: 900;">Combo offers.</h2>
-                            <p class="product-quick-add-hint" style="color: #444444 !important; background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08);">Stock your fridge with handcrafted bundles and save up to 15%</p>
+                            <p class="section-sub-desc">Stock your fridge with handcrafted bundles and save up to 15%</p>
                         </div>
                         <span class="product-total" style="color: #555555 !important; font-weight: 600;">{{ active_combos|length }} combo offers</span>
                     </div>
