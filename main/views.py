@@ -41,6 +41,7 @@ from .forms import (
     DeliveryAddressForm,
     DeliveryPartnerApplicationForm,
     EmailAuthenticationForm,
+    HomepageVideoForm,
     PackingChargesForm,
     PasswordChangeForm,
     ProductForm,
@@ -624,6 +625,8 @@ def home(request):
             "cart_count": _cart_quantity(request),
             "wishlist_count": len(wishlist_products),
             "is_delivery_user": _is_delivery_user(request.user),
+            "details": SiteDetails.get_solo(),
+            "site_details": SiteDetails.get_solo(),
         },
     )
 
@@ -2750,12 +2753,13 @@ def admin_order_detail(request, order_id):
 def admin_details(request):
     details = SiteDetails.get_solo()
     active_tab = request.GET.get("tab", "messages").strip().lower()
-    if active_tab not in {"messages", "about", "contact", "popup"}:
+    if active_tab not in {"messages", "about", "contact", "popup", "video"}:
         active_tab = "messages"
 
     about_form = AboutDetailsForm(instance=details)
     contact_form = ContactDetailsForm(instance=details)
     popup_form = DailyPromoPopupForm(instance=details)
+    video_form = HomepageVideoForm(instance=details)
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -2792,6 +2796,17 @@ def admin_details(request):
                 for err_list in popup_form.errors.values():
                     for err in err_list:
                         messages.error(request, err)
+        elif action == "save_video":
+            video_form = HomepageVideoForm(request.POST, instance=details)
+            if video_form.is_valid():
+                video_form.save()
+                messages.success(request, "Homepage fullscreen YouTube video settings updated successfully.")
+                return redirect(f"{reverse('admin_details')}?tab=video")
+            else:
+                active_tab = "video"
+                for err_list in video_form.errors.values():
+                    for err in err_list:
+                        messages.error(request, err)
 
     contact_messages = ContactMessage.objects.all().order_by("-created_at")
     total_messages_count = contact_messages.count()
@@ -2804,6 +2819,7 @@ def admin_details(request):
         "about_form": about_form,
         "contact_form": contact_form,
         "popup_form": popup_form,
+        "video_form": video_form,
         "current_popup_offer": details.get_active_popup_offer(),
         "available_combos": ComboOffer.objects.filter(is_active=True).order_by("-created_at"),
         "available_coupons": Coupon.objects.filter(is_active=True).order_by("-created_at"),

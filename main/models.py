@@ -1112,7 +1112,62 @@ class SiteDetails(models.Model):
         verbose_name="Popup Tag / Badge",
     )
 
+    # Homepage Fullscreen Video Configuration (Between Hero & Product Lineup)
+    homepage_video_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Enable Fullscreen Video Section",
+        help_text="Display a fullscreen YouTube video between the hero banner and product lineup."
+    )
+    homepage_video_id = models.CharField(
+        max_length=255,
+        default="74djFvJjPkc",
+        blank=True,
+        verbose_name="YouTube Video ID or Full URL",
+        help_text="Paste either the 11-character YouTube video ID (e.g. 74djFvJjPkc) or full YouTube URL."
+    )
+    homepage_video_autoplay = models.BooleanField(
+        default=True,
+        verbose_name="Play Video Automatically",
+        help_text="Begin playing automatically when the page loads."
+    )
+    homepage_video_loop = models.BooleanField(
+        default=True,
+        verbose_name="Repeat / Loop Video Continuously",
+        help_text="Automatically repeat the video from the beginning when it finishes."
+    )
+    homepage_video_mute = models.BooleanField(
+        default=True,
+        verbose_name="Mute Sound by Default",
+        help_text="Browsers require muted audio for autoplay to function automatically. Visitors can unmute anytime."
+    )
+    homepage_video_heading = models.CharField(
+        max_length=200,
+        blank=True,
+        default="EXPERIENCE THE STREET FIZZ",
+        verbose_name="Overlay Video Heading",
+        help_text="Optional heading displayed over the video (leave empty to hide)."
+    )
+    homepage_video_subheading = models.CharField(
+        max_length=255,
+        blank=True,
+        default="Raw carbonation. Pure attitude. Built for everyday moments.",
+        verbose_name="Overlay Video Subheading",
+        help_text="Optional short description displayed over the video (leave empty to hide)."
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def clean_homepage_video_id(self):
+        """Extracts the 11-character YouTube video ID from various URL formats or raw ID."""
+        raw = (self.homepage_video_id or "").strip()
+        if not raw:
+            return "74djFvJjPkc"
+        import re
+        match = re.search(r"(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|shorts\/|^)([A-Za-z0-9_-]{11})", raw)
+        if match:
+            return match.group(1)
+        return raw[:11] if len(raw) >= 11 else "74djFvJjPkc"
 
     @property
     def whatsapp_link(self):

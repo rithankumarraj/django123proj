@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JCSD — Street Carbonated Soft Drinks | Product Showcase</title>
+
+  <!-- Preload All 8 Can Images for Zero Layout Shift & Instant Display -->
+  <link rel="preload" as="image" href="images/can-1.png">
+  <link rel="preload" as="image" href="images/can-2.png">
+  <link rel="preload" as="image" href="images/can-3.png">
+  <link rel="preload" as="image" href="images/can-4.png">
+  <link rel="preload" as="image" href="images/can-5.png">
+  <link rel="preload" as="image" href="images/can-6.png">
+  <link rel="preload" as="image" href="images/can-7.png">
+  <link rel="preload" as="image" href="images/can-8.png">
+  <link rel="preload" as="image" href="images/hero-banner.png">
+
+  <!-- Google Fonts: Bebas Neue, Space Grotesk, Permanent Marker, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Permanent+Marker&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brandDark: '#08080A',
+            brandSurface: '#121217',
+            brandBorder: '#23232D',
+          },
+          fontFamily: {
+            bebas: ['"Bebas Neue"', 'sans-serif'],
+            graffiti: ['"Permanent Marker"', 'cursive'],
+            space: ['"Space Grotesk"', 'sans-serif'],
+            sans: ['"Inter"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- GSAP & ScrollTrigger CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <!-- React 18 & Babel Standalone CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       [SNIPPET PART 1]: VIBRANT FLOWING GRADIENT CSS VARIABLES & CANVAS STYLES
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <style>
+    :root {
+      /* EDIT: Near-black obsidian background color behind liquid light ribbons */
+      --jcsd-bg-color: #08080a;
+
+      /* EDIT: Ribbon accent colour 1 (JCSD Hyper-Vibrant Neon Crimson / Street Red) */
+      --jcsd-ribbon-1: #FF1040;
+
+      /* EDIT: Ribbon accent colour 2 (JCSD Hyper-Vivid Electric Cyan / Blue) */
+      --jcsd-ribbon-2: #00F5FF;
+
+      /* EDIT: Ribbon glow brightness multiplier (0.50 to 1.0).
+               Boosted to 0.90 for high-energy, luminous liquid neon ribbons */
+      --jcsd-glow-intensity: 0.90;
+    }
+
+    /* Fixed full-screen background WebGL canvas */
+    #jcsd-flowing-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+      background-color: var(--jcsd-bg-color, #08080a);
+      transform: translate3d(0, 0, 0);
+      will-change: opacity, transform;
+    }
+
+    /* Fallback if WebGL is unavailable or fails: Uses images/hero-banner.png */
+    #jcsd-flowing-gradient.gl-fallback {
+      background:
+        linear-gradient(180deg, rgba(8, 8, 10, 0.45) 0%, rgba(8, 8, 10, 0.88) 100%),
+        url("images/hero-banner.png") center center / cover no-repeat;
+      filter: saturate(1.25) contrast(1.1);
+    }
+  </style>
+
+  <style>
+    /* ─── Zero-Lag Hardware Acceleration & Performance Styles ─── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      background-color: #08080A;
+      color: #FFFFFF;
+      overflow-x: clip; /* clip prevents horizontal scrollbar without breaking pin or scroll context */
+      font-family: 'Inter', sans-serif;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Force GPU layers on all high-frequency animating nodes */
+    .gpu-accel {
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      perspective: 1000px;
+      will-change: transform, opacity;
+    }
+
+    /* Subtle street grain texture */
+    .urban-grain {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    /* Halftone dot pattern */
+    .halftone-overlay {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1.5px, transparent 1.5px);
+      background-size: 16px 16px;
+    }
+
+    /* Text stroke utility for graffiti lettering */
+    .text-stroke-street {
+      -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.2);
+      color: transparent;
+    }
+    .text-stroke-accent {
+      -webkit-text-stroke: 1px var(--active-accent, #FF1040);
+      color: transparent;
+    }
+
+    /* Custom smooth scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #08080A;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #272733;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3F3F50;
+    }
+
+    /* Marquee animation */
+    @keyframes marqueeScroll {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+    .animate-marquee {
+      display: flex;
+      width: 200%;
+      animation: marqueeScroll 22s linear infinite;
+    }
+    .animate-marquee:hover {
+      animation-play-state: paused;
+    }
+
+    /* Flavor text entrance animation */
+    @keyframes flavorIn {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+    }
+    .animate-flavor-in {
+      animation: flavorIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      will-change: transform, opacity;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-white selection:bg-red-500 selection:text-white">
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       [SNIPPET PART 2]: FULL-SCREEN WEBGL FLOWING GRADIENT CANVAS
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <canvas id="jcsd-flowing-gradient" aria-hidden="true"></canvas>
+
+  <div id="root"></div>
+
+  <!-- React Application with Babel -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+    // ─── 1. SYNCHRONIZED FLAVOR DATA ARRAY (8 DISTINCT CANS) ───
+    const PRODUCTS = [
+      {
+        id: 1,
+        flavorName: "CLASSIC COLA",
+        tagline: "Bold Heritage. Uncut Street Fizz.",
+        description: "The street genesis. Pure caramelized vanilla undertones smashed with aggressive cold carbonation and signature kola nut extract.",
+        accentColor: "#FF2A2A",
+        accentGlow: "rgba(255, 42, 42, 0.40)",
+        canImageUrl: "images/can-1.png",
+        splashAssetUrl: "images/can-1.png",
+        badge: "01 // SIGNATURE ORIGINAL",
+        volume: "330 ML",
+        carbonation: "LEVEL 5 (MAX SNAP)",
+        caffeine: "32 MG NATURAL KOLA",
+        tastingNotes: ["Dark Caramel", "Kola Nut", "Crisp Spice"]
+      },
+      {
+        id: 2,
+        flavorName: "COLA ZERO SUGAR",
+        tagline: "Heavy Hits. Zero Compromise.",
+        description: "Midnight blackout profile. Zero calories, zero sugar, dialed in with triple-filtered carbonation that delivers the full throttle bite.",
+        accentColor: "#E63946",
+        accentGlow: "rgba(230, 57, 70, 0.40)",
+        canImageUrl: "images/can-2.png",
+        splashAssetUrl: "images/can-2.png",
+        badge: "02 // BLACK OBSIDIAN",
+        volume: "330 ML",
+        carbonation: "LEVEL 5 (SHARP COLD)",
+        caffeine: "32 MG KOLA EXTRACT",
+        tastingNotes: ["Zero Sugar", "Ice Obsidian", "Heavy Bite"]
+      },
+      {
+        id: 3,
+        flavorName: "FRESH LIME",
+        tagline: "Cold Shockwave. Pure Citrus Lightning.",
+        description: "Fresh-pressed Persian and Key lime peel extracted cold. A fizzy shock to the palate with clean sour sharpness and mineral mountain fizz.",
+        accentColor: "#39FF14",
+        accentGlow: "rgba(57, 255, 20, 0.38)",
+        canImageUrl: "images/can-3.png",
+        splashAssetUrl: "images/can-3.png",
+        badge: "03 // ACID GREEN CRUSH",
+        volume: "330 ML",
+        carbonation: "LEVEL 4 (CITRUS BURST)",
+        caffeine: "0 MG (PURE CITRUS)",
+        tastingNotes: ["Zesty Rind", "Glacial Springs", "Sharp Tart"]
+      },
+      {
+        id: 4,
+        flavorName: "ENERGY LIME",
+        tagline: "High Voltage. Taurine & Zing.",
+        description: "Street stimulant formula. Electric green lime spiked with green coffee bean caffeine, taurine, and inositol for high-rpm focus.",
+        accentColor: "#B5FF00",
+        accentGlow: "rgba(181, 255, 0, 0.38)",
+        canImageUrl: "images/can-4.png",
+        splashAssetUrl: "images/can-4.png",
+        badge: "04 // HIGH RPM DYNAMO",
+        volume: "330 ML",
+        carbonation: "LEVEL 5 (HIGH VOLTAGE)",
+        caffeine: "105 MG CLEAN FOCUS",
+        tastingNotes: ["Electric Citrus", "Taurine Kick", "Sour Spark"]
+      },
+      {
+        id: 5,
+        flavorName: "BUBBLEGUM POP",
+        tagline: "Liquid Nostalgia. Graffiti Pink.",
+        description: "Wild bubblegum pop-art profile. Exploding with confectionary strawberry-banana notes wrapped in dense, tingling carbonated bubbles.",
+        accentColor: "#FF1493",
+        accentGlow: "rgba(255, 20, 147, 0.40)",
+        canImageUrl: "images/can-5.png",
+        splashAssetUrl: "images/can-5.png",
+        badge: "05 // NEON STREET SWEET",
+        volume: "330 ML",
+        carbonation: "LEVEL 4 (POP FIZZ)",
+        caffeine: "0 MG (PURE VIBE)",
+        tastingNotes: ["Sweet Strawberry", "Juicy Bubble", "Candy Fizz"]
+      },
+      {
+        id: 6,
+        flavorName: "GOLDEN ENERGY",
+        tagline: "24K Rush. Emperor's Elixir.",
+        description: "Lustrous amber fusion. Passion fruit, golden mango, and Brazilian guarana charged with effervescent carbonation for unmatched stamina.",
+        accentColor: "#FFB703",
+        accentGlow: "rgba(255, 183, 3, 0.38)",
+        canImageUrl: "images/can-6.png",
+        splashAssetUrl: "images/can-6.png",
+        badge: "06 // ROYAL AMBER CROWN",
+        volume: "330 ML",
+        carbonation: "LEVEL 5 (GOLD SPARK)",
+        caffeine: "120 MG GUARANA BEAT",
+        tastingNotes: ["Guarana", "Mango Citrus", "Velvet Fizz"]
+      },
+      {
+        id: 7,
+        flavorName: "CYBERPUNK NEON",
+        tagline: "Night City Glow. Synthetic Cyan.",
+        description: "Glitch-blue blue raspberry and wild huckleberry electrified with sour blue agave. Created for after-hours street sessions and midnight codes.",
+        accentColor: "#00F0FF",
+        accentGlow: "rgba(0, 240, 255, 0.40)",
+        canImageUrl: "images/can-7.png",
+        splashAssetUrl: "images/can-7.png",
+        badge: "07 // MATRIX OVERDRIVE",
+        volume: "330 ML",
+        carbonation: "LEVEL 5 (CRYSTAL FIZZ)",
+        caffeine: "90 MG COLD EXTRACT",
+        tastingNotes: ["Blue Raspberry", "Sour Agave", "Synth Mist"]
+      },
+      {
+        id: 8,
+        flavorName: "WORKOUT ISOTONIC",
+        tagline: "Zero Drag. Total Rehydration.",
+        description: "Engineered for pure physical output. Packed with potassium, magnesium, Himalayan pink salt, and crisp mountain carbonation to fuel recovery.",
+        accentColor: "#0077B6",
+        accentGlow: "rgba(0, 119, 182, 0.40)",
+        canImageUrl: "images/can-8.png",
+        splashAssetUrl: "images/can-8.png",
+        badge: "08 // PERFORMANCE FUEL",
+        volume: "330 ML",
+        carbonation: "LEVEL 3 (LIGHT REFRESH)",
+        caffeine: "0 MG (ELECTROLYTES)",
+        tastingNotes: ["Pink Himalayan", "Clean Citrus", "Rapid Quench"]
+      }
+    ];
+
+    // ─── 2. FLOATING CARBONATED PARTICLES (MIDGROUND LAYER) ───
+    const PARTICLES = Array.from({ length: 24 }).map((_, i) => ({
+      id: i,
+      left: `${(i * 13.7) % 94 + 3}%`,
+      top: `${(i * 17.3) % 90 + 5}%`,
+      size: `${(i % 5) * 5 + 6}px`,
+      blur: `${(i % 3) * 1.5}px`,
+      opacity: (i % 4) * 0.15 + 0.25,
+      speed: (i % 3) * 0.4 + 0.4,
+      isShard: i % 4 === 0
+    }));
+
+    function JCSDProductsApp() {
+      const [activeIndex, setActiveIndex] = useState(0);
+      const [packModalOpen, setPackModalOpen] = useState(false);
+      const [selectedCanModal, setSelectedCanModal] = useState(null);
+
+      const heroStageRef = useRef(null);
+      const bgTextRef = useRef(null);
+      const midgroundRef = useRef(null);
+      const cansWrapperRef = useRef([]);
+      const progressTextRef = useRef(null);
+      const progressBarRef = useRef(null);
+
+      const activeProduct = useMemo(() => PRODUCTS[activeIndex] || PRODUCTS[0], [activeIndex]);
+
+      // Update shader primary ribbon accent dynamically when flavor changes
+      useEffect(() => {
+        if (activeProduct && activeProduct.accentColor) {
+          document.documentElement.style.setProperty('--jcsd-ribbon-1', activeProduct.accentColor);
+        }
+      }, [activeProduct]);
+
+      // ─── 3. GSAP SCROLLTRIGGER PINNED ANIMATION ENGINE WITH MAGNETIC SNAP ───
+      // PINS the entire hero showcase stage in place and magnetically snaps to each can
+      useEffect(() => {
+        gsap.registerPlugin(ScrollTrigger);
+
+        const ctx = gsap.context(() => {
+          if (!heroStageRef.current) return;
+
+          // PIN the hero showcase stage for 3500px of pure product switching with MAGNETIC SNAP
+          ScrollTrigger.create({
+            id: "heroPinTrigger",
+            trigger: heroStageRef.current,
+            start: "top top",
+            end: "+=3500", // 3500px of scroll travel allows deliberate, smooth product transitions
+            pin: true,     // PIN the hero stage directly!
+            pinSpacing: true, // Inserts exact spacer so marquee and grid flow immediately below
+            scrub: 0.5,    // Responsive inertia scrub
+            anticipatePin: 1,
+            snap: {
+              snapTo: 1 / (PRODUCTS.length - 1), // Magnetically snaps to exact 8 can increments
+              duration: { min: 0.22, max: 0.48 }, // Quick, satisfying magnetic pull
+              delay: 0.04, // Immediate response when scrolling decelerates
+              ease: "power2.out", // Natural magnetic deceleration
+              inertia: true
+            },
+            onUpdate: (self) => {
+              const progress = self.progress;
+
+              // Zero-lag direct DOM updates for progress indicators (avoids 60fps React re-renders)
+              if (progressTextRef.current) {
+                progressTextRef.current.textContent = `${Math.round(progress * 100)}%`;
+              }
+              if (progressBarRef.current) {
+                progressBarRef.current.style.width = `${Math.min(100, Math.max(0, progress * 100))}%`;
+              }
+
+              // 8 cans segment: calculate current index (0 to 7)
+              const total = PRODUCTS.length;
+              const rawIndex = progress * (total - 1);
+              const computedIndex = Math.min(total - 1, Math.max(0, Math.round(rawIndex)));
+              
+              // Only trigger React state change when active can index actually switches
+              setActiveIndex((prev) => (prev !== computedIndex ? computedIndex : prev));
+
+              // Layer 1: Background Graffiti Typography (0.2x speed)
+              if (bgTextRef.current) {
+                const moveX = (progress * -350);
+                bgTextRef.current.style.transform = `translate3d(${moveX}px, 0, 0)`;
+              }
+
+              // Layer 2: Midground Particles & Bubbles (0.6x speed)
+              if (midgroundRef.current) {
+                const moveY = (progress * -180);
+                midgroundRef.current.style.transform = `translate3d(0, ${moveY}px, 0)`;
+              }
+
+              // Layer 3: Central Cans Showcase (Magnetic scrub + resting plateau)
+              cansWrapperRef.current.forEach((canEl, i) => {
+                if (!canEl) return;
+
+                const centerPos = i / (total - 1);
+                const distance = progress - centerPos;
+                const windowSize = 1 / (total - 1);
+                const normalizedDist = distance / windowSize; // 0 at center, -1 before, +1 after
+                const absDist = Math.abs(normalizedDist);
+
+                // Fast cull for off-screen cans to save GPU
+                if (absDist > 1.25) {
+                  canEl.style.opacity = "0";
+                  canEl.style.pointerEvents = "none";
+                  canEl.style.transform = `translate3d(0, 160px, 0) scale(0.75) rotate(-12deg)`;
+                  canEl.style.filter = "blur(12px)";
+                  return;
+                }
+
+                canEl.style.pointerEvents = absDist < 0.35 ? "auto" : "none";
+
+                // Magnetic Resting Plateau: inside [-0.14, +0.14] the can stays 100% solid & in center
+                if (absDist <= 0.14) {
+                  canEl.style.transform = `translate3d(0, 0px, 0) scale(1.08) rotate(0deg)`;
+                  canEl.style.opacity = "1";
+                  canEl.style.filter = "blur(0px)";
+                } else if (normalizedDist < -0.14) {
+                  // Entering from below (normalizedDist goes from -1 to -0.14)
+                  const t = (normalizedDist + 1.0) / 0.86;
+                  const clampedT = Math.max(0, Math.min(1, t));
+                  // Smoothstep easing for crisp magnetic acceleration
+                  const easeT = clampedT * clampedT * (3.0 - 2.0 * clampedT);
+
+                  const y = (1.0 - easeT) * 115; // 115px -> 0px
+                  const scale = 0.80 + easeT * 0.28; // 0.80 -> 1.08
+                  const rot = -9 * (1.0 - easeT); // -9deg -> 0deg
+                  const opacity = easeT * 1.05;
+                  const blur = (1.0 - easeT) * 7; // 7px -> 0px
+
+                  canEl.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(3)}) rotate(${rot.toFixed(2)}deg)`;
+                  canEl.style.opacity = Math.min(1, Math.max(0, opacity)).toFixed(3);
+                  canEl.style.filter = `blur(${blur.toFixed(1)}px)`;
+                } else {
+                  // Pushing out to top/back (normalizedDist goes from +0.14 to +1.0)
+                  const t = (normalizedDist - 0.14) / 0.86;
+                  const clampedT = Math.max(0, Math.min(1, t));
+                  const easeT = clampedT * clampedT * (3.0 - 2.0 * clampedT);
+
+                  const y = -easeT * 105; // 0px -> -105px
+                  const scale = 1.08 - easeT * 0.26; // 1.08 -> 0.82
+                  const rot = easeT * 8; // 0deg -> 8deg
+                  const opacity = Math.max(0, 1.0 - easeT * 1.15);
+                  const blur = easeT * 10; // 0px -> 10px depth blur
+
+                  canEl.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(3)}) rotate(${rot.toFixed(2)}deg)`;
+                  canEl.style.opacity = opacity.toFixed(3);
+                  canEl.style.filter = `blur(${blur.toFixed(1)}px)`;
+                }
+              });
+            }
+          });
+        });
+
+        return () => ctx.revert();
+      }, []);
+
+      // Smooth scroll directly to a specific flavor index via GSAP trigger coordinates
+      const scrollToFlavor = useCallback((targetIndex) => {
+        const st = ScrollTrigger.getById("heroPinTrigger");
+        if (!st) return;
+        const total = PRODUCTS.length;
+        const clampedIndex = Math.max(0, Math.min(total - 1, targetIndex));
+        const targetProgress = clampedIndex / (total - 1);
+        const targetScroll = st.start + targetProgress * (st.end - st.start);
+
+        window.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        });
+      }, []);
+
+      // Keyboard navigation support: left/right or up/down arrows magnetically switch cans
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (packModalOpen || selectedCanModal) return;
+          const st = ScrollTrigger.getById("heroPinTrigger");
+          if (!st) return;
+          const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+          if (scrollY >= st.start - 80 && scrollY <= st.end + 80) {
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+              if (activeIndex < PRODUCTS.length - 1) {
+                e.preventDefault();
+                scrollToFlavor(activeIndex + 1);
+              }
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+              if (activeIndex > 0) {
+                e.preventDefault();
+                scrollToFlavor(activeIndex - 1);
+              }
+            }
+          }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [activeIndex, packModalOpen, selectedCanModal, scrollToFlavor]);
+
+      return (
+        <div className="relative w-full bg-transparent text-white selection:bg-red-500">
+
+          {/* ─── FIXED GLOBAL HEADER (MINIMAL STREET UI) ─── */}
+          <header className="fixed top-0 left-0 w-full z-50 px-5 md:px-12 py-3.5 flex items-center justify-between pointer-events-none backdrop-blur-md bg-[#08080A]/60 border-b border-white/5 transition-colors duration-500">
+            {/* Brand Logo */}
+            <div className="pointer-events-auto flex items-center gap-3">
+              <a href="/" className="flex items-center gap-2 group">
+                <span className="font-bebas text-3xl tracking-widest text-white transition-colors group-hover:text-red-500">
+                  JCSD
+                </span>
+                <span className="inline-block w-2.5 h-2.5 rounded-full animate-ping" style={{ backgroundColor: activeProduct.accentColor }}></span>
+              </a>
+              <span className="hidden sm:inline-block text-[11px] font-space uppercase tracking-widest text-white/50 pl-3 border-l border-white/10">
+                Street Carbonated Soft Drinks
+              </span>
+            </div>
+
+            {/* Current Flavor Pill Indicator */}
+            <div className="pointer-events-auto flex items-center gap-2 bg-[#121217]/90 px-4 py-1.5 rounded-full border border-white/15 shadow-lg">
+              <span className="text-xs font-space font-bold uppercase tracking-wider" style={{ color: activeProduct.accentColor }}>
+                {String(activeProduct.id).padStart(2, '0')} / 08
+              </span>
+              <span className="hidden md:inline-block text-xs font-space font-medium text-white/70">
+                · {activeProduct.flavorName}
+              </span>
+            </div>
+
+            {/* Action CTA Buttons */}
+            <div className="pointer-events-auto flex items-center gap-3">
+              <a
+                href="/"
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-space font-semibold uppercase tracking-wider text-white/70 hover:text-white px-3 py-2 rounded-lg transition-colors hover:bg-white/5"
+              >
+                Storefront
+              </a>
+              <button
+                onClick={() => setPackModalOpen(true)}
+                className="relative group overflow-hidden px-5 py-2 rounded-full font-space font-bold text-xs uppercase tracking-wider text-black transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg"
+                style={{
+                  backgroundColor: activeProduct.accentColor,
+                  boxShadow: `0 0 22px ${activeProduct.accentGlow}`
+                }}
+              >
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  Grab a Pack
+                </span>
+              </button>
+            </div>
+          </header>
+
+          {/* ─── SECTION 1: PINNED HERO STAGE (GSAP PINNED SHOWCASE) ─── */}
+          <div
+            ref={heroStageRef}
+            className="relative w-full h-screen min-h-[640px] overflow-hidden flex flex-col justify-between pt-20 pb-6 px-4 md:px-12 urban-grain"
+          >
+            {/* Dynamic Ambient Radial Glow Backdrop */}
+            <div
+              className="absolute inset-0 pointer-events-none transition-colors duration-700 ease-out z-0"
+              style={{
+                background: `radial-gradient(circle at 50% 50%, ${activeProduct.accentGlow} 0%, transparent 68%)`
+              }}
+            />
+
+            {/* Halftone Overlay Grid */}
+            <div className="absolute inset-0 pointer-events-none halftone-overlay z-0 opacity-30"></div>
+
+            {/* ── BACKGROUND LAYER (0.2x Parallax Speed) ── */}
+            <div
+              ref={bgTextRef}
+              className="absolute top-1/2 -translate-y-1/2 left-0 w-[240vw] flex items-center select-none pointer-events-none z-0 whitespace-nowrap opacity-15 gpu-accel"
+            >
+              <span className="font-bebas text-[22vw] leading-none tracking-tighter text-stroke-street uppercase mr-12">
+                JCSD STREET FIZZ
+              </span>
+              <span className="font-graffiti text-[18vw] leading-none tracking-normal text-white/30 mr-12">
+                RAW CARBONATION
+              </span>
+              <span className="font-bebas text-[22vw] leading-none tracking-tighter text-stroke-street uppercase mr-12">
+                PURE ADRENALINE
+              </span>
+            </div>
+
+            {/* ── MIDGROUND LAYER (0.6x Parallax Floating Bubbles & Ice) ── */}
+            <div
+              ref={midgroundRef}
+              className="absolute inset-0 pointer-events-none z-10 gpu-accel overflow-hidden"
+            >
+              {PARTICLES.map((p) => (
+                <div
+                  key={p.id}
+                  className="absolute rounded-full transition-opacity duration-300"
+                  style={{
+                    left: p.left,
+                    top: p.top,
+                    width: p.size,
+                    height: p.size,
+                    filter: `blur(${p.blur})`,
+                    opacity: p.opacity,
+                    backgroundColor: p.isShard ? activeProduct.accentColor : '#FFFFFF',
+                    boxShadow: p.isShard ? `0 0 14px ${activeProduct.accentColor}` : '0 0 8px rgba(255,255,255,0.4)',
+                    transform: p.isShard ? 'rotate(45deg)' : 'none'
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* ── FOREGROUND HERO FOCUS (Pinned Central Showcase) ── */}
+            <div className="relative z-20 w-full flex-1 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 items-center gap-6 my-auto">
+
+              {/* Left Column: Product Information & Street Typography */}
+              <div
+                key={activeProduct.id}
+                className="animate-flavor-in md:col-span-5 flex flex-col justify-center items-start text-left order-2 md:order-1 pt-1 md:pt-0"
+              >
+                {/* Badge & Volume */}
+                <div className="inline-flex items-center gap-2 mb-2.5">
+                  <span
+                    className="px-3 py-1 rounded-full text-[11px] font-space font-bold tracking-widest uppercase transition-colors duration-500 text-black shadow-md"
+                    style={{ backgroundColor: activeProduct.accentColor }}
+                  >
+                    {activeProduct.badge}
+                  </span>
+                  <span className="text-xs font-space font-semibold text-white/50 tracking-wider">
+                    {activeProduct.volume}
+                  </span>
+                </div>
+
+                {/* Flavor Name (Big Street Typography) */}
+                <h1 className="font-bebas text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.9] text-white uppercase drop-shadow-2xl">
+                  {activeProduct.flavorName}
+                </h1>
+
+                {/* Tagline */}
+                <p
+                  className="font-space font-bold text-sm md:text-base lg:text-lg mt-2 tracking-wide uppercase transition-colors duration-500"
+                  style={{ color: activeProduct.accentColor }}
+                >
+                  {activeProduct.tagline}
+                </p>
+
+                {/* Description */}
+                <p className="text-xs md:text-sm text-white/70 max-w-md mt-2.5 leading-relaxed font-sans font-normal line-clamp-3 md:line-clamp-none">
+                  {activeProduct.description}
+                </p>
+
+                {/* Tasting Notes & Carbonation Specs */}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {activeProduct.tastingNotes.map((note, idx) => (
+                    <span
+                      key={idx}
+                      className="text-[11px] font-space px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-white/85"
+                    >
+                      ⚡ {note}
+                    </span>
+                  ))}
+                  <span className="text-[11px] font-space px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-white/65">
+                    🫧 {activeProduct.carbonation}
+                  </span>
+                </div>
+
+                {/* Action Row */}
+                <div className="mt-5 flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedCanModal(activeProduct)}
+                    className="px-6 py-2.5 rounded-full font-space font-bold text-xs uppercase tracking-wider bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                  >
+                    <span>Nutrition Specs</span>
+                    <svg className="w-3.5 h-3.5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setPackModalOpen(true)}
+                    className="px-6 py-2.5 rounded-full font-space font-bold text-xs uppercase tracking-wider text-black transition-all transform hover:scale-105 active:scale-95 shadow-lg flex items-center gap-2"
+                    style={{
+                      backgroundColor: activeProduct.accentColor,
+                      boxShadow: `0 0 25px ${activeProduct.accentGlow}`
+                    }}
+                  >
+                    <span>Buy Can · ₹90</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Central Hero 3D Stage with 8 Pinned Cans */}
+              <div className="md:col-span-7 relative h-[42vh] sm:h-[48vh] md:h-[66vh] flex items-center justify-center order-1 md:order-2">
+
+                {/* Glowing Pedestal / Ground Reflection Ring */}
+                <div
+                  className="absolute bottom-6 md:bottom-10 w-48 md:w-80 h-10 md:h-16 rounded-[100%] opacity-45 blur-xl pointer-events-none transition-all duration-700 gpu-accel"
+                  style={{
+                    backgroundColor: activeProduct.accentColor,
+                    boxShadow: `0 0 70px ${activeProduct.accentColor}`
+                  }}
+                />
+
+                {/* 8 Cans Layer Stack — Pinned, Scrubbed, Zero-Shift Aspect Ratio */}
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {PRODUCTS.map((prod, idx) => (
+                    <div
+                      key={prod.id}
+                      ref={(el) => (cansWrapperRef.current[idx] = el)}
+                      className="absolute inset-0 flex items-center justify-center gpu-accel transition-opacity duration-200"
+                      style={{
+                        opacity: idx === 0 ? 1 : 0,
+                        transform: idx === 0 ? 'translate3d(0, 0, 0) scale(1.08)' : 'translate3d(0, 140px, 0) scale(0.8) rotate(-8deg)',
+                        filter: idx === 0 ? 'blur(0px)' : 'blur(8px)',
+                        pointerEvents: idx === activeIndex ? 'auto' : 'none'
+                      }}
+                    >
+                      {/* Explicit Aspect Ratio Container so No Layout Shift Ever Occurs */}
+                      <div className="relative h-[85%] md:h-[94%] aspect-[1/2] flex items-center justify-center">
+                        <img
+                          src={prod.canImageUrl}
+                          alt={`${prod.flavorName} 330ml street can`}
+                          className="w-full h-full object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] cursor-pointer select-none transition-transform duration-300 hover:scale-[1.03]"
+                          onClick={() => setSelectedCanModal(prod)}
+                          loading={idx < 2 ? "eager" : "lazy"}
+                          decoding="async"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Magnetic Snap Switch Controls: Left & Right Directional Arrows */}
+                <button
+                  onClick={() => scrollToFlavor(activeIndex - 1)}
+                  disabled={activeIndex === 0}
+                  aria-label="Previous Can"
+                  className={`absolute left-0 md:left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-md border ${
+                    activeIndex === 0
+                      ? 'opacity-20 pointer-events-none border-white/5 bg-white/5 text-white/30'
+                      : 'opacity-80 hover:opacity-100 hover:scale-110 active:scale-95 border-white/20 bg-[#121217]/85 text-white hover:border-white/50 shadow-xl'
+                  }`}
+                  style={{
+                    boxShadow: activeIndex > 0 ? `0 0 16px ${activeProduct.accentGlow}` : 'none'
+                  }}
+                >
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={() => scrollToFlavor(activeIndex + 1)}
+                  disabled={activeIndex === PRODUCTS.length - 1}
+                  aria-label="Next Can"
+                  className={`absolute right-0 md:right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-md border ${
+                    activeIndex === PRODUCTS.length - 1
+                      ? 'opacity-20 pointer-events-none border-white/5 bg-white/5 text-white/30'
+                      : 'opacity-80 hover:opacity-100 hover:scale-110 active:scale-95 border-white/20 bg-[#121217]/85 text-white hover:border-white/50 shadow-xl'
+                  }`}
+                  style={{
+                    boxShadow: activeIndex < PRODUCTS.length - 1 ? `0 0 16px ${activeProduct.accentGlow}` : 'none'
+                  }}
+                >
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                {/* Floating Scroll Indicator Badge */}
+                <div className="absolute bottom-1 right-2 md:bottom-3 md:right-3 z-30 hidden sm:flex items-center gap-2 bg-[#121217]/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 text-[11px] font-space text-white/60 shadow-lg">
+                  <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: activeProduct.accentColor }}></span>
+                  Scroll to switch all 8 cans (Magnetic Snap)
+                </div>
+              </div>
+
+            </div>
+
+            {/* ─── BOTTOM DOCK: QUICK FLAVOR SELECTOR & PROGRESS ─── */}
+            <div className="relative z-30 w-full max-w-5xl mx-auto pt-2 border-t border-white/10">
+              {/* Thin Interactive Accent Progress Track */}
+              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-2">
+                <div
+                  ref={progressBarRef}
+                  className="h-full transition-all duration-150 rounded-full"
+                  style={{ width: '0%', backgroundColor: activeProduct.accentColor }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                {/* Horizontal Flavor Buttons */}
+                <div className="flex-1 flex items-center gap-2 sm:gap-3 overflow-x-auto py-1 scrollbar-none">
+                  {PRODUCTS.map((prod, i) => (
+                    <button
+                      key={prod.id}
+                      onClick={() => scrollToFlavor(i)}
+                      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-space font-medium transition-all duration-300 whitespace-nowrap ${
+                        activeIndex === i
+                          ? 'bg-white/15 text-white border border-white/30 shadow-lg scale-105'
+                          : 'bg-white/5 text-white/50 border border-white/5 hover:bg-white/10 hover:text-white/80'
+                      }`}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full transition-transform group-hover:scale-125"
+                        style={{ backgroundColor: prod.accentColor }}
+                      />
+                      <span className="font-bold text-[11px]">{String(prod.id).padStart(2, '0')}</span>
+                      <span className="hidden sm:inline-block text-[11px]">{prod.flavorName}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Progress Percentage Display */}
+                <div className="hidden lg:flex items-center gap-2 text-xs font-space font-bold text-white/40 pl-4 border-l border-white/10">
+                  <span>PROGRESS</span>
+                  <span ref={progressTextRef} className="text-white font-mono">0%</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* ─── SECTION 2: HIGH-ENERGY STREET MARQUEE TICKER ─── */}
+          <div className="relative w-full py-5 bg-[#121217]/80 backdrop-blur-md border-y border-white/10 overflow-hidden select-none">
+            <div className="animate-marquee font-bebas text-3xl md:text-5xl tracking-widest text-white/90 uppercase flex items-center gap-8">
+              <span className="text-red-500">★ JCSD STREET BEVERAGES</span>
+              <span>•</span>
+              <span className="text-stroke-street">MICRO-BUBBLE FIZZ</span>
+              <span>•</span>
+              <span className="text-yellow-400">ICE COLD AT 2°C</span>
+              <span>•</span>
+              <span className="text-stroke-street">ZERO ARTIFICIAL AFTERTASTE</span>
+              <span>•</span>
+              <span className="text-green-400">100% INFINITELY RECYCLABLE CAN</span>
+              <span>•</span>
+              <span className="text-stroke-street">RAW STREET CULTURE</span>
+              <span>•</span>
+              <span className="text-cyan-400">BOLD TASTE · BRIGHTER DAYS</span>
+              <span>•</span>
+            </div>
+          </div>
+
+          {/* ─── SECTION 3: THE 8-CAN GRAFFITI LINEUP GRID ─── */}
+          <section className="relative w-full py-24 px-5 md:px-12 max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+              <div>
+                <span className="text-xs font-space font-bold tracking-widest uppercase text-red-500">
+                  FULL INVENTORY // 330ML
+                </span>
+                <h2 className="font-bebas text-5xl md:text-7xl tracking-tight text-white mt-2">
+                  THE COMPLETE STREET LINEUP
+                </h2>
+              </div>
+              <p className="text-sm font-sans text-white/60 max-w-md">
+                Every can features unique street-art typography, high-voltage carbonation, and cold-extracted flavors. Available individually or in customizable graffiti boxes.
+              </p>
+            </div>
+
+            {/* 8 Product Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {PRODUCTS.map((prod) => (
+                <div
+                  key={prod.id}
+                  className="group relative bg-[#121217]/85 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-white/30 transition-all duration-300 hover:-translate-y-2 flex flex-col justify-between overflow-hidden shadow-xl"
+                >
+                  {/* Subtle hover accent glow */}
+                  <div
+                    className="absolute -top-20 -right-20 w-44 h-44 rounded-full opacity-0 group-hover:opacity-25 transition-opacity duration-500 blur-2xl pointer-events-none"
+                    style={{ backgroundColor: prod.accentColor }}
+                  />
+
+                  {/* Top Tag & Number */}
+                  <div className="flex items-center justify-between text-xs font-space">
+                    <span className="font-bold tracking-wider" style={{ color: prod.accentColor }}>
+                      NO. {String(prod.id).padStart(2, '0')}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-white/5 text-white/50 text-[10px] font-mono">
+                      {prod.volume}
+                    </span>
+                  </div>
+
+                  {/* Center Can Image with Hover Zoom */}
+                  <div className="relative my-6 h-56 flex items-center justify-center">
+                    <img
+                      src={prod.canImageUrl}
+                      alt={prod.flavorName}
+                      className="h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)] group-hover:scale-110 transition-transform duration-500 ease-out"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  {/* Bottom Information */}
+                  <div>
+                    <h3 className="font-bebas text-2xl tracking-wide text-white group-hover:text-red-400 transition-colors">
+                      {prod.flavorName}
+                    </h3>
+                    <p className="text-xs font-sans text-white/60 mt-1 line-clamp-2">
+                      {prod.tagline}
+                    </p>
+
+                    <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
+                      <span className="text-sm font-space font-bold text-white">
+                        ₹90.00 <span className="text-[10px] font-normal text-white/40">incl. tax</span>
+                      </span>
+                      <button
+                        onClick={() => setSelectedCanModal(prod)}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-space font-semibold bg-white/10 hover:bg-white text-white hover:text-black transition-colors"
+                      >
+                        Quick Specs
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ─── SECTION 4: STREET VARIETY BOX PROMO (CTA) ─── */}
+          <section className="relative w-full py-20 px-5 md:px-12 bg-[#121217]/75 backdrop-blur-md border-t border-white/10">
+            <div className="max-w-7xl mx-auto rounded-3xl bg-gradient-to-br from-[#1A1A22]/90 to-[#0E0E12]/90 border border-white/15 p-8 md:p-14 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
+              {/* Background graffiti emblem */}
+              <div className="absolute right-0 top-0 font-bebas text-[22vw] leading-none text-white/[0.03] select-none pointer-events-none">
+                JCSD
+              </div>
+
+              <div className="relative z-10 max-w-xl">
+                <span className="px-3 py-1 rounded-full text-xs font-space font-bold tracking-widest uppercase bg-yellow-400 text-black">
+                  LIMITED STREET DROP
+                </span>
+                <h3 className="font-bebas text-4xl sm:text-6xl text-white tracking-tight mt-4">
+                  THE 8-CAN GRAFFITI VARIETY CRATE
+                </h3>
+                <p className="text-sm md:text-base text-white/70 mt-3 leading-relaxed">
+                  Can't pick just one? Get all 8 distinct street-art cans packed in our signature heavy-gauge collector box with free express shipping across India.
+                </p>
+                <div className="mt-8 flex flex-wrap items-center gap-4">
+                  <button
+                    onClick={() => setPackModalOpen(true)}
+                    className="px-8 py-3.5 rounded-full font-space font-bold text-xs uppercase tracking-wider bg-white text-black hover:bg-red-500 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-xl"
+                  >
+                    Order The 8-Pack Crate · ₹680
+                  </button>
+                  <a
+                    href="/"
+                    className="px-6 py-3.5 rounded-full font-space font-semibold text-xs uppercase tracking-wider text-white/80 hover:text-white border border-white/20 hover:border-white/40 transition-colors"
+                  >
+                    View Single Cans on Storefront
+                  </a>
+                </div>
+              </div>
+
+              {/* Graphic Mockup of Variety Pack */}
+              <div className="relative z-10 flex items-center justify-center -space-x-8 md:-space-x-12 py-4">
+                <img src="images/can-1.png" alt="Can 1" className="h-44 md:h-64 object-contain filter drop-shadow-xl transform -rotate-12 hover:scale-110 transition-transform" />
+                <img src="images/can-5.png" alt="Can 5" className="h-48 md:h-72 object-contain filter drop-shadow-2xl z-10 hover:scale-110 transition-transform" />
+                <img src="images/can-7.png" alt="Can 7" className="h-44 md:h-64 object-contain filter drop-shadow-xl transform rotate-12 hover:scale-110 transition-transform" />
+              </div>
+            </div>
+          </section>
+
+          {/* ─── FOOTER ─── */}
+          <footer className="w-full py-12 px-5 md:px-12 bg-[#08080A]/90 border-t border-white/10 text-center md:text-left">
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <a href="/" className="font-bebas text-3xl tracking-widest text-white hover:text-red-500 transition-colors">
+                  JCSD
+                </a>
+                <p className="text-xs font-sans text-white/40 mt-1">
+                  © 2026 J's Carbonated Soft Drinks. All rights reserved. Premium street beverages.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-6 text-xs font-space text-white/60">
+                <a href="/" className="hover:text-white transition-colors">Home Store</a>
+                <a href="/cart/" className="hover:text-white transition-colors">Cart</a>
+                <a href="/orders/" className="hover:text-white transition-colors">My Orders</a>
+                <a href="/admin-profile/" className="hover:text-white transition-colors text-white/30">Staff Portal</a>
+              </div>
+            </div>
+          </footer>
+
+          {/* ─── MODAL 1: FLAVOR SPECIFICATIONS POPUP ─── */}
+          {selectedCanModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+              <div className="relative w-full max-w-lg bg-[#16161D] rounded-3xl p-6 md:p-8 border border-white/15 shadow-2xl text-left">
+                <button
+                  onClick={() => setSelectedCanModal(null)}
+                  className="absolute top-5 right-5 text-white/60 hover:text-white w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-colors"
+                >
+                  ✕
+                </button>
+
+                <div className="flex items-center gap-5">
+                  <div className="w-24 h-40 flex-shrink-0 flex items-center justify-center">
+                    <img src={selectedCanModal.canImageUrl} alt={selectedCanModal.flavorName} className="h-full object-contain" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-space font-bold tracking-widest uppercase" style={{ color: selectedCanModal.accentColor }}>
+                      {selectedCanModal.badge}
+                    </span>
+                    <h3 className="font-bebas text-3xl text-white mt-1">{selectedCanModal.flavorName}</h3>
+                    <p className="text-xs font-sans text-white/60 mt-1">{selectedCanModal.tagline}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-5 border-t border-white/10 space-y-3 text-xs font-space">
+                  <div className="flex justify-between py-1.5 border-b border-white/5">
+                    <span className="text-white/50">Volume</span>
+                    <span className="text-white font-bold">{selectedCanModal.volume}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-white/5">
+                    <span className="text-white/50">Carbonation Level</span>
+                    <span className="text-white font-bold">{selectedCanModal.carbonation}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-white/5">
+                    <span className="text-white/50">Stimulant / Caffeine</span>
+                    <span className="text-white font-bold">{selectedCanModal.caffeine}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-white/5">
+                    <span className="text-white/50">Retail Price</span>
+                    <span className="text-white font-bold">₹90.00 (Incl. of all taxes)</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center gap-3">
+                  <a
+                    href="/"
+                    className="flex-1 py-3 text-center rounded-xl font-space font-bold text-xs uppercase tracking-wider text-black transition-transform active:scale-95"
+                    style={{ backgroundColor: selectedCanModal.accentColor }}
+                  >
+                    Order from Storefront
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── MODAL 2: GRAB A PACK QUICK BUY ─── */}
+          {packModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+              <div className="relative w-full max-w-md bg-[#16161D] rounded-3xl p-6 md:p-8 border border-white/15 shadow-2xl text-center">
+                <button
+                  onClick={() => setPackModalOpen(false)}
+                  className="absolute top-5 right-5 text-white/60 hover:text-white w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-colors"
+                >
+                  ✕
+                </button>
+
+                <span className="px-3 py-1 rounded-full text-[11px] font-space font-bold tracking-widest uppercase bg-red-500 text-white">
+                  STREET VARIETY PACK
+                </span>
+                <h3 className="font-bebas text-3xl md:text-4xl text-white mt-3">
+                  READY TO STOCK UP?
+                </h3>
+                <p className="text-xs font-sans text-white/70 mt-2 leading-relaxed">
+                  All 8 graffiti cans are brewed cold, canned fresh, and deliverable across all pin codes in India.
+                </p>
+
+                <div className="my-6 p-4 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2 text-xs font-space">
+                  <div className="flex justify-between font-bold text-white">
+                    <span>1× Full 8-Flavor Crate</span>
+                    <span>₹680.00</span>
+                  </div>
+                  <div className="text-[11px] text-white/50">
+                    Includes: Classic Cola, Zero Sugar, Fresh Lime, Energy Lime, Bubblegum, Golden Energy, Cyberpunk & Workout.
+                  </div>
+                  <div className="pt-2 border-t border-white/5 flex justify-between text-green-400 font-semibold">
+                    <span>Shipping</span>
+                    <span>FREE (Special Offer)</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <a
+                    href="/"
+                    className="w-full py-3.5 rounded-full font-space font-bold text-xs uppercase tracking-wider bg-white text-black hover:bg-yellow-400 transition-colors shadow-lg"
+                  >
+                    Proceed to Storefront Checkout
+                  </a>
+                  <button
+                    onClick={() => setPackModalOpen(false)}
+                    className="w-full py-2.5 rounded-full font-space font-semibold text-xs text-white/60 hover:text-white"
+                  >
+                    Continue Browsing Cans
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // Render the React Root
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<JCSDProductsApp />);
+  </script>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       [SNIPPET PART 3]: VIBRANT FLOWING GRADIENT WEBGL SHADER & FALLBACK
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      'use strict';
+
+      // ─── TUNING PARAMETERS (WITH EDIT COMMENTS) ──────────────────────────
+      // EDIT: Disturbance strength multiplier on cursor movement (0.5 to 2.5)
+      //       Higher = ribbons bend and ripple with greater amplitude.
+      var DISTURB_MULTIPLIER = 1.35;
+
+      // EDIT: Decay time in seconds for the flow to settle back to calm motion
+      //       Default: 1.5 seconds.
+      var DECAY_TIME_SECONDS = 1.5;
+
+      // EDIT: Cursor position smoothing (lerp factor: 0.04 = very slow drift, 0.12 = fast)
+      var MOUSE_LERP = 0.08;
+
+      // EDIT: Base flow animation speed (0.05 units/sec for calm, liquid motion)
+      var FLOW_SPEED = 0.055;
+
+      // ─── CANVAS & CONTEXT SETUP ──────────────────────────────────────────
+      var canvas = document.getElementById('jcsd-flowing-gradient');
+      if (!canvas) return;
+
+      var gl = null;
+      try {
+        gl = canvas.getContext('webgl', {
+          alpha: false,
+          depth: false,
+          antialias: false,
+          powerPreference: 'high-performance'
+        }) || canvas.getContext('experimental-webgl');
+      } catch (e) {
+        gl = null;
+      }
+
+      // If WebGL is not available, immediately fall back to images/hero-banner.png
+      if (!gl) {
+        canvas.classList.add('gl-fallback');
+        return;
+      }
+
+      // Handle WebGL context lost gracefully
+      canvas.addEventListener('webglcontextlost', function (e) {
+        e.preventDefault();
+        canvas.classList.add('gl-fallback');
+      }, false);
+
+      // Check prefers-reduced-motion
+      var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ─── SHADER CODE ─────────────────────────────────────────────────────
+      var VERT_SRC = [
+        'attribute vec2 aPosition;',
+        'void main() {',
+        '  gl_Position = vec4(aPosition, 0.0, 1.0);',
+        '}'
+      ].join('\n');
+
+      var FRAG_SRC = [
+        'precision highp float;',
+        'uniform vec2 uResolution;',
+        'uniform float uTime;',
+        'uniform vec2 uMouse;',
+        'uniform float uDisturb;',
+        'uniform vec3 uBgColor;',
+        'uniform vec3 uColor1;',
+        'uniform vec3 uColor2;',
+        'uniform float uIntensity;',
+        '',
+        'vec2 hash(vec2 p) {',
+        '  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));',
+        '  return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);',
+        '}',
+        '',
+        'float noise(vec2 p) {',
+        '  vec2 i = floor(p);',
+        '  vec2 f = fract(p);',
+        '  vec2 u = f * f * (3.0 - 2.0 * f);',
+        '  return mix(',
+        '    mix(dot(hash(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0)),',
+        '        dot(hash(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x),',
+        '    mix(dot(hash(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)),',
+        '        dot(hash(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x),',
+        '    u.y',
+        '  );',
+        '}',
+        '',
+        'float fbm(vec2 p) {',
+        '  float v = 0.0;',
+        '  float a = 0.52;',
+        '  mat2 rot = mat2(0.87758, 0.47942, -0.47942, 0.87758);',
+        '  for (int i = 0; i < 4; i++) {',
+        '    v += a * noise(p);',
+        '    p = rot * p * 2.04 + vec2(1.3, 0.7);',
+        '    a *= 0.5;',
+        '  }',
+        '  return v;',
+        '}',
+        '',
+        'void main() {',
+        '  vec2 uv = gl_FragCoord.xy / uResolution.xy;',
+        '  vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);',
+        '  vec2 p = (uv - 0.5) * aspect;',
+        '  vec2 m = (uMouse - 0.5) * aspect;',
+        '',
+        '  // Cursor displacement: push coordinates outward around cursor',
+        '  vec2 diff = p - m;',
+        '  float dist = length(diff);',
+        '  float influence = exp(-dist * 3.8);',
+        '  vec2 push = normalize(diff + vec2(0.0001)) * influence * (uDisturb * 0.48);',
+        '  p += push;',
+        '',
+        '  // Domain-warped liquid light noise flow',
+        '  float t = uTime * 0.055;',
+        '  vec2 q = vec2(',
+        '    fbm(p + vec2(0.0, t * 0.75)),',
+        '    fbm(p + vec2(5.2, 1.3 - t * 0.55))',
+        '  );',
+        '',
+        '  vec2 r = vec2(',
+        '    fbm(p + 3.4 * q + vec2(1.7, 9.2) + t * 0.45),',
+        '    fbm(p + 3.4 * q + vec2(8.3, 2.8) - t * 0.40)',
+        '  );',
+        '',
+        '  float f = fbm(p + 3.8 * r + vec2(t * 0.28, t * 0.32));',
+        '',
+        '  // High-contrast, vibrant ribbon profiles',
+        '  float ribbon1 = smoothstep(-0.22, 0.38, q.x * r.y + 0.20 * f);',
+        '  float ribbon2 = smoothstep(-0.18, 0.42, r.x * q.y + 0.24 * f);',
+        '  float core1 = pow(ribbon1, 2.2);',
+        '  float core2 = pow(ribbon2, 2.2);',
+        '  float glow = clamp((f * 0.5 + 0.5), 0.0, 1.0);',
+        '',
+        '  // Liquid ripple radiating when disturbed',
+        '  float ripple = sin(dist * 22.0 - uTime * 2.8) * exp(-dist * 4.5) * uDisturb * 0.10;',
+        '',
+        '  // Vibrant Color Blending',
+        '  vec3 col = uBgColor;',
+        '  col += uColor1 * (ribbon1 * 0.85 + core1 * 0.65) * uIntensity;',
+        '  col += uColor2 * (ribbon2 * 0.85 + core2 * 0.65) * uIntensity;',
+        '',
+        '  // High-energy chromatic overlap (Magenta / Electric Purple intersection)',
+        '  vec3 energyMix = mix(uColor1, uColor2, 0.5) + vec3(0.20, 0.05, 0.30);',
+        '  col += energyMix * (ribbon1 * ribbon2 * 2.2) * uIntensity;',
+        '',
+        '  // Ambient fluid glow',
+        '  col += mix(uColor1, uColor2, 0.5) * (glow * 0.35) * uIntensity;',
+        '  col += vec3(ripple * 0.6);',
+        '',
+        '  // Rich tone clamp preserving deep blacks and vibrant neon highlights',
+        '  col = clamp(col, 0.0, 0.96);',
+        '',
+        '  gl_FragColor = vec4(col, 1.0);',
+        '}'
+      ].join('\n');
+
+      function createShader(type, src) {
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, src);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          console.warn('Shader compile failed:', gl.getShaderInfoLog(shader));
+          gl.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      }
+
+      var vs = createShader(gl.VERTEX_SHADER, VERT_SRC);
+      var fs = createShader(gl.FRAGMENT_SHADER, FRAG_SRC);
+      if (!vs || !fs) {
+        canvas.classList.add('gl-fallback');
+        return;
+      }
+
+      var program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        canvas.classList.add('gl-fallback');
+        return;
+      }
+      gl.useProgram(program);
+
+      // Fullscreen quad buffer
+      var quadBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,
+         1, -1,
+        -1,  1,
+        -1,  1,
+         1, -1,
+         1,  1
+      ]), gl.STATIC_DRAW);
+
+      var aPosition = gl.getAttribLocation(program, 'aPosition');
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+      // Uniform Locations
+      var uResolutionLoc = gl.getUniformLocation(program, 'uResolution');
+      var uTimeLoc       = gl.getUniformLocation(program, 'uTime');
+      var uMouseLoc      = gl.getUniformLocation(program, 'uMouse');
+      var uDisturbLoc    = gl.getUniformLocation(program, 'uDisturb');
+      var uBgColorLoc    = gl.getUniformLocation(program, 'uBgColor');
+      var uColor1Loc     = gl.getUniformLocation(program, 'uColor1');
+      var uColor2Loc     = gl.getUniformLocation(program, 'uColor2');
+      var uIntensityLoc  = gl.getUniformLocation(program, 'uIntensity');
+
+      // Helper to parse hex colors into [r, g, b] 0.0 - 1.0
+      function parseColor(hex) {
+        hex = (hex || '').trim().replace('#', '');
+        if (hex.length === 3) {
+          hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        var num = parseInt(hex, 16);
+        if (isNaN(num)) return [0.03, 0.03, 0.04];
+        return [
+          ((num >> 16) & 255) / 255.0,
+          ((num >> 8) & 255) / 255.0,
+          (num & 255) / 255.0
+        ];
+      }
+
+      function updatePaletteUniforms() {
+        var style = getComputedStyle(document.documentElement);
+        var bg    = parseColor(style.getPropertyValue('--jcsd-bg-color') || '#08080a');
+        var col1  = parseColor(style.getPropertyValue('--jcsd-ribbon-1') || '#FF1040');
+        var col2  = parseColor(style.getPropertyValue('--jcsd-ribbon-2') || '#00F5FF');
+        var inten = parseFloat(style.getPropertyValue('--jcsd-glow-intensity')) || 0.90;
+
+        gl.uniform3f(uBgColorLoc, bg[0], bg[1], bg[2]);
+        gl.uniform3f(uColor1Loc, col1[0], col1[1], col1[2]);
+        gl.uniform3f(uColor2Loc, col2[0], col2[1], col2[2]);
+        gl.uniform1f(uIntensityLoc, inten);
+      }
+
+      // ─── RESOLUTION & DYNAMIC PERFORMANCE SCALING ────────────────────────
+      var dprCap = 1.5; // Cap devicePixelRatio at 1.5 for performance
+      var renderScale = 1.0;
+      var width = 0;
+      var height = 0;
+
+      function resize() {
+        var dpr = Math.min(window.devicePixelRatio || 1, dprCap) * renderScale;
+        width  = Math.floor(window.innerWidth * dpr);
+        height = Math.floor(window.innerHeight * dpr);
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+          gl.viewport(0, 0, width, height);
+          gl.uniform2f(uResolutionLoc, width, height);
+        }
+      }
+      window.addEventListener('resize', resize);
+      resize();
+      updatePaletteUniforms();
+
+      // ─── CURSOR & TOUCH INTERACTION STATE ────────────────────────────────
+      var targetMouseX = 0.5;
+      var targetMouseY = 0.5;
+      var smoothMouseX = 0.5;
+      var smoothMouseY = 0.5;
+      var lastClientX = window.innerWidth * 0.5;
+      var lastClientY = window.innerHeight * 0.5;
+
+      var targetDisturb = 0.0;
+      var currentDisturb = 0.0;
+      var isTouchDown = false;
+      var isPointerActive = false;
+
+      // Pointer movement on window so it triggers even over cans and text
+      window.addEventListener('pointermove', function (e) {
+        if (prefersReducedMotion) return;
+        isPointerActive = true;
+
+        var clientX = e.clientX;
+        var clientY = e.clientY;
+        var dx = (clientX - lastClientX) / window.innerWidth;
+        var dy = (clientY - lastClientY) / window.innerHeight;
+        var speed = Math.sqrt(dx * dx + dy * dy);
+
+        // Increase disturbance based on pointer velocity
+        targetDisturb = Math.min(1.0, targetDisturb + speed * 15.0 * DISTURB_MULTIPLIER);
+
+        targetMouseX = clientX / window.innerWidth;
+        targetMouseY = 1.0 - (clientY / window.innerHeight); // Invert Y for WebGL coordinates
+
+        lastClientX = clientX;
+        lastClientY = clientY;
+      }, { passive: true });
+
+      // Touch events support
+      window.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'touch') {
+          isTouchDown = true;
+          isPointerActive = true;
+          targetMouseX = e.clientX / window.innerWidth;
+          targetMouseY = 1.0 - (e.clientY / window.innerHeight);
+          smoothMouseX = targetMouseX;
+          smoothMouseY = targetMouseY;
+          targetDisturb = Math.min(1.0, targetDisturb + 0.70 * DISTURB_MULTIPLIER);
+        }
+      }, { passive: true });
+
+      window.addEventListener('pointerup', function (e) {
+        if (e.pointerType === 'touch') {
+          isTouchDown = false;
+        }
+      }, { passive: true });
+
+      // ─── PERFORMANCE MONITORING & VISIBILITY PAUSE ───────────────────────
+      var isTabVisible = !document.hidden;
+      var isHeroVisible = true;
+      var isRunning = false;
+
+      document.addEventListener('visibilitychange', function () {
+        isTabVisible = !document.hidden;
+        if (isTabVisible && isHeroVisible && !isRunning && !prefersReducedMotion) {
+          lastFrameTime = performance.now();
+          requestAnimationFrame(renderLoop);
+        }
+      });
+
+      // Pause rendering when page is scrolled far past the hero section
+      if ('IntersectionObserver' in window) {
+        var heroElement = document.getElementById('root') || document.body;
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            isHeroVisible = entry.isIntersecting;
+            if (isHeroVisible && isTabVisible && !isRunning && !prefersReducedMotion) {
+              lastFrameTime = performance.now();
+              requestAnimationFrame(renderLoop);
+            }
+          });
+        }, { threshold: 0.05 });
+        observer.observe(heroElement);
+      }
+
+      // ─── RENDER LOOP ─────────────────────────────────────────────────────
+      var startTime = performance.now();
+      var lastFrameTime = startTime;
+      var fpsCheckTime = startTime;
+      var frameCounter = 0;
+      var lastColorUpdate = 0;
+
+      function renderLoop(now) {
+        if (!isTabVisible || !isHeroVisible) {
+          isRunning = false;
+          return;
+        }
+        isRunning = true;
+
+        var dt = Math.min((now - lastFrameTime) / 1000.0, 0.1);
+        lastFrameTime = now;
+        var totalElapsed = (now - startTime) / 1000.0;
+
+        // Periodic check for active flavor accent updates
+        if (now - lastColorUpdate > 200) {
+          updatePaletteUniforms();
+          lastColorUpdate = now;
+        }
+
+        // Dynamic resolution scaling: if fps drops below 45 for 1 second, halve resolution
+        frameCounter++;
+        if (now - fpsCheckTime >= 1000.0) {
+          var fps = (frameCounter * 1000.0) / (now - fpsCheckTime);
+          if (fps < 45 && renderScale > 0.5) {
+            renderScale = 0.5;
+            resize();
+          }
+          frameCounter = 0;
+          fpsCheckTime = now;
+        }
+
+        // Idle gentle drift when user is not actively moving the pointer
+        if (!isTouchDown && (!isPointerActive || targetDisturb <= 0.005)) {
+          targetMouseX += (0.5 + Math.cos(totalElapsed * 0.35) * 0.18 - targetMouseX) * 0.015;
+          targetMouseY += (0.5 + Math.sin(totalElapsed * 0.40) * 0.14 - targetMouseY) * 0.015;
+        }
+
+        // Lerp mouse coordinates smoothly
+        smoothMouseX += (targetMouseX - smoothMouseX) * MOUSE_LERP;
+        smoothMouseY += (targetMouseY - smoothMouseY) * MOUSE_LERP;
+
+        // Exponential decay of disturbance back to 0 over ~1.5s
+        var decayFactor = Math.exp(-dt / (DECAY_TIME_SECONDS * 0.5));
+        targetDisturb *= decayFactor;
+        if (targetDisturb < 0.001) targetDisturb = 0.0;
+        currentDisturb += (targetDisturb - currentDisturb) * 0.12;
+
+        // Pass uniforms
+        gl.uniform1f(uTimeLoc, totalElapsed * FLOW_SPEED * 20.0);
+        gl.uniform2f(uMouseLoc, smoothMouseX, smoothMouseY);
+        gl.uniform1f(uDisturbLoc, currentDisturb);
+
+        // Draw quad
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        if (prefersReducedMotion) {
+          // Render only one static frame
+          isRunning = false;
+          return;
+        }
+
+        requestAnimationFrame(renderLoop);
+      }
+
+      // Initial frame render
+      requestAnimationFrame(renderLoop);
+
+    })();
+  </script>
+</body>
+</html>

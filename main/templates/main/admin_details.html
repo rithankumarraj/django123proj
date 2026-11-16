@@ -87,6 +87,18 @@
         <span class="tab-count" style="background: rgba(239,68,68,0.2); color: #f87171;">OFF</span>
       {% endif %}
     </a>
+    <a href="?tab=video" class="filter-tab {% if active_tab == 'video' %}active{% endif %}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+      </svg>
+      Homepage Video
+      {% if details.homepage_video_enabled %}
+        <span class="tab-count" style="background: rgba(16,185,129,0.2); color: #34d399;">ON</span>
+      {% else %}
+        <span class="tab-count" style="background: rgba(239,68,68,0.2); color: #f87171;">OFF</span>
+      {% endif %}
+    </a>
   </div>
 
   <!-- TAB 1: User Messages -->
@@ -587,5 +599,177 @@
         }
       })();
     </script>
+
+  <!-- TAB 5: Homepage Fullscreen Video Settings -->
+  {% elif active_tab == 'video' %}
+    <div class="admin-split-grid">
+      <!-- Edit Video Settings Form -->
+      <section class="admin-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+              Fullscreen Homepage YouTube Video Configuration
+            </h2>
+            <p class="panel-subtitle">
+              Configure the cinematic edge-to-edge YouTube video displayed between the Hero banner and the Product lineup ("Pick your flavour").
+            </p>
+          </div>
+        </div>
+
+        <form method="post" action="{% url 'admin_details' %}?tab=video" class="admin-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_video">
+
+          <!-- Enable / Disable Toggle -->
+          <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <label for="{{ video_form.homepage_video_enabled.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer; display: block;">
+                Enable Fullscreen Video Section
+              </label>
+              <div style="font-size: 0.8rem; color: var(--admin-text-muted); margin-top: 2px;">
+                When active, a full-viewport cinematic YouTube video appears right between the hero banner and the product lineup.
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              {{ video_form.homepage_video_enabled }}
+            </div>
+          </div>
+
+          <!-- YouTube Video ID or URL -->
+          <div class="form-group">
+            <label for="{{ video_form.homepage_video_id.id_for_label }}" class="form-label">
+              YouTube Video URL or Video ID <span class="required-star">*</span>
+            </label>
+            {{ video_form.homepage_video_id }}
+            <p class="form-help">
+              Paste either the 11-character YouTube video ID (e.g. <code>dQw4w9WgXcQ</code>) or any full YouTube URL (e.g. <code>https://www.youtube.com/watch?v=dQw4w9WgXcQ</code>, <code>https://youtu.be/...</code>). The system automatically extracts the clean video ID.
+            </p>
+          </div>
+
+          <!-- Playback Options Row: Autoplay & Loop -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <!-- Autoplay Toggle -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px 16px; border-radius: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label for="{{ video_form.homepage_video_autoplay.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer;">
+                  Play Automatically
+                </label>
+                {{ video_form.homepage_video_autoplay }}
+              </div>
+              <p style="font-size: 0.76rem; color: var(--admin-text-muted); margin: 6px 0 0 0; line-height: 1.4;">
+                Automatically starts playback when visitors scroll to the video section.
+              </p>
+            </div>
+
+            <!-- Loop / Repeat Toggle -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px 16px; border-radius: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label for="{{ video_form.homepage_video_loop.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer;">
+                  Repeat Continuously (Loop)
+                </label>
+                {{ video_form.homepage_video_loop }}
+              </div>
+              <p style="font-size: 0.76rem; color: var(--admin-text-muted); margin: 6px 0 0 0; line-height: 1.4;">
+                Automatically loops and replays repeatedly without stopping.
+              </p>
+            </div>
+          </div>
+
+          <!-- Mute Audio Toggle -->
+          <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <label for="{{ video_form.homepage_video_mute.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer; display: block;">
+                Mute Audio by Default
+              </label>
+              <div style="font-size: 0.76rem; color: var(--admin-text-muted); margin-top: 2px;">
+                Recommended: Modern browsers require videos to be muted for autoplay to start automatically. Visitors can unmute anytime with 1 click.
+              </div>
+            </div>
+            <div>
+              {{ video_form.homepage_video_mute }}
+            </div>
+          </div>
+
+          <!-- Optional Overlay Title & Subtitle -->
+          <div class="form-group">
+            <label for="{{ video_form.homepage_video_heading.id_for_label }}" class="form-label">
+              Overlay Title (Optional)
+            </label>
+            {{ video_form.homepage_video_heading }}
+            <p class="form-help">Text shown over the video (e.g. <code>EXPERIENCE THE STREET FIZZ</code>). Leave empty for clean video-only.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="{{ video_form.homepage_video_subheading.id_for_label }}" class="form-label">
+              Overlay Subtitle (Optional)
+            </label>
+            {{ video_form.homepage_video_subheading }}
+            <p class="form-help">Short description shown under the title. Leave empty to hide.</p>
+          </div>
+
+          <div class="form-actions" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+            <button type="submit" class="btn btn-primary" style="background: #ff9142; border-color: #ff9142; color: #000; font-weight: 700; padding: 10px 24px; border-radius: 10px;">
+              Save Video Settings
+            </button>
+            <a href="/#brand-film" target="_blank" rel="noopener" class="btn btn-outline-secondary" style="border-radius: 10px;">
+              Preview on Live Storefront ↗
+            </a>
+          </div>
+        </form>
+      </section>
+
+      <!-- Live YouTube Video Preview Card -->
+      <section class="admin-panel" style="background: #0d1012; border: 1px solid rgba(255,255,255,0.12);">
+        <div class="panel-header">
+          <h2 class="panel-title" style="font-size: 0.95rem; color: var(--admin-text-muted);">
+            Live Video Preview
+          </h2>
+          <span class="brand-badge">ID: {{ details.clean_homepage_video_id }}</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px; padding: 8px 0;">
+          <!-- 16:9 Responsive Embed Preview -->
+          <div style="position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <iframe
+              id="adminPreviewIframe"
+              src="https://www.youtube.com/embed/{{ details.clean_homepage_video_id }}?autoplay={% if details.homepage_video_autoplay %}1{% else %}0{% endif %}&mute={% if details.homepage_video_mute %}1{% else %}0{% endif %}&loop={% if details.homepage_video_loop %}1{% else %}0{% endif %}&playlist={{ details.clean_homepage_video_id }}&enablejsapi=1&playsinline=1&controls=1&rel=0"
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+
+          <!-- Video Specs Summary -->
+          <div style="padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem; color: #94a3b8; line-height: 1.6;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>Status:</span>
+              <strong style="color: {% if details.homepage_video_enabled %}#34d399{% else %}#f87171{% endif %};">
+                {% if details.homepage_video_enabled %}ACTIVE ON HOMEPAGE{% else %}DISABLED{% endif %}
+              </strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>Autoplay:</span>
+              <strong style="color: #fff;">{% if details.homepage_video_autoplay %}Enabled (Auto-start){% else %}Manual click required{% endif %}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>Repeat / Loop:</span>
+              <strong style="color: #fff;">{% if details.homepage_video_loop %}Infinite Continuous Loop{% else %}Plays Once{% endif %}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Mute Audio:</span>
+              <strong style="color: #fff;">{% if details.homepage_video_mute %}Muted (Browser-safe){% else %}Sound On{% endif %}</strong>
+            </div>
+          </div>
+
+          <div style="padding: 12px 14px; border-radius: 10px; background: rgba(255,145,66,0.05); border: 1px dashed rgba(255,145,66,0.3); font-size: 0.78rem; color: #ff9142; line-height: 1.45;">
+            ℹ️ <strong>Tips:</strong> YouTube requires <code>Mute Audio</code> to be checked for automatic playback to work reliably across all modern desktop and mobile browsers. Visitors can unmute anytime using the on-screen sound button on the storefront.
+          </div>
+        </div>
+      </section>
+    </div>
   {% endif %}
 {% endblock %}

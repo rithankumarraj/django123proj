@@ -58,6 +58,365 @@
         </header>
 
         <main>
+            <!-- ═════════════════════════════════════════════════════════════════════════
+                 FULLSCREEN YOUTUBE BRAND FILM SECTION (BETWEEN HERO & PRODUCTS)
+                 -------------------------------------------------------------------------
+                 EDIT INSTRUCTIONS:
+                 1. EDIT VIA ADMIN DASHBOARD (No code needed):
+                    Go to Staff Portal -> Site Details -> "Homepage Video" tab.
+                    You can change the video URL/ID, toggle Autoplay ON/OFF, and Loop ON/OFF.
+                 2. EDIT DIRECTLY IN CODE BELOW:
+                    Change default values in the template variables if no database value exists.
+                 ═════════════════════════════════════════════════════════════════════════ -->
+            {% if details.homepage_video_enabled|default:True %}
+            <section class="fullscreen-video-section" id="brand-film" aria-label="JCSD Brand Film">
+                <style>
+                    /* ─── Fullscreen YouTube Video Section Styles ─── */
+                    .fullscreen-video-section {
+                        position: relative;
+                        width: 100%;
+                        height: 100vh;
+                        min-height: 560px;
+                        max-height: 1080px;
+                        overflow: hidden;
+                        background: #000000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    /* 16:9 Cover Scale Formula: Fills 100% viewport with zero letterbox bars */
+                    .fullscreen-video-wrapper {
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 100vw;
+                        height: 56.25vw; /* 16:9 aspect ratio */
+                        min-height: 100vh;
+                        min-width: 177.78vh; /* 16:9 aspect ratio */
+                        transform: translate(-50%, -50%);
+                        pointer-events: auto;
+                        z-index: 1;
+                    }
+
+                    .fullscreen-video-wrapper iframe {
+                        width: 100%;
+                        height: 100%;
+                        border: 0;
+                        display: block;
+                    }
+
+                    /* Atmospheric Edge Vignettes */
+                    .video-gradient-top {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 140px;
+                        background: linear-gradient(to bottom, rgba(13, 13, 15, 0.95) 0%, rgba(13, 13, 15, 0.6) 45%, transparent 100%);
+                        pointer-events: none;
+                        z-index: 3;
+                    }
+
+                    .video-gradient-bottom {
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 160px;
+                        background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.75) 30%, transparent 100%);
+                        pointer-events: none;
+                        z-index: 3;
+                    }
+
+                    /* Floating Video Controls Overlay */
+                    .video-ui-overlay {
+                        position: absolute;
+                        inset: 0;
+                        z-index: 4;
+                        pointer-events: none;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        padding: 30px 24px;
+                    }
+
+                    .video-top-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        max-width: 1280px;
+                        margin: 0 auto;
+                        pointer-events: auto;
+                    }
+
+                    .video-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 6px 14px;
+                        border-radius: 999px;
+                        background: rgba(18, 18, 23, 0.75);
+                        backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                        color: #ffffff;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+                    }
+
+                    .video-controls-group {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+
+                    .video-pill-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 7px 16px;
+                        border-radius: 999px;
+                        background: rgba(18, 18, 23, 0.82);
+                        backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        letter-spacing: 0.04em;
+                        color: #ffffff;
+                        cursor: pointer;
+                        transition: all 0.25s ease;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+                    }
+
+                    .video-pill-btn:hover {
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #000000;
+                        border-color: #ffffff;
+                        transform: translateY(-2px);
+                    }
+
+                    .video-pill-btn.is-active {
+                        background: #ff9142;
+                        color: #000000;
+                        border-color: #ff9142;
+                        box-shadow: 0 0 20px rgba(255, 145, 66, 0.45);
+                    }
+
+                    .video-center-title {
+                        text-align: center;
+                        max-width: 750px;
+                        margin: auto;
+                        pointer-events: none;
+                    }
+
+                    .video-title-heading {
+                        font-family: 'Bebas Neue', sans-serif;
+                        font-size: clamp(2.5rem, 6vw, 5rem);
+                        line-height: 0.95;
+                        color: #ffffff;
+                        text-transform: uppercase;
+                        letter-spacing: 0.02em;
+                        text-shadow: 0 4px 30px rgba(0, 0, 0, 0.85);
+                        margin: 0;
+                    }
+
+                    .video-title-subheading {
+                        font-family: 'Inter', sans-serif;
+                        font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+                        color: rgba(255, 255, 255, 0.85);
+                        margin-top: 10px;
+                        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+                    }
+
+                    .video-bottom-action {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 100%;
+                        pointer-events: auto;
+                    }
+
+                    .scroll-to-shop-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 10px 22px;
+                        border-radius: 999px;
+                        background: #ffffff;
+                        color: #111111;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.8rem;
+                        font-weight: 800;
+                        letter-spacing: 0.06em;
+                        text-transform: uppercase;
+                        text-decoration: none;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+                        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+
+                    .scroll-to-shop-btn:hover {
+                        background: #111111;
+                        color: #ffffff;
+                        transform: translateY(-3px);
+                        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+                    }
+                </style>
+
+                <!-- Top Shadow Transition from Dark Hero Header -->
+                <div class="video-gradient-top"></div>
+
+                <!-- 16:9 Fullscreen Responsive YouTube Embed -->
+                {% with video_id=details.clean_homepage_video_id|default:"74djFvJjPkc" %}
+                <div class="fullscreen-video-wrapper">
+                    <iframe
+                        id="homepageYoutubeIframe"
+                        src="https://www.youtube.com/embed/{{ video_id }}?autoplay={% if details.homepage_video_autoplay|default:True %}1{% else %}0{% endif %}&mute={% if details.homepage_video_mute|default:True %}1{% else %}0{% endif %}&loop={% if details.homepage_video_loop|default:True %}1{% else %}0{% endif %}&playlist={{ video_id }}&enablejsapi=1&playsinline=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3"
+                        title="JCSD Brand Film"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen
+                    ></iframe>
+                </div>
+                {% endwith %}
+
+                <!-- Bottom Fade Transition into White Lineup Section -->
+                <div class="video-gradient-bottom"></div>
+
+                <!-- Floating Video UI Overlay -->
+                <div class="video-ui-overlay">
+                    <!-- Top Bar with Brand Tag & Audio/Play Toggles -->
+                    <div class="video-top-bar">
+                        <div class="video-badge">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff2a2a; animation: pulse 1.5s infinite;"></span>
+                            <span>{{ details.homepage_video_heading|default:"JCSD BRAND FILM // 4K" }}</span>
+                        </div>
+
+                        <div class="video-controls-group">
+                            <!-- Sound Toggle Button -->
+                            <button
+                                type="button"
+                                class="video-pill-btn"
+                                id="videoSoundToggleBtn"
+                                data-muted="{% if details.homepage_video_mute|default:True %}true{% else %}false{% endif %}"
+                                onclick="toggleVideoSound(this)"
+                                title="Toggle Sound"
+                            >
+                                <span id="videoSoundIcon">🔇</span>
+                                <span id="videoSoundLabel">Sound {% if details.homepage_video_mute|default:True %}Off{% else %}On{% endif %}</span>
+                            </button>
+
+                            <!-- Play / Pause Toggle Button -->
+                            <button
+                                type="button"
+                                class="video-pill-btn"
+                                id="videoPlayToggleBtn"
+                                data-paused="false"
+                                onclick="toggleVideoPlayback(this)"
+                                title="Play / Pause Video"
+                            >
+                                <span id="videoPlayIcon">⏸</span>
+                                <span id="videoPlayLabel">Pause</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Center Heading & Tagline (if provided) -->
+                    {% if details.homepage_video_heading or details.homepage_video_subheading %}
+                    <div class="video-center-title">
+                        {% if details.homepage_video_heading %}
+                        <h2 class="video-title-heading">{{ details.homepage_video_heading }}</h2>
+                        {% endif %}
+                        {% if details.homepage_video_subheading %}
+                        <p class="video-title-subheading">{{ details.homepage_video_subheading }}</p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+
+                    <!-- Bottom Indicator: Smooth Scroll to Flavours -->
+                    <div class="video-bottom-action">
+                        <a href="#shop" class="scroll-to-shop-btn">
+                            <span>Explore Flavours</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5v14M19 12l-7 7-7-7"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Video Interaction Scripts (Sound Toggle, Play/Pause, Viewport Autoplay) -->
+                <script>
+                    function toggleVideoSound(btn) {
+                        var iframe = document.getElementById('homepageYoutubeIframe');
+                        if (!iframe || !iframe.contentWindow) return;
+                        var isMuted = btn.getAttribute('data-muted') === 'true';
+                        var icon = document.getElementById('videoSoundIcon');
+                        var label = document.getElementById('videoSoundLabel');
+
+                        if (isMuted) {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                            iframe.contentWindow.postMessage('{"event":"command","func":"setVolume","args":[100]}', '*');
+                            btn.setAttribute('data-muted', 'false');
+                            btn.classList.add('is-active');
+                            if (icon) icon.textContent = '🔊';
+                            if (label) label.textContent = 'Sound On';
+                        } else {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                            btn.setAttribute('data-muted', 'true');
+                            btn.classList.remove('is-active');
+                            if (icon) icon.textContent = '🔇';
+                            if (label) label.textContent = 'Sound Off';
+                        }
+                    }
+
+                    function toggleVideoPlayback(btn) {
+                        var iframe = document.getElementById('homepageYoutubeIframe');
+                        if (!iframe || !iframe.contentWindow) return;
+                        var isPaused = btn.getAttribute('data-paused') === 'true';
+                        var icon = document.getElementById('videoPlayIcon');
+                        var label = document.getElementById('videoPlayLabel');
+
+                        if (isPaused) {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                            btn.setAttribute('data-paused', 'false');
+                            if (icon) icon.textContent = '⏸';
+                            if (label) label.textContent = 'Pause';
+                        } else {
+                            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                            btn.setAttribute('data-paused', 'true');
+                            if (icon) icon.textContent = '▶';
+                            if (label) label.textContent = 'Play';
+                        }
+                    }
+
+                    // Viewport-aware autoplay trigger
+                    if ('IntersectionObserver' in window) {
+                        var videoSec = document.getElementById('brand-film');
+                        if (videoSec) {
+                            var observer = new IntersectionObserver(function(entries) {
+                                entries.forEach(function(entry) {
+                                    var iframe = document.getElementById('homepageYoutubeIframe');
+                                    if (iframe && iframe.contentWindow) {
+                                        if (entry.isIntersecting) {
+                                            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                                        }
+                                    }
+                                });
+                            }, { threshold: 0.15 });
+                            observer.observe(videoSec);
+                        }
+                    }
+                </script>
+            </section>
+            {% endif %}
+
             <section class="products-section" id="shop">
                 <div class="container py-5 py-md-6">
                     <div class="section-heading d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">

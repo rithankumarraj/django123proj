@@ -668,6 +668,54 @@ class DailyPromoPopupForm(forms.ModelForm):
         self.fields["popup_badge_text"].required = False
 
 
+class HomepageVideoForm(forms.ModelForm):
+    class Meta:
+        model = SiteDetails
+        fields = [
+            "homepage_video_enabled",
+            "homepage_video_id",
+            "homepage_video_autoplay",
+            "homepage_video_loop",
+            "homepage_video_mute",
+            "homepage_video_heading",
+            "homepage_video_subheading",
+        ]
+        labels = {
+            "homepage_video_enabled": "Enable Fullscreen Video Section",
+            "homepage_video_id": "YouTube Video URL or ID",
+            "homepage_video_autoplay": "Play Video Automatically",
+            "homepage_video_loop": "Repeat / Loop Video Continuously",
+            "homepage_video_mute": "Mute Audio by Default",
+            "homepage_video_heading": "Overlay Title",
+            "homepage_video_subheading": "Overlay Subtitle",
+        }
+        widgets = {
+            "homepage_video_enabled": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "homepage_video_id": forms.TextInput(attrs={
+                "class": "form-control",
+                "id": "id_homepage_video_id",
+                "placeholder": "e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ or dQw4w9WgXcQ"
+            }),
+            "homepage_video_autoplay": forms.CheckboxInput(attrs={"class": "form-check-input", "id": "id_homepage_video_autoplay"}),
+            "homepage_video_loop": forms.CheckboxInput(attrs={"class": "form-check-input", "id": "id_homepage_video_loop"}),
+            "homepage_video_mute": forms.CheckboxInput(attrs={"class": "form-check-input", "id": "id_homepage_video_mute"}),
+            "homepage_video_heading": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. EXPERIENCE THE STREET FIZZ (optional)"
+            }),
+            "homepage_video_subheading": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "e.g. Raw carbonation. Pure attitude. Built for everyday moments. (optional)"
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["homepage_video_id"].required = False
+        self.fields["homepage_video_heading"].required = False
+        self.fields["homepage_video_subheading"].required = False
+
+
 class CouponForm(forms.ModelForm):
     applicable_categories = forms.ModelMultipleChoiceField(
         queryset=ProductCategory.objects.all(),
