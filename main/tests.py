@@ -483,7 +483,7 @@ class CheckoutQuantityTests(TestCase):
         response = self.client.get(f"/checkout/{self.product.id}/?qty=3")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "3</strong>")
+        self.assertEqual(response.context["quantity"], 3)
         self.assertContains(response, "₹270.00")
 
     def test_checkout_rejects_invalid_quantity(self):
