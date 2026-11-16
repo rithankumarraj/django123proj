@@ -967,7 +967,7 @@
                     aria-label="Increase quantity for {{ item.product.name }}">+</button>
                 </span>
                 <button class="cart-remove" type="button"
-                  onclick="openRemoveConfirmModal('{{ item.product.id }}', '{{ item.product.name|escapejs }}', '{{ item.product.volume|escapejs }}', '{{ item.product.image_url|escapejs }}')">Remove</button>
+                  onclick="if(typeof openRemoveConfirmModal==='function'){openRemoveConfirmModal('{{ item.product.id }}', '{{ item.product.name|escapejs }}', '{{ item.product.volume|escapejs }}', '{{ item.product.image_url|escapejs }}');}else{var f=document.getElementById('remove-{{ item.product.id }}');if(f)f.submit();}">Remove</button>
               </div>
             </article>
             {% endfor %}
@@ -1446,9 +1446,6 @@
             cartComboRow.style.display = 'none';
           }
         }
-            cartComboRow.style.display = 'none';
-          }
-        }
 
         const isOnline = cartPmOnlineRadio ? cartPmOnlineRadio.checked : true;
         const activeCouponDiscount = (isOnline && cartCurrentDiscount > 0) ? cartCurrentDiscount : 0.0;
@@ -1796,7 +1793,11 @@
 
     function openRemoveConfirmModal(productId, productName, productVolume, productImg) {
       const modal = document.getElementById('removeConfirmModal');
-      if (!modal) return;
+      if (!modal) {
+        const fallbackForm = document.getElementById('remove-' + productId);
+        if (fallbackForm) fallbackForm.submit();
+        return;
+      }
       const nameEl = document.getElementById('removeModalProductName');
       const volEl = document.getElementById('removeModalProductVol');
       const imgEl = document.getElementById('removeModalProductImg');
