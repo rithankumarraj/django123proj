@@ -242,6 +242,54 @@
             color: rgba(255, 255, 255, 0.7);
         }
 
+        .custom-action-input-group {
+            display: flex;
+            align-items: center;
+            background: #161a1d;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 12px;
+            padding: 4px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .custom-action-input-group:focus-within {
+            border-color: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+        }
+        .custom-action-input {
+            flex: 1;
+            min-width: 0;
+            background: transparent !important;
+            border: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            color: #ffffff !important;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 14px;
+        }
+        .custom-action-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .custom-action-btn {
+            background: #ffffff;
+            color: #0b0d10;
+            border: 0;
+            border-radius: 9px;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            padding: 9px 20px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+            white-space: nowrap;
+        }
+        .custom-action-btn:hover {
+            background: rgba(255, 255, 255, 0.88);
+            transform: translateY(-1px);
+        }
+
         .save-profile-checkbox-row input[type="checkbox"] {
             width: 16px;
             min-height: 16px;
@@ -473,12 +521,12 @@
 
                             <!-- Coupon Code Box (Shown ONLY if Online Payment is selected) -->
                             <div id="chkCouponBox" class="coupon-input-wrap mt-3 pt-3" style="border-top: 1px dashed rgba(255,255,255,0.15);">
-                                <label for="chkCouponInput" class="small fw-semibold text-white-50 mb-1 d-block" style="font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase;">
+                                <label for="chkCouponInput" class="small fw-semibold text-white-50 mb-2 d-block" style="font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase;">
                                     Have a coupon code?
                                 </label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" id="chkCouponInput" name="coupon_code" value="{{ applied_coupon_code|default:'' }}" class="form-control bg-dark text-light border-secondary" placeholder="e.g. SUMMER20" style="text-transform: uppercase; font-family: monospace; font-weight: 700; font-size: 0.82rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();applyCheckoutCoupon();}">
-                                    <button type="button" id="chkApplyCouponBtn" onclick="applyCheckoutCoupon()" class="btn btn-outline-light px-3 fw-bold" style="font-size: 0.78rem;">Apply</button>
+                                <div class="custom-action-input-group">
+                                    <input type="text" id="chkCouponInput" name="coupon_code" value="{{ applied_coupon_code|default:'' }}" class="custom-action-input" placeholder="e.g. SUMMER20" style="text-transform: uppercase; font-family: monospace; font-weight: 700;" onkeydown="if(event.key==='Enter'){event.preventDefault();applyCheckoutCoupon();}">
+                                    <button type="button" id="chkApplyCouponBtn" onclick="applyCheckoutCoupon()" class="custom-action-btn">Apply</button>
                                 </div>
                                 <div id="chkCouponFeedback" style="display: none; margin-top: 8px;"></div>
                             </div>
