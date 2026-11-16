@@ -549,252 +549,318 @@
             </section>
 
             <!-- ═════════════════════════════════════════════════════════════════════════
-                 DEDICATED COMBO OFFERS & VALUE BUNDLES SECTION
+                 DEDICATED COMBO OFFERS & VALUE BUNDLES SECTION (BLACK & WHITE AESTHETIC)
                  ═════════════════════════════════════════════════════════════════════════ -->
             {% if active_combos %}
             <section class="combos-section" id="combos" aria-label="Curated Combo Packs & Deals">
                 <style>
-                    /* ─── Dedicated Combos Section Styling (Site-Cohesive) ─── */
+                    /* ─── Dedicated Combos Switcher Styling (Pure B&W Street Aesthetic) ─── */
                     .combos-section {
                         background: #ffffff;
                         position: relative;
-                        padding: 3rem 0 5.5rem 0;
+                        padding: 4.5rem 0 6rem 0;
                         border-top: 1px solid rgba(0, 0, 0, 0.08);
                     }
 
-                    /* Combo Card Component */
-                    .combo-card {
-                        background: #ffffff;
-                        border: 1px solid rgba(0, 0, 0, 0.08);
-                        border-radius: 1.6rem;
-                        overflow: hidden;
+                    .combo-switcher-shell {
+                        width: min(100%, 1080px);
+                        margin: 0 auto;
+                    }
+
+                    /* ─── Top Rail ─── */
+                    .combo-rail {
+                        display: grid;
+                        grid-template-columns: repeat(4, minmax(0, 1fr));
+                        gap: 1.25rem;
+                        border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+                        margin-bottom: 3rem;
+                        padding-bottom: 0;
+                    }
+
+                    .combo-tile {
+                        position: relative;
+                        border: 0;
+                        background: transparent;
+                        padding: 0 0.5rem 1.4rem;
+                        color: #666666;
+                        text-align: center;
+                        cursor: pointer;
                         display: flex;
                         flex-direction: column;
-                        justify-content: space-between;
-                        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-                        position: relative;
+                        align-items: center;
+                        transition: color 0.25s ease;
+                        outline: none;
                     }
 
-                    .combo-card:hover {
-                        transform: translateY(-5px);
-                        border-color: rgba(0, 0, 0, 0.18);
-                        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+                    .combo-tile::after {
+                        content: "";
+                        position: absolute;
+                        left: 0;
+                        right: 0;
+                        bottom: -1px;
+                        height: 3px;
+                        background: #000000;
+                        transform: scaleX(0);
+                        transition: transform 0.25s ease;
                     }
 
-                    .combo-card-highlight {
-                        animation: comboCardPulse 2.2s cubic-bezier(0.16, 1, 0.3, 1);
+                    .combo-tile.is-selected {
+                        color: #000000;
                     }
 
-                    @keyframes comboCardPulse {
-                        0%, 100% {
-                            border-color: rgba(0, 0, 0, 0.08);
-                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-                        }
-                        30%, 70% {
-                            border-color: #ea580c;
-                            box-shadow: 0 0 35px rgba(234, 88, 12, 0.45);
-                            transform: translateY(-8px);
-                        }
+                    .combo-tile.is-selected::after {
+                        transform: scaleX(1);
                     }
 
-                    /* Visual Thumbnail Area */
-                    .combo-card-visual {
-                        position: relative;
-                        width: 100%;
-                        height: 240px;
+                    .combo-tile-image-box {
                         background: #ffffff;
+                        border: 1px solid rgba(0, 0, 0, 0.08);
+                        border-radius: 1.25rem;
+                        width: 100%;
+                        height: 180px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        padding: 1.5rem;
-                        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+                        padding: 1.2rem;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+                        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
                     }
 
-                    .combo-card-visual img {
-                        max-width: 92%;
-                        max-height: 200px;
+                    .combo-tile:hover .combo-tile-image-box,
+                    .combo-tile.is-selected .combo-tile-image-box {
+                        border-color: rgba(0, 0, 0, 0.22);
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+                    }
+
+                    .combo-tile img {
+                        max-width: 100%;
+                        max-height: 135px;
                         object-fit: contain;
                         mix-blend-mode: multiply;
-                        filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.12));
-                        transition: transform 0.35s ease;
+                        transition: transform 0.25s ease;
                     }
 
-                    .combo-card:hover .combo-card-visual img {
-                        transform: scale(1.06);
+                    .combo-tile:hover img,
+                    .combo-tile.is-selected img {
+                        transform: scale(1.05);
                     }
 
-                    /* Visual Badges */
-                    .combo-badge-top-left {
-                        position: absolute;
-                        top: 14px;
-                        left: 14px;
-                        z-index: 2;
-                        background: #111;
+                    .combo-tile-name {
+                        display: block;
+                        margin-top: 1rem;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.82rem;
+                        font-weight: 800;
+                        letter-spacing: 0.06em;
+                        text-transform: uppercase;
+                        color: inherit;
+                        line-height: 1.2;
+                    }
+
+                    /* ─── Bottom Showcase Stage (2-Column) ─── */
+                    .combo-stage {
+                        display: grid;
+                        grid-template-columns: minmax(320px, 1.15fr) minmax(300px, 0.85fr);
+                        align-items: center;
+                        gap: clamp(2rem, 5vw, 4.5rem);
+                        max-width: 1040px;
+                        margin: 0 auto;
+                    }
+
+                    .combo-stage-details {
+                        min-width: 0;
+                        text-align: left;
+                    }
+
+                    .combo-badge-pill {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #000000;
                         color: #ffffff;
                         font-family: 'Inter', sans-serif;
-                        font-size: 0.68rem;
+                        font-size: 0.72rem;
                         font-weight: 800;
-                        letter-spacing: 0.06em;
+                        letter-spacing: 0.1em;
                         text-transform: uppercase;
-                        padding: 4px 10px;
+                        padding: 6px 14px;
                         border-radius: 999px;
                     }
 
-                    .combo-badge-top-right {
-                        position: absolute;
-                        top: 14px;
-                        right: 14px;
-                        z-index: 2;
-                        background: rgba(0, 0, 0, 0.06);
-                        color: #444;
+                    .combo-kicker-label {
                         font-family: 'Inter', sans-serif;
-                        font-size: 0.68rem;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        letter-spacing: 0.18em;
+                        text-transform: uppercase;
+                        color: #555555;
+                    }
+
+                    .combo-stage-title {
+                        margin: 0.85rem 0 0.85rem;
+                        font-family: 'Inter', sans-serif;
+                        font-size: clamp(2rem, 3.4vw, 2.85rem);
+                        line-height: 1.08;
+                        letter-spacing: -0.03em;
+                        font-weight: 900;
+                        text-transform: uppercase;
+                        color: #000000;
+                        word-break: break-word;
+                    }
+
+                    .combo-meta-line {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        gap: 0.75rem;
+                        margin-top: 1rem;
+                        padding: 0.85rem 0;
+                        border-top: 1px solid rgba(0, 0, 0, 0.1);
+                        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.9rem;
+                        color: #555555;
+                        text-transform: uppercase;
+                    }
+
+                    .combo-meta-volume {
                         font-weight: 700;
                         letter-spacing: 0.06em;
-                        text-transform: uppercase;
-                        padding: 4px 10px;
+                        color: #555555;
+                    }
+
+                    .combo-meta-price {
+                        font-size: 1.4rem;
+                        color: #000000;
+                        font-weight: 900;
+                        letter-spacing: -0.03em;
+                    }
+
+                    .combo-meta-was {
+                        color: #777777;
+                        text-decoration: line-through;
+                        font-weight: 600;
+                        font-size: 1rem;
+                    }
+
+                    .combo-meta-discount {
+                        background: #000000;
+                        color: #ffffff;
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        padding: 3px 10px;
                         border-radius: 999px;
+                        letter-spacing: 0.04em;
                     }
 
-                    /* Content Area */
-                    .combo-card-content {
-                        padding: 1.5rem;
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
+                    .combo-meta-tax {
+                        font-size: 0.74rem;
+                        color: #666666;
+                        font-weight: 600;
+                        letter-spacing: 0.02em;
                     }
 
-                    .combo-card-name {
+                    /* ─── Bundle Includes Box (Clean Neutral B&W) ─── */
+                    .combo-includes-callout {
+                        background: #f8f8f8;
+                        border: 1px solid #e5e5e5;
+                        border-radius: 14px;
+                        padding: 13px 18px;
+                        margin: 1.35rem 0 1.6rem;
+                    }
+
+                    .combo-includes-callout-header {
                         font-family: 'Inter', sans-serif;
-                        font-size: 1.15rem;
                         font-weight: 800;
-                        color: #111;
-                        margin: 0 0 0.35rem;
-                        letter-spacing: -0.01em;
-                        text-transform: uppercase;
-                        line-height: 1.25;
-                    }
-
-                    .combo-card-desc {
-                        font-family: 'Inter', sans-serif;
-                        font-size: 0.85rem;
-                        color: #666;
-                        line-height: 1.45;
-                        margin-bottom: 1rem;
-                        display: -webkit-box;
-                        -webkit-line-clamp: 2;
-                        -webkit-box-orient: vertical;
-                        overflow: hidden;
-                    }
-
-                    /* Included items box */
-                    .combo-includes-box {
-                        background: #fbfbfb;
-                        border: 1px solid rgba(0, 0, 0, 0.06);
-                        border-radius: 12px;
-                        padding: 10px 12px;
-                        margin-bottom: 1.25rem;
-                    }
-
-                    .combo-includes-title {
-                        font-size: 0.68rem;
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        letter-spacing: 0.1em;
-                        color: #888;
-                        margin-bottom: 6px;
+                        font-size: 0.88rem;
+                        color: #000000;
+                        margin-bottom: 5px;
                         display: flex;
                         align-items: center;
                         gap: 6px;
+                        letter-spacing: -0.01em;
                     }
 
-                    .combo-includes-pills {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 5px;
-                    }
-
-                    .combo-includes-pill {
-                        background: #ffffff;
-                        border: 1px solid rgba(0, 0, 0, 0.08);
-                        color: #333;
-                        font-size: 0.72rem;
-                        font-weight: 600;
-                        padding: 3px 8px;
-                        border-radius: 999px;
-                    }
-
-                    /* Price and CTA row */
-                    .combo-card-footer {
-                        padding-top: 14px;
-                        border-top: 1px solid rgba(0, 0, 0, 0.06);
-                    }
-
-                    .combo-price-line {
-                        display: flex;
-                        align-items: baseline;
-                        gap: 8px;
-                        margin-bottom: 2px;
-                    }
-
-                    .combo-price-now {
+                    .combo-includes-callout-body {
                         font-family: 'Inter', sans-serif;
-                        font-size: 1.55rem;
-                        font-weight: 900;
-                        color: #111;
-                    }
-
-                    .combo-price-was {
+                        color: #111111;
+                        font-weight: 600;
                         font-size: 0.92rem;
-                        color: #999;
-                        text-decoration: line-through;
-                        font-weight: 500;
+                        line-height: 1.5;
                     }
 
-                    .combo-badge-save {
-                        font-size: 0.72rem;
-                        font-weight: 800;
-                        color: #15803d;
-                        background: #f0fdf4;
-                        border: 1px solid #bbf7d0;
-                        padding: 2px 8px;
-                        border-radius: 999px;
-                    }
-
-                    .combo-tax-tag {
-                        font-size: 0.72rem;
-                        color: #888;
-                        font-weight: 500;
-                        display: block;
-                        margin-bottom: 14px;
-                    }
-
-                    .btn-combo-add-cart {
-                        width: 100%;
-                        background: #111;
+                    /* ─── CTA Button (Solid Black Pill) ─── */
+                    .btn-combo-submit {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #000000;
                         color: #ffffff;
                         border: 0;
                         border-radius: 999px;
                         font-family: 'Inter', sans-serif;
-                        font-size: 0.88rem;
+                        font-size: 0.95rem;
                         font-weight: 700;
                         letter-spacing: 0.02em;
-                        padding: 0.85rem 1.4rem;
+                        padding: 0.9rem 2.2rem;
                         cursor: pointer;
+                        transition: opacity 0.2s ease, transform 0.2s ease;
+                        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+                    }
+
+                    .btn-combo-submit:hover {
+                        opacity: 0.85;
+                        transform: translateY(-2px);
+                    }
+
+                    /* ─── Right Visual Card ─── */
+                    .combo-stage-visual-wrap {
+                        background: #ffffff;
+                        border-radius: 1.8rem;
+                        min-height: 380px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        gap: 8px;
-                        transition: all 0.25s ease;
+                        overflow: hidden;
+                        border: 1px solid rgba(0, 0, 0, 0.08);
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+                        padding: 2rem;
                     }
 
-                    .btn-combo-add-cart:hover {
-                        background: #ea580c;
-                        color: #ffffff;
-                        transform: translateY(-2px);
-                        box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3);
+                    .combo-stage-visual-image {
+                        max-width: 100%;
+                        max-height: 350px;
+                        width: auto;
+                        height: auto;
+                        object-fit: contain;
+                        mix-blend-mode: multiply;
+                        transition: transform 0.3s ease;
+                    }
+
+                    @media (max-width: 991px) {
+                        .combo-rail {
+                            overflow-x: auto;
+                            display: flex;
+                            gap: 1rem;
+                            scroll-snap-type: x mandatory;
+                            -webkit-overflow-scrolling: touch;
+                            padding-bottom: 0.75rem;
+                        }
+
+                        .combo-tile {
+                            flex: 0 0 200px;
+                            scroll-snap-align: start;
+                        }
+
+                        .combo-stage {
+                            grid-template-columns: 1fr;
+                            gap: 2.5rem;
+                        }
+
+                        .combo-stage-visual-wrap {
+                            order: -1;
+                            min-height: 300px;
+                        }
                     }
                 </style>
 
@@ -809,98 +875,168 @@
                         <span class="product-total">{{ active_combos|length }} combo offers</span>
                     </div>
 
-                    <!-- Combos Grid -->
-                    <div class="row g-4">
-                        {% for combo in active_combos %}
-                        <div class="col-12 col-md-6 col-lg-3" id="combo-{{ combo.id }}">
-                            <div class="combo-card h-100">
-                                <!-- Card Visual -->
-                                <div class="combo-card-visual">
-                                    <span class="combo-badge-top-left">
-                                        {{ combo.discount_display }}
-                                    </span>
-                                    <span class="combo-badge-top-right">
-                                        {{ combo.total_bundle_cans }} CANS
-                                    </span>
+                    <div class="combo-switcher-shell">
+                        <!-- Top 4-Item Rail -->
+                        <div class="combo-rail" role="tablist" aria-label="Choose a combo pack">
+                            {% for combo in active_combos %}
+                            <button
+                                class="combo-tile{% if forloop.first %} is-selected{% endif %}"
+                                type="button"
+                                role="tab"
+                                id="combo-{{ combo.id }}"
+                                data-combo-id="{{ combo.id }}"
+                                data-combo-name="{{ combo.name }}"
+                                data-combo-volume="{{ combo.total_bundle_cans }} × 330 ML BUNDLE"
+                                data-combo-price="₹{{ combo.bundle_discounted_price|floatformat:0 }}"
+                                data-combo-was="₹{{ combo.bundle_regular_price|floatformat:0 }}"
+                                data-combo-discount="{{ combo.discount_display }}"
+                                data-combo-has-savings="{% if combo.bundle_savings > 0 %}true{% else %}false{% endif %}"
+                                data-combo-items="{{ combo.bundle_items_display }}"
+                                data-combo-image="{{ combo.image_url }}"
+                                data-combo-cart-url="{% url 'add_bundle_to_cart' combo.id %}"
+                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                                title="Click to view {{ combo.name }}"
+                            >
+                                <span class="combo-tile-image-box">
                                     <img
                                         src="{{ combo.image_url }}"
                                         alt="{{ combo.name }}"
                                         loading="lazy"
                                         onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'"
                                     >
+                                </span>
+                                <span class="combo-tile-name">{{ combo.name }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Bottom 2-Column Showcase Stage -->
+                        <div class="combo-stage">
+                            <!-- Left Column: Details & Add to Cart -->
+                            <div class="combo-stage-details">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="combo-badge-pill">COMBO OFFER</span>
+                                    <span class="combo-kicker-label">COMBO DEAL</span>
                                 </div>
 
-                                <!-- Card Content -->
-                                <div class="combo-card-content">
-                                    <div>
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #ea580c;">
-                                                {% if combo.badge_text and combo.badge_text|lower != combo.name|lower %}{{ combo.badge_text }}{% else %}COMBO DEAL{% endif %}
-                                            </span>
-                                            <span style="font-size: 0.72rem; color: #888; font-weight: 600;">
-                                                {{ combo.total_bundle_cans }} × 330 ml
-                                            </span>
-                                        </div>
+                                <h3 class="combo-stage-title" id="activeComboName">
+                                    {{ active_combos.0.name }}
+                                </h3>
 
-                                        <h3 class="combo-card-name">{{ combo.name }}</h3>
+                                <div class="combo-meta-line">
+                                    <span class="combo-meta-volume" id="activeComboVolume">
+                                        {{ active_combos.0.total_bundle_cans }} × 330 ML BUNDLE
+                                    </span>
+                                    <strong class="combo-meta-price" id="activeComboPrice">
+                                        ₹{{ active_combos.0.bundle_discounted_price|floatformat:0 }}
+                                    </strong>
+                                    <del class="combo-meta-was" id="activeComboWas"{% if not active_combos.0.bundle_savings %} style="display: none;"{% endif %}>
+                                        ₹{{ active_combos.0.bundle_regular_price|floatformat:0 }}
+                                    </del>
+                                    <span class="combo-meta-discount" id="activeComboDiscount"{% if not active_combos.0.bundle_savings %} style="display: none;"{% endif %}>
+                                        {{ active_combos.0.discount_display }}
+                                    </span>
+                                    <span class="combo-meta-tax">(INCLUSIVE OF ALL TAXES)</span>
+                                </div>
 
-                                        <p class="combo-card-desc">
-                                            {{ combo.description|default:"Mix and match handcrafted cans to unlock special combo bundle pricing!" }}
-                                        </p>
-
-                                        <!-- Included Items -->
-                                        <div class="combo-includes-box">
-                                            <div class="combo-includes-title">
-                                                <span>Includes in this Pack:</span>
-                                            </div>
-                                            <div class="combo-includes-pills">
-                                                {% if combo.bundle_items.all %}
-                                                    {% for b_item in combo.bundle_items.all %}
-                                                        <span class="combo-includes-pill">
-                                                            {{ b_item.quantity }}× {{ b_item.product.name }}
-                                                        </span>
-                                                    {% endfor %}
-                                                {% else %}
-                                                    <span class="combo-includes-pill">
-                                                        {{ combo.bundle_items_display }}
-                                                    </span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
+                                <!-- Bundle Includes Callout -->
+                                <div class="combo-includes-callout">
+                                    <div class="combo-includes-callout-header">
+                                        <span>📦</span>
+                                        <span>Bundle Includes:</span>
                                     </div>
-
-                                    <!-- Price & Add Button -->
-                                    <div class="combo-card-footer">
-                                        <div class="combo-price-line">
-                                            <span class="combo-price-now">
-                                                ₹{{ combo.bundle_discounted_price|floatformat:0 }}
-                                            </span>
-                                            {% if combo.bundle_savings > 0 %}
-                                                <del class="combo-price-was">
-                                                    ₹{{ combo.bundle_regular_price|floatformat:0 }}
-                                                </del>
-                                                <span class="combo-badge-save">
-                                                    Save ₹{{ combo.bundle_savings|floatformat:0 }}
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        <span class="combo-tax-tag">(Inclusive of all taxes)</span>
-
-                                        <form method="post" action="{% url 'add_bundle_to_cart' combo.id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn-combo-add-cart">
-                                                <span>Add Bundle to Cart</span>
-                                                <span style="opacity: 0.5;">·</span>
-                                                <span>₹{{ combo.bundle_discounted_price|floatformat:0 }}</span>
-                                            </button>
-                                        </form>
+                                    <div class="combo-includes-callout-body" id="activeComboItems">
+                                        {{ active_combos.0.bundle_items_display }}
                                     </div>
                                 </div>
+
+                                <!-- 1-Click Add Bundle to Cart Form -->
+                                <form id="activeComboCartForm" method="post" action="{% url 'add_bundle_to_cart' active_combos.0.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn-combo-submit" type="submit">
+                                        Add Bundle to Cart
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Right Column: Visual Pack Card -->
+                            <div class="combo-stage-visual-wrap">
+                                <img
+                                    id="activeComboImage"
+                                    src="{{ active_combos.0.image_url }}"
+                                    alt="{{ active_combos.0.name }}"
+                                    class="combo-stage-visual-image"
+                                    loading="lazy"
+                                    onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'"
+                                >
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
+
+                <script>
+                    (function() {
+                        const comboTiles = document.querySelectorAll('.combo-tile');
+                        const nameEl = document.getElementById('activeComboName');
+                        const volumeEl = document.getElementById('activeComboVolume');
+                        const priceEl = document.getElementById('activeComboPrice');
+                        const wasEl = document.getElementById('activeComboWas');
+                        const discountEl = document.getElementById('activeComboDiscount');
+                        const itemsEl = document.getElementById('activeComboItems');
+                        const imgEl = document.getElementById('activeComboImage');
+                        const formEl = document.getElementById('activeComboCartForm');
+
+                        function selectCombo(tile) {
+                            if (!tile) return;
+                            comboTiles.forEach(t => {
+                                t.classList.remove('is-selected');
+                                t.setAttribute('aria-selected', 'false');
+                            });
+                            tile.classList.add('is-selected');
+                            tile.setAttribute('aria-selected', 'true');
+
+                            if (nameEl) nameEl.textContent = tile.dataset.comboName || '';
+                            if (volumeEl) volumeEl.textContent = tile.dataset.comboVolume || '';
+                            if (priceEl) priceEl.textContent = tile.dataset.comboPrice || '';
+
+                            const hasSavings = tile.dataset.comboHasSavings === 'true';
+                            if (wasEl) {
+                                wasEl.textContent = tile.dataset.comboWas || '';
+                                wasEl.style.display = hasSavings ? '' : 'none';
+                            }
+                            if (discountEl) {
+                                discountEl.textContent = tile.dataset.comboDiscount || '';
+                                discountEl.style.display = hasSavings ? '' : 'none';
+                            }
+
+                            if (itemsEl) itemsEl.textContent = tile.dataset.comboItems || '';
+                            if (imgEl && tile.dataset.comboImage) {
+                                imgEl.src = tile.dataset.comboImage;
+                                imgEl.alt = tile.dataset.comboName || 'Combo Pack';
+                            }
+                            if (formEl && tile.dataset.comboCartUrl) {
+                                formEl.action = tile.dataset.comboCartUrl;
+                            }
+                        }
+
+                        comboTiles.forEach(tile => {
+                            tile.addEventListener('click', function() {
+                                selectCombo(this);
+                            });
+                        });
+
+                        window.selectComboById = function(comboId) {
+                            const match = document.querySelector(`.combo-tile[data-combo-id="${comboId}"]`) || comboTiles[0];
+                            if (match) {
+                                selectCombo(match);
+                                const section = document.getElementById('combos');
+                                if (section) {
+                                    section.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }
+                        };
+                    })();
+                </script>
             </section>
             {% endif %}
         </main>

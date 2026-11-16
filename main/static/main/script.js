@@ -323,11 +323,14 @@ if (switcher && productData.length) {
 
     // Direct function to showcase matching combo bundle offer
     window.showMatchingComboOffer = function(comboId) {
+        if (typeof window.selectComboById === 'function') {
+            window.selectComboById(comboId);
+            return;
+        }
+
         const target = (comboId ? document.getElementById('combo-' + comboId) : null) || document.getElementById('combos');
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.add('combo-card-highlight');
-            setTimeout(() => target.classList.remove('combo-card-highlight'), 2400);
             return;
         }
 
@@ -343,11 +346,14 @@ if (switcher && productData.length) {
 // Fallback for pages without switcher
 if (!window.showMatchingComboOffer) {
     window.showMatchingComboOffer = function(comboId) {
+        if (typeof window.selectComboById === 'function') {
+            window.selectComboById(comboId);
+            return;
+        }
+
         const target = (comboId ? document.getElementById('combo-' + comboId) : null) || document.getElementById('combos');
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.add('combo-card-highlight');
-            setTimeout(() => target.classList.remove('combo-card-highlight'), 2400);
             return;
         }
         const shopSection = document.getElementById('shop');
