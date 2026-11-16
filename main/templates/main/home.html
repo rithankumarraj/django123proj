@@ -470,11 +470,10 @@
                                     data-wishlist-url="{{ product.wishlist_url|default:'' }}"
                                     data-is-wishlisted="{{ product.is_wishlisted|yesno:'true,false' }}"
                                     aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-                                    title="Double-click to add {{ product.name }} to your cart"
+                                    title="{{ product.name }}"
                                 >
                                     <span class="product-tile-image">
                                         <img src="{{ product.image }}" alt="{{ product.name }}">
-                                        <span class="tile-quick-add-badge">Double-click to add</span>
                                     </span>
                                     <span class="product-tile-name">{{ product.name }}</span>
                                 </button>
@@ -554,40 +553,6 @@
             {% if active_combos %}
             <section class="combos-section" id="combos" aria-label="Curated Combo Packs & Deals">
                 <style>
-                    /* ─── Product Tile Hover Tooltip (Bigger & Fits with Other Elements) ─── */
-                    .product-tile-image {
-                        position: relative;
-                        display: block;
-                        height: 240px;
-                        overflow: hidden;
-                    }
-                    .tile-quick-add-badge {
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%) scale(0.92);
-                        background: #000000;
-                        color: #ffffff;
-                        font-family: 'Inter', sans-serif;
-                        font-size: 0.86rem;
-                        font-weight: 800;
-                        letter-spacing: 0.05em;
-                        text-transform: uppercase;
-                        padding: 12px 24px;
-                        border-radius: 999px;
-                        border: 1px solid rgba(255, 255, 255, 0.22);
-                        white-space: nowrap;
-                        opacity: 0;
-                        pointer-events: none;
-                        transition: opacity 0.2s ease, transform 0.2s ease;
-                        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
-                        z-index: 10;
-                    }
-                    .product-tile:hover .tile-quick-add-badge {
-                        opacity: 1;
-                        transform: translate(-50%, -50%) scale(1);
-                    }
-
                     .section-sub-desc {
                         margin: 0.4rem 0 0;
                         font-family: 'Inter', sans-serif;
