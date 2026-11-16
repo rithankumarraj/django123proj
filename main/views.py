@@ -575,7 +575,7 @@ def home(request):
             "is_combo": True,
         })
 
-    display_products = products + combo_items
+    display_products = products
 
     category_counts = {
         "all": len(products),
@@ -3280,11 +3280,11 @@ def admin_delete_combo(request, combo_id):
 
 def combos_showcase(request):
     """
-    Public showcase for combos is integrated directly into the homepage shop switcher
-    under the 'Combos' category filter pill, per user request (no separate page).
-    Redirects to the homepage shop section.
+    Public showcase for combos is displayed in its own dedicated section directly below
+    the product lineup on the homepage.
+    Redirects to the homepage combos section.
     """
-    return redirect(reverse("home") + "#shop")
+    return redirect(reverse("home") + "#combos")
 
 
 @require_POST

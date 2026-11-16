@@ -453,18 +453,6 @@
                                     <span class="category-pill-count">{{ cat.count|default:0 }}</span>
                                 </button>
                             {% endfor %}
-                            {% if active_combos %}
-                                <button
-                                    type="button"
-                                    class="category-pill category-pill--combo"
-                                    data-filter-category="combo"
-                                    role="tab"
-                                    aria-selected="false"
-                                >
-                                    <span class="category-pill-label">Combos</span>
-                                    <span class="category-pill-count">{{ active_combos|length }}</span>
-                                </button>
-                            {% endif %}
                         </div>
                     </div>
 
@@ -472,23 +460,21 @@
                         <div class="product-rail" role="tablist" aria-label="Choose a product">
                             {% for product in display_products %}
                                 <button
-                                    class="product-tile{% if forloop.first %} is-selected{% endif %}{% if product.is_combo %} is-combo-tile is-hidden{% endif %}"
+                                    class="product-tile{% if forloop.first %} is-selected{% endif %}"
                                     type="button"
                                     role="tab"
                                     data-product-index="{{ forloop.counter0 }}"
                                     data-product-category="{{ product.category }}"
-                                    data-is-combo="{{ product.is_combo|yesno:'true,false' }}"
-                                    data-combo-id="{{ product.combo_id|default:'' }}"
+                                    data-is-combo="false"
                                     data-product-url="{{ product.product_url }}"
                                     data-add-to-cart-url="{{ product.add_to_cart_url }}"
                                     data-wishlist-url="{{ product.wishlist_url|default:'' }}"
                                     data-is-wishlisted="{{ product.is_wishlisted|yesno:'true,false' }}"
                                     aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-                                    title="{% if product.is_combo %}Click to view {{ product.name }} bundle{% else %}Double-click to add {{ product.name }} to your cart{% endif %}"
-                                    {% if product.is_combo %}style="display: none;" hidden{% endif %}
+                                    title="Double-click to add {{ product.name }} to your cart"
                                 >
                                     <span class="product-tile-image">
-                                        <img src="{{ product.image }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'">
+                                        <img src="{{ product.image }}" alt="{{ product.name }}">
                                     </span>
                                     <span class="product-tile-name">{{ product.name }}</span>
                                 </button>
@@ -561,6 +547,424 @@
                     </div>
                 </div>
             </section>
+
+            <!-- ═════════════════════════════════════════════════════════════════════════
+                 DEDICATED COMBO OFFERS & VALUE BUNDLES SECTION
+                 ═════════════════════════════════════════════════════════════════════════ -->
+            {% if active_combos %}
+            <section class="combos-section" id="combos" aria-label="Curated Combo Packs & Deals">
+                <style>
+                    /* ─── Dedicated Combos Section Styling ─── */
+                    .combos-section {
+                        background: #ffffff;
+                        position: relative;
+                        padding: 70px 0 90px 0;
+                        border-top: 1px solid rgba(0, 0, 0, 0.08);
+                    }
+
+                    .combos-section-header {
+                        margin-bottom: 40px;
+                    }
+
+                    .combos-kicker {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.76rem;
+                        font-weight: 800;
+                        letter-spacing: 0.12em;
+                        text-transform: uppercase;
+                        color: #ea580c;
+                        background: rgba(234, 88, 12, 0.08);
+                        padding: 6px 14px;
+                        border-radius: 999px;
+                        margin-bottom: 12px;
+                    }
+
+                    .combos-title {
+                        font-family: 'Inter', sans-serif;
+                        font-size: clamp(2rem, 3.8vw, 3rem);
+                        font-weight: 900;
+                        letter-spacing: -0.03em;
+                        color: #0f172a;
+                        margin-bottom: 8px;
+                    }
+
+                    .combos-subtitle {
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.95rem;
+                        color: #64748b;
+                        max-width: 650px;
+                        margin: 0;
+                        line-height: 1.5;
+                    }
+
+                    .combos-count-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.8rem;
+                        font-weight: 700;
+                        color: #c2410c;
+                        background: #fff7ed;
+                        border: 1px solid #ffedd5;
+                        padding: 8px 16px;
+                        border-radius: 999px;
+                    }
+
+                    /* Combo Card Component */
+                    .combo-card {
+                        background: #ffffff;
+                        border: 1px solid rgba(15, 23, 42, 0.08);
+                        border-radius: 20px;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+                        position: relative;
+                    }
+
+                    .combo-card:hover {
+                        transform: translateY(-6px);
+                        border-color: rgba(234, 88, 12, 0.35);
+                        box-shadow: 0 16px 36px rgba(234, 88, 12, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+                    }
+
+                    .combo-card-highlight {
+                        animation: comboCardPulse 2.2s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+
+                    @keyframes comboCardPulse {
+                        0%, 100% {
+                            border-color: rgba(15, 23, 42, 0.08);
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+                        }
+                        30%, 70% {
+                            border-color: #ea580c;
+                            box-shadow: 0 0 35px rgba(234, 88, 12, 0.45);
+                            transform: translateY(-8px);
+                        }
+                    }
+
+                    /* Visual Thumbnail Area */
+                    .combo-card-visual {
+                        position: relative;
+                        width: 100%;
+                        height: 250px;
+                        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 24px;
+                        overflow: hidden;
+                    }
+
+                    .combo-card-visual img {
+                        max-width: 90%;
+                        max-height: 90%;
+                        object-fit: contain;
+                        filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.16));
+                        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                    }
+
+                    .combo-card:hover .combo-card-visual img {
+                        transform: scale(1.08) translateY(-4px);
+                    }
+
+                    /* Visual Badges */
+                    .combo-badge-top-left {
+                        position: absolute;
+                        top: 14px;
+                        left: 14px;
+                        z-index: 2;
+                        background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
+                        color: #ffffff;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.72rem;
+                        font-weight: 900;
+                        letter-spacing: 0.06em;
+                        text-transform: uppercase;
+                        padding: 5px 12px;
+                        border-radius: 999px;
+                        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
+                    }
+
+                    .combo-badge-top-right {
+                        position: absolute;
+                        top: 14px;
+                        right: 14px;
+                        z-index: 2;
+                        background: rgba(15, 23, 42, 0.82);
+                        backdrop-filter: blur(8px);
+                        color: #ffffff;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.68rem;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                        padding: 4px 10px;
+                        border-radius: 999px;
+                    }
+
+                    /* Content Area */
+                    .combo-card-content {
+                        padding: 24px;
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                    }
+
+                    .combo-card-name {
+                        font-family: 'Inter', sans-serif;
+                        font-size: 1.25rem;
+                        font-weight: 900;
+                        color: #0f172a;
+                        margin-bottom: 6px;
+                        letter-spacing: -0.01em;
+                    }
+
+                    .combo-card-desc {
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.85rem;
+                        color: #64748b;
+                        line-height: 1.45;
+                        margin-bottom: 16px;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+
+                    /* Included items box */
+                    .combo-includes-box {
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 12px;
+                        padding: 10px 14px;
+                        margin-bottom: 20px;
+                    }
+
+                    .combo-includes-title {
+                        font-size: 0.7rem;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                        color: #64748b;
+                        margin-bottom: 6px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    }
+
+                    .combo-includes-pills {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                    }
+
+                    .combo-includes-pill {
+                        background: #ffffff;
+                        border: 1px solid #cbd5e1;
+                        color: #1e293b;
+                        font-size: 0.74rem;
+                        font-weight: 600;
+                        padding: 2px 8px;
+                        border-radius: 6px;
+                    }
+
+                    /* Price and CTA row */
+                    .combo-card-footer {
+                        padding-top: 16px;
+                        border-top: 1px solid #f1f5f9;
+                    }
+
+                    .combo-price-line {
+                        display: flex;
+                        align-items: baseline;
+                        gap: 8px;
+                        margin-bottom: 2px;
+                    }
+
+                    .combo-price-now {
+                        font-family: 'Inter', sans-serif;
+                        font-size: 1.55rem;
+                        font-weight: 900;
+                        color: #0f172a;
+                    }
+
+                    .combo-price-was {
+                        font-size: 0.95rem;
+                        color: #94a3b8;
+                        text-decoration: line-through;
+                        font-weight: 500;
+                    }
+
+                    .combo-badge-save {
+                        font-size: 0.72rem;
+                        font-weight: 800;
+                        color: #15803d;
+                        background: #f0fdf4;
+                        border: 1px solid #bbf7d0;
+                        padding: 2px 8px;
+                        border-radius: 999px;
+                        letter-spacing: -0.01em;
+                    }
+
+                    .combo-tax-tag {
+                        font-size: 0.72rem;
+                        color: #94a3b8;
+                        font-weight: 500;
+                        display: block;
+                        margin-bottom: 16px;
+                    }
+
+                    .btn-combo-add-cart {
+                        width: 100%;
+                        background: #0f172a;
+                        color: #ffffff;
+                        border: 1px solid #0f172a;
+                        border-radius: 12px;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.88rem;
+                        font-weight: 800;
+                        letter-spacing: 0.02em;
+                        padding: 13px 20px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        transition: all 0.25s ease;
+                        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+                    }
+
+                    .btn-combo-add-cart:hover {
+                        background: #ea580c;
+                        border-color: #ea580c;
+                        color: #ffffff;
+                        transform: translateY(-2px);
+                        box-shadow: 0 8px 22px rgba(234, 88, 12, 0.35);
+                    }
+                </style>
+
+                <div class="container">
+                    <!-- Heading -->
+                    <div class="combos-section-header d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
+                        <div>
+                            <span class="combos-kicker">
+                                <span>⚡</span>
+                                <span>Special Bundles & Value Packs</span>
+                            </span>
+                            <h2 class="combos-title">Curated combo packs.</h2>
+                            <p class="combos-subtitle">
+                                Stock your fridge with pre-bundled assortments. Enjoy automatic savings of up to 15% and free shipping across India.
+                            </p>
+                        </div>
+                        <span class="combos-count-badge">
+                            <span>📦</span>
+                            <span>{{ active_combos|length }} Combo Bundle{{ active_combos|length|pluralize }} Available</span>
+                        </span>
+                    </div>
+
+                    <!-- Combos Grid -->
+                    <div class="row g-4">
+                        {% for combo in active_combos %}
+                        <div class="col-12 col-md-6 col-lg-3" id="combo-{{ combo.id }}">
+                            <div class="combo-card h-100">
+                                <!-- Card Visual -->
+                                <div class="combo-card-visual">
+                                    <span class="combo-badge-top-left">
+                                        {{ combo.discount_display }}
+                                    </span>
+                                    <span class="combo-badge-top-right">
+                                        {{ combo.total_bundle_cans }} CANS
+                                    </span>
+                                    <img
+                                        src="{{ combo.image_url }}"
+                                        alt="{{ combo.name }}"
+                                        loading="lazy"
+                                        onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'"
+                                    >
+                                </div>
+
+                                <!-- Card Content -->
+                                <div class="combo-card-content">
+                                    <div>
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span style="font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #ea580c;">
+                                                {% if combo.badge_text %}{{ combo.badge_text }}{% else %}COMBO DEAL{% endif %}
+                                            </span>
+                                            <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">
+                                                {{ combo.total_bundle_cans }} × 330 ml
+                                            </span>
+                                        </div>
+
+                                        <h3 class="combo-card-name">{{ combo.name }}</h3>
+
+                                        <p class="combo-card-desc">
+                                            {{ combo.description|default:"Mix and match handcrafted cans to unlock special combo bundle pricing!" }}
+                                        </p>
+
+                                        <!-- Included Items -->
+                                        <div class="combo-includes-box">
+                                            <div class="combo-includes-title">
+                                                <span>Includes in this Pack:</span>
+                                            </div>
+                                            <div class="combo-includes-pills">
+                                                {% if combo.bundle_items.all %}
+                                                    {% for b_item in combo.bundle_items.all %}
+                                                        <span class="combo-includes-pill">
+                                                            {{ b_item.quantity }}× {{ b_item.product.name }}
+                                                        </span>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="combo-includes-pill">
+                                                        {{ combo.bundle_items_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Price & Add Button -->
+                                    <div class="combo-card-footer">
+                                        <div class="combo-price-line">
+                                            <span class="combo-price-now">
+                                                ₹{{ combo.bundle_discounted_price|floatformat:0 }}
+                                            </span>
+                                            {% if combo.bundle_savings > 0 %}
+                                                <del class="combo-price-was">
+                                                    ₹{{ combo.bundle_regular_price|floatformat:0 }}
+                                                </del>
+                                                <span class="combo-badge-save">
+                                                    Save ₹{{ combo.bundle_savings|floatformat:0 }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="combo-tax-tag">(Inclusive of all taxes)</span>
+
+                                        <form method="post" action="{% url 'add_bundle_to_cart' combo.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-combo-add-cart">
+                                                <span>Add Bundle to Cart</span>
+                                                <span style="opacity: 0.6;">·</span>
+                                                <span>₹{{ combo.bundle_discounted_price|floatformat:0 }}</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+            {% endif %}
         </main>
 
         {% include "main/includes/footer.html" %}

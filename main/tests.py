@@ -4044,18 +4044,18 @@ class ComboOfferTests(TestCase):
         # 50% of 900 is 450, but capped at 50
         self.assertEqual(discount, Decimal("50.00"))
 
-    def test_combos_showcase_redirects_to_home_shop(self):
+    def test_combos_showcase_redirects_to_home_combos(self):
         response = self.client.get(reverse("combos_showcase"))
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response["Location"].endswith("#shop"))
+        self.assertTrue(response["Location"].endswith("#combos"))
 
-    def test_home_page_displays_combos_category_and_pack(self):
+    def test_home_page_displays_dedicated_combos_section_and_pack(self):
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'data-filter-category="combo"')
-        self.assertContains(response, "Combos")
+        self.assertContains(response, 'id="combos"')
+        self.assertContains(response, "Curated Combo Packs & Deals")
         self.assertContains(response, "Cans of Assortment")
-        self.assertNotContains(response, "✨ Combo Offers")
+        self.assertNotContains(response, 'data-filter-category="combo"')
 
     def test_admin_combo_creation_with_image(self):
         from django.core.files.uploadedfile import SimpleUploadedFile

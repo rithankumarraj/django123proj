@@ -323,60 +323,17 @@ if (switcher && productData.length) {
 
     // Direct function to showcase matching combo bundle offer
     window.showMatchingComboOffer = function(comboId) {
+        const target = (comboId ? document.getElementById('combo-' + comboId) : null) || document.getElementById('combos');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('combo-card-highlight');
+            setTimeout(() => target.classList.remove('combo-card-highlight'), 2400);
+            return;
+        }
+
         const shopSection = document.getElementById('shop');
         if (shopSection) {
             shopSection.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Switch to the 'Combos' category filter tab
-        if (categoryFilters) {
-            const comboPill = categoryFilters.querySelector('[data-filter-category="combo"]');
-            if (comboPill) {
-                const pills = categoryFilters.querySelectorAll('[data-filter-category]');
-                pills.forEach((p) => {
-                    const isActive = p === comboPill;
-                    p.classList.toggle('is-active', isActive);
-                    p.setAttribute('aria-selected', String(isActive));
-                });
-                activeCategory = 'combo';
-
-                let visibleCount = 0;
-                tiles.forEach((tile) => {
-                    const isCombo = tile.dataset.isCombo === 'true';
-                    if (isCombo) {
-                        tile.classList.remove('is-hidden');
-                        tile.removeAttribute('hidden');
-                        tile.style.display = '';
-                        visibleCount++;
-                    } else {
-                        tile.classList.add('is-hidden');
-                        tile.setAttribute('hidden', '');
-                        tile.style.display = 'none';
-                    }
-                });
-
-                if (totalCountEl) {
-                    totalCountEl.textContent = `${visibleCount} combo offer${visibleCount === 1 ? '' : 's'}`;
-                }
-            }
-        }
-
-        // Find exact matching combo product bundle index
-        let targetIndex = productData.findIndex(p => p.is_combo && String(p.combo_id) === String(comboId));
-        if (targetIndex === -1) {
-            targetIndex = productData.findIndex(p => p.is_combo);
-        }
-
-        if (targetIndex !== -1) {
-            currentProduct = targetIndex;
-            renderProduct(currentProduct, false);
-
-            const targetTile = tiles[targetIndex];
-            if (targetTile) {
-                targetTile.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                targetTile.classList.add('combo-tile-highlight');
-                setTimeout(() => targetTile.classList.remove('combo-tile-highlight'), 1800);
-            }
         }
     };
 
@@ -385,7 +342,14 @@ if (switcher && productData.length) {
 
 // Fallback for pages without switcher
 if (!window.showMatchingComboOffer) {
-    window.showMatchingComboOffer = function() {
+    window.showMatchingComboOffer = function(comboId) {
+        const target = (comboId ? document.getElementById('combo-' + comboId) : null) || document.getElementById('combos');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('combo-card-highlight');
+            setTimeout(() => target.classList.remove('combo-card-highlight'), 2400);
+            return;
+        }
         const shopSection = document.getElementById('shop');
         if (shopSection) shopSection.scrollIntoView({ behavior: 'smooth' });
     };
