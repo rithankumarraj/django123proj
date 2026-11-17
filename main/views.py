@@ -614,7 +614,10 @@ def home(request):
                 "count": category_counts.get(slug, 0),
             })
 
-    stories = list(Story.objects.filter(is_active=True).order_by("order", "-created_at"))
+    try:
+        stories = list(Story.objects.filter(is_active=True).order_by("order", "-created_at"))
+    except Exception:
+        stories = []
 
     return render(
         request,

@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('title', models.CharField(max_length=255)),
-                ('slug', models.SlugField(blank=True, max_length=280)),
+                ('slug', models.SlugField(blank=True, default='', max_length=280)),
                 ('excerpt', models.TextField(help_text='Short summary shown on the card')),
                 ('content', models.TextField(blank=True, default='', help_text='Full story / article text (optional)')),
                 ('image', models.ImageField(blank=True, help_text='Upload story cover image', null=True, upload_to='stories/')),

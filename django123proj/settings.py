@@ -217,9 +217,10 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
+WHITENOISE_MANIFEST_STRICT = False
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

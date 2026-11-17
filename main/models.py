@@ -1464,7 +1464,7 @@ class Story(models.Model):
     Fully editable and manageable from the Admin Portal.
     """
     title = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=280, blank=True)
+    slug = models.SlugField(max_length=280, blank=True, default="")
     excerpt = models.TextField(help_text="Short summary shown on the card")
     content = models.TextField(blank=True, default="", help_text="Full story / article text (optional)")
     image = models.ImageField(upload_to="stories/", blank=True, null=True, help_text="Upload story cover image")
