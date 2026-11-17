@@ -925,8 +925,8 @@ def cart_page(request):
         else []
     )
     site_details = SiteDetails.get_solo()
-    raw_phone = saved_addresses[0].phone if saved_addresses else (customer_profile.phone if customer_profile else "")
-    digits_phone = re.sub(r"\D", "", raw_phone)
+    raw_phone = (saved_addresses[0].phone if (saved_addresses and saved_addresses[0].phone) else (customer_profile.phone if (customer_profile and customer_profile.phone) else "")) or ""
+    digits_phone = re.sub(r"\D", "", str(raw_phone))
     if len(digits_phone) == 12 and digits_phone.startswith("91"):
         clean_10_phone = digits_phone[2:]
     elif len(digits_phone) == 11 and digits_phone.startswith("0"):
@@ -934,11 +934,11 @@ def cart_page(request):
     else:
         clean_10_phone = digits_phone[-10:] if len(digits_phone) >= 10 else digits_phone
 
-    initial_state = saved_addresses[0].state if saved_addresses else (customer_profile.state if customer_profile else "")
-    initial_shipping_fee = site_details.calculate_shipping_fee(initial_state)
+    initial_state = (saved_addresses[0].state if (saved_addresses and saved_addresses[0].state) else (customer_profile.state if (customer_profile and customer_profile.state) else "")) or ""
+    initial_shipping_fee = site_details.calculate_shipping_fee(initial_state) or Decimal("0.00")
     cart_count = sum(item["quantity"] for item in items)
-    initial_packing_fee = site_details.calculate_packing_fee(cart_count)
-    initial_gst_amount = sum((it["product"].gst_amount_per_unit * it["quantity"]) for it in items)
+    initial_packing_fee = site_details.calculate_packing_fee(cart_count) or Decimal("0.00")
+    initial_gst_amount = sum(((getattr(it["product"], "gst_amount_per_unit", None) or Decimal("0.00")) * it["quantity"]) for it in items)
     total_with_shipping = total + initial_packing_fee + initial_shipping_fee
 
     combo_obj, combo_discount, combo_details = _evaluate_cart_combos(items, total)
@@ -1282,9 +1282,9 @@ def cart_checkout(request):
     items_subtotal = sum((item["line_total"] for item in items), Decimal("0.00"))
     total_quantity = sum(item["quantity"] for item in items)
     site_details = SiteDetails.get_solo()
-    packing_fee = site_details.calculate_packing_fee(total_quantity)
-    shipping_fee = site_details.calculate_shipping_fee(details.get("state") or "")
-    gst_amount = sum((it["product"].gst_amount_per_unit * it["quantity"]) for it in items)
+    packing_fee = site_details.calculate_packing_fee(total_quantity) or Decimal("0.00")
+    shipping_fee = site_details.calculate_shipping_fee(details.get("state") or "") or Decimal("0.00")
+    gst_amount = sum(((getattr(it["product"], "gst_amount_per_unit", None) or Decimal("0.00")) * it["quantity"]) for it in items)
 
     payment_method = (request.POST.get("payment_method") or "online").strip().lower()
     if payment_method not in ["online", "cod"]:
@@ -1465,14 +1465,15 @@ def checkout(request, product_id):
         return redirect("payment_page", payment_reference=order.payment_reference)
 
     initial_state = ""
-    if saved_addresses:
+    if saved_addresses and saved_addresses[0].state:
         initial_state = saved_addresses[0].state
     elif customer_profile and customer_profile.state:
         initial_state = customer_profile.state
+    initial_state = str(initial_state or "")
 
-    initial_gst_amount = product.gst_amount_per_unit * quantity
-    initial_packing_fee = site_details.calculate_packing_fee(quantity)
-    initial_shipping_fee = site_details.calculate_shipping_fee(initial_state)
+    initial_gst_amount = (getattr(product, "gst_amount_per_unit", None) or Decimal("0.00")) * quantity
+    initial_packing_fee = site_details.calculate_packing_fee(quantity) or Decimal("0.00")
+    initial_shipping_fee = site_details.calculate_shipping_fee(initial_state) or Decimal("0.00")
     initial_total_with_shipping = items_subtotal + initial_packing_fee + initial_shipping_fee
 
     single_cart_item = [{"product": product, "quantity": quantity, "line_total": items_subtotal}]
@@ -1482,9 +1483,9 @@ def checkout(request, product_id):
 
     raw_phone = request.POST.get(
         "phone",
-        saved_addresses[0].phone if saved_addresses else (customer_profile.phone if customer_profile else ""),
-    )
-    digits_phone = re.sub(r"\D", "", raw_phone)
+        (saved_addresses[0].phone if (saved_addresses and saved_addresses[0].phone) else (customer_profile.phone if (customer_profile and customer_profile.phone) else "")) or "",
+    ) or ""
+    digits_phone = re.sub(r"\D", "", str(raw_phone))
     if len(digits_phone) == 12 and digits_phone.startswith("91"):
         clean_10_phone = digits_phone[2:]
     elif len(digits_phone) == 11 and digits_phone.startswith("0"):

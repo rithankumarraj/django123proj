@@ -1186,13 +1186,16 @@ class SiteDetails(models.Model):
         return f"tel:{digits}" if digits else "tel:+918056838888"
 
     def calculate_shipping_fee(self, state_name):
+        default_local = self.shipping_fee_local if self.shipping_fee_local is not None else Decimal("50.00")
+        default_other = self.shipping_fee_other if self.shipping_fee_other is not None else Decimal("100.00")
         if not state_name:
-            return self.shipping_fee_local
-        raw_state = state_name.strip().lower()
-        local_list = [s.strip().lower() for s in self.shipping_local_states.split(",") if s.strip()]
+            return default_local
+        raw_state = str(state_name).strip().lower()
+        local_raw = self.shipping_local_states or ""
+        local_list = [s.strip().lower() for s in local_raw.split(",") if s.strip()]
         if any(ls in raw_state or raw_state in ls for ls in local_list):
-            return self.shipping_fee_local
-        return self.shipping_fee_other
+            return default_local
+        return default_other
 
     def calculate_packing_fee(self, quantity):
         try:
@@ -1201,12 +1204,14 @@ class SiteDetails(models.Model):
             qty = 0
         if qty <= 0:
             return Decimal("0.00")
-        if qty <= self.packing_free_cans:
+        free_cans = self.packing_free_cans if self.packing_free_cans is not None else 6
+        if qty <= free_cans:
             return Decimal("0.00")
-        extra = qty - self.packing_free_cans
-        batch_size = max(1, self.packing_batch_size)
+        extra = qty - free_cans
+        batch_size = max(1, self.packing_batch_size if self.packing_batch_size is not None else 6)
+        cost_per_batch = self.packing_cost_per_batch if self.packing_cost_per_batch is not None else Decimal("20.00")
         batches = (extra + batch_size - 1) // batch_size
-        return Decimal(str(batches)) * self.packing_cost_per_batch
+        return Decimal(str(batches)) * cost_per_batch
 
     def calculate_gst(self, subtotal):
         try:

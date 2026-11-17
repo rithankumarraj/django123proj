@@ -56,3 +56,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(seed_stories, unseed_stories),
     ]
+
