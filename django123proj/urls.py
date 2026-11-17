@@ -41,7 +41,7 @@ def health_debug(request):
 <html>
 <body style="font-family: monospace; background: #08080a; color: #fff; padding: 24px;">
     <h2>System Health & Diagnostics</h2>
-    <p><strong>Build Version:</strong> v5-sqlite-live</p>
+    <p><strong>Build Version:</strong> v6-resilient-sqlite-ready</p>
     <p><strong>Django:</strong> {django.get_version()}</p>
     <p><strong>Database Status:</strong> <span style="color: {'#4ade80' if db_status == 'CONNECTED' else '#f43f5e'}; font-weight: bold;">{db_status}</span></p>
     <p><strong>Database Error:</strong> {db_error or 'None'}</p>

@@ -160,17 +160,18 @@ else:
         if not sqlite_path.exists() and seed_path.exists():
             import shutil
             try:
-                shutil.copyfile(seed_path, sqlite_path)
+                shutil.copyfile(str(seed_path), str(sqlite_path))
             except Exception:
                 pass
     else:
         sqlite_path = BASE_DIR / "db.sqlite3"
 
     DATABASES = {
-        "default": dj_database_url.config(
-            default=f"sqlite:///{sqlite_path}",
-            conn_max_age=0,
-        )
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": str(sqlite_path),
+            "CONN_MAX_AGE": 0,
+        }
     }
 
 LOGGING = {
