@@ -19,6 +19,47 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.static import serve
+from django.http import HttpResponseServerError
+import sys
+import traceback
+import logging
+
+def custom_500_view(request):
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback)) if exc_type else "No traceback available."
+    logging.getLogger("django.request").error("500 Server Error on %s: %s\n%s", getattr(request, "path", "/"), exc_value, tb_str)
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Server Error (500)</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: #08080a; color: #f1f5f9; padding: 28px; line-height: 1.6; }}
+        .box {{ max-width: 900px; margin: 0 auto; background: #121217; border: 1px solid #272733; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+        h2 {{ color: #ff1040; margin-top: 0; font-size: 22px; }}
+        pre {{ background: #08080a; border: 1px solid #1f1f28; padding: 16px; border-radius: 8px; color: #00f5ff; font-size: 13px; overflow-x: auto; line-height: 1.5; }}
+        .badge {{ display: inline-block; padding: 4px 10px; border-radius: 6px; background: rgba(255,16,64,0.15); color: #ff1040; font-weight: bold; font-size: 13px; }}
+        a {{ color: #00f5ff; text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <span class="badge">SERVER ERROR 500</span>
+        <h2>Exception Encountered</h2>
+        <p><strong>Path:</strong> {getattr(request, "path", "/")}</p>
+        <p><strong>Exception Type:</strong> {exc_type.__name__ if exc_type else "Unknown"}</p>
+        <p><strong>Details:</strong> {exc_value}</p>
+        <h3>Stack Trace:</h3>
+        <pre>{tb_str}</pre>
+        <p style="margin-top: 20px;"><a href="/">← Return to Homepage</a></p>
+    </div>
+</body>
+</html>"""
+    return HttpResponseServerError(html, content_type="text/html; charset=utf-8")
+
+handler500 = custom_500_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),

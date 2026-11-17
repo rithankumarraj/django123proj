@@ -43,13 +43,7 @@ if not SECRET_KEY:
     else:
         SECRET_KEY = "django-insecure-jcsd-production-session-key-fallback-2026"
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "testserver",
-    "jcs-pearl.vercel.app",
-    ".vercel.app",
-]
+ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = [
     "https://jcs-pearl.vercel.app",
     "https://*.vercel.app",
@@ -153,15 +147,49 @@ DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_UN
 if os.environ.get("VERCEL") == "1" and not DATABASE_URL:
     raise ImproperlyConfigured("Set DATABASE_URL or DATABASE_URL_UNPOOLED in the Vercel environment.")
 
+db_conn_age = 0 if os.environ.get("VERCEL") == "1" else 600
+
 DATABASES = {
     "default": (
-        dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        dj_database_url.parse(DATABASE_URL, conn_max_age=db_conn_age)
         if DATABASE_URL
         else dj_database_url.config(
             default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-            conn_max_age=600,
+            conn_max_age=db_conn_age,
         )
     )
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
 }
 
 
