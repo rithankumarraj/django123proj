@@ -888,6 +888,7 @@ class HomeAddToCartTests(TestCase):
         self.assertContains(response, f'href="{reverse("privacy_policy")}">Privacy policy</a>')
         self.assertContains(response, 'class="store-footer-mark"')
         self.assertNotContains(response, 'href="/customer-register/">Create account</a>')
+        self.assertNotContains(response, "Admin Portal")
         self.assertContains(response, "Pick your flavour.")
         self.assertContains(response, "data-cart-feedback")
         self.assertContains(response, 'name="quantity" value="1"')
