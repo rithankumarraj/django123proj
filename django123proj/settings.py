@@ -144,21 +144,42 @@ WSGI_APPLICATION = 'django123proj.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_UNPOOLED")
-if os.environ.get("VERCEL") == "1" and not DATABASE_URL:
-    raise ImproperlyConfigured("Set DATABASE_URL or DATABASE_URL_UNPOOLED in the Vercel environment.")
 
-db_conn_age = 0 if os.environ.get("VERCEL") == "1" else 600
+use_postgres = False
+if DATABASE_URL:
+    try:
+        import psycopg
+        conn = psycopg.connect(DATABASE_URL, connect_timeout=3)
+        conn.close()
+        use_postgres = True
+    except Exception as e:
+        import logging
+        logging.getLogger("django").warning("PostgreSQL unreachable or quota exceeded (%s). Activating local resilient SQLite store.", e)
+        use_postgres = False
 
-DATABASES = {
-    "default": (
-        dj_database_url.parse(DATABASE_URL, conn_max_age=db_conn_age)
-        if DATABASE_URL
-        else dj_database_url.config(
-            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-            conn_max_age=db_conn_age,
+if use_postgres:
+    DATABASES = {
+        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=0),
+    }
+else:
+    if os.environ.get("VERCEL") == "1":
+        sqlite_path = Path("/tmp/db.sqlite3")
+        seed_path = BASE_DIR / "seed_db.sqlite3"
+        if not sqlite_path.exists() and seed_path.exists():
+            import shutil
+            try:
+                shutil.copyfile(seed_path, sqlite_path)
+            except Exception:
+                pass
+    else:
+        sqlite_path = BASE_DIR / "db.sqlite3"
+
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=f"sqlite:///{sqlite_path}",
+            conn_max_age=0,
         )
-    )
-}
+    }
 
 LOGGING = {
     "version": 1,
