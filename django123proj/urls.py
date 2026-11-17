@@ -19,10 +19,38 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.static import serve
-from django.http import HttpResponseServerError
+from django.http import HttpResponseServerError, HttpResponse
 import sys
 import traceback
 import logging
+
+def health_debug(request):
+    import os, django
+    from django.db import connection
+    db_status = "UNKNOWN"
+    db_error = ""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            db_status = "CONNECTED"
+    except Exception as e:
+        db_status = "ERROR"
+        db_error = str(e)
+    
+    html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family: monospace; background: #08080a; color: #fff; padding: 24px;">
+    <h2>System Health & Diagnostics</h2>
+    <p><strong>Django:</strong> {django.get_version()}</p>
+    <p><strong>Database Status:</strong> <span style="color: {'#4ade80' if db_status == 'CONNECTED' else '#f43f5e'}; font-weight: bold;">{db_status}</span></p>
+    <p><strong>Database Error:</strong> {db_error or 'None'}</p>
+    <p><strong>Database Engine:</strong> {connection.settings_dict.get('ENGINE')}</p>
+    <p><strong>Database Host:</strong> {connection.settings_dict.get('HOST')}</p>
+    <p><strong>Database Name:</strong> {connection.settings_dict.get('NAME')}</p>
+    <p><strong>VERCEL Env:</strong> {os.environ.get('VERCEL')}</p>
+</body>
+</html>"""
+    return HttpResponse(html, content_type="text/html")
 
 def custom_500_view(request):
     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -62,6 +90,7 @@ def custom_500_view(request):
 handler500 = custom_500_view
 
 urlpatterns = [
+    path("health/", health_debug, name="health_debug"),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("", include("main.urls")),
