@@ -1820,7 +1820,7 @@ def admin_login(request):
             user.is_staff = True
             user.is_superuser = True
             user.save()
-            login(request, user)
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             return redirect("admin_dashboard")
         is_setup_mode = True
 
@@ -1830,7 +1830,7 @@ def admin_login(request):
         if form.is_valid():
             user = form.get_user()
             if user.is_staff:
-                login(request, user)
+                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
                 return redirect("admin_dashboard")
             form.add_error(None, "Admin access is restricted to staff accounts.")
 
@@ -1928,7 +1928,7 @@ def delivery_login(request):
                         "Your delivery partner application is under review. Our admin team will verify your Aadhaar, Licence, and Vehicle details soon.",
                     )
                 return render(request, "main/delivery_login.html", {"form": form})
-            login(request, user)
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             return redirect("delivery_dashboard")
         form.add_error(None, "This account does not have delivery access.")
 
@@ -2113,7 +2113,7 @@ def customer_login(request):
     form = EmailAuthenticationForm(request, data=request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.get_user()
-        login(request, user)
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         if user.is_staff and not request.POST.get("next") and not request.GET.get("next"):
             return redirect("admin_dashboard")
         return redirect(_customer_redirect_target(request))
