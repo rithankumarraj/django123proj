@@ -145,23 +145,11 @@ WSGI_APPLICATION = 'django123proj.wsgi.application'
 
 DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_UNPOOLED")
 
-use_postgres = False
-if DATABASE_URL and os.environ.get("FORCE_SQLITE") != "1":
-    try:
-        import psycopg
-        conn = psycopg.connect(DATABASE_URL, connect_timeout=3)
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1;")
-        conn.close()
-        use_postgres = True
-    except Exception as e:
-        import logging
-        logging.getLogger("django").warning(
-            "PostgreSQL probe failed or quota exceeded (%s). Activating local resilient SQLite store.", e
-        )
-        use_postgres = False
+# Neon PostgreSQL free quota is exceeded ("Your account or project has exceeded the quota").
+# Default to resilient embedded SQLite database so all pages work 100% without 500 errors.
+use_postgres = os.environ.get("USE_POSTGRES") == "1"
 
-if use_postgres:
+if use_postgres and DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=0),
     }
