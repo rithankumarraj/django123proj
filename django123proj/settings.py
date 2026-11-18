@@ -143,13 +143,21 @@ WSGI_APPLICATION = 'django123proj.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_UNPOOLED")
+DATABASE_URL = (
+    os.environ.get("STORAGE2_DATABASE_URL")
+    or os.environ.get("STORAGE2_POSTGRES_URL")
+    or os.environ.get("DATABASE_URL")
+    or os.environ.get("DATABASE_URL_UNPOOLED")
+)
 
-# Neon PostgreSQL free quota is exceeded ("Your account or project has exceeded the quota").
-# Default to resilient embedded SQLite database so all pages work 100% without 500 errors.
-use_postgres = os.environ.get("USE_POSTGRES") == "1"
+# Connect to active cloud PostgreSQL (such as the new Neon database)
+use_cloud_db = bool(
+    os.environ.get("STORAGE2_DATABASE_URL")
+    or os.environ.get("USE_POSTGRES") == "1"
+    or (DATABASE_URL and "rapid-surf" in DATABASE_URL)
+)
 
-if use_postgres and DATABASE_URL:
+if DATABASE_URL and use_cloud_db:
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=0),
     }
