@@ -2,7 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 import re
 from django import forms
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.core.files.storage import default_storage
 from django.utils.text import slugify
@@ -78,24 +78,125 @@ class CustomerAddressForm(forms.ModelForm):
 
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.CharField(
-        label="Username or email",
-        widget=forms.TextInput(attrs={"class": "login-input", "autocomplete": "username"}),
+        label="Username, email, or mobile number",
+        widget=forms.TextInput(
+            attrs={
+                "class": "login-input",
+                "autocomplete": "username",
+                "placeholder": "Username, email, or mobile number",
+            }
+        ),
     )
     password = forms.CharField(
         label="Password",
         strip=False,
-        widget=forms.PasswordInput(attrs={"class": "login-input", "autocomplete": "current-password"}),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "login-input",
+                "autocomplete": "current-password",
+                "placeholder": "Password or mobile number",
+            }
+        ),
     )
 
     def clean(self):
-        identity = self.cleaned_data.get("username", "").strip()
-        if "@" in identity:
-            users = get_user_model()._default_manager.filter(email__iexact=identity)
-            if users.count() == 1:
-                self.cleaned_data["username"] = users.get().get_username()
-            elif users.count() > 1:
-                self.cleaned_data["username"] = users.first().get_username()
-        return super().clean()
+        raw_identity = self.cleaned_data.get("username", "").strip()
+        raw_password = self.cleaned_data.get("password", "")
+
+        if not raw_identity or not raw_password:
+            return super().clean()
+
+        user_model = get_user_model()
+        candidate_users = []
+
+        # 1. Look up by email if "@" in raw_identity
+        if "@" in raw_identity:
+            candidate_users.extend(list(user_model._default_manager.filter(email__iexact=raw_identity)))
+
+        # 2. Look up by phone if digits exist in raw_identity
+        phone_digits = re.sub(r"\D", "", raw_identity)
+        if len(phone_digits) >= 10:
+            last10 = phone_digits[-10:]
+            prof_uids = list(CustomerProfile.objects.filter(phone__icontains=last10).values_list("user_id", flat=True))
+            addr_uids = list(CustomerAddress.objects.filter(phone__icontains=last10).values_list("user_id", flat=True))
+            deliv_uids = list(DeliveryProfile.objects.filter(phone__icontains=last10).values_list("user_id", flat=True))
+            all_uids = set(prof_uids + addr_uids + deliv_uids)
+            if all_uids:
+                candidate_users.extend(list(user_model._default_manager.filter(pk__in=all_uids)))
+
+        # 3. Look up by direct username
+        candidate_users.extend(list(user_model._default_manager.filter(username__iexact=raw_identity)))
+
+        # Deduplicate candidate users preserving order
+        seen_ids = set()
+        unique_candidates = []
+        for u in candidate_users:
+            if u.pk not in seen_ids:
+                seen_ids.add(u.pk)
+                unique_candidates.append(u)
+
+        # First attempt: Try standard authentication for all resolved candidates
+        for candidate in unique_candidates:
+            auth_user = authenticate(self.request, username=candidate.get_username(), password=raw_password)
+            if auth_user is not None:
+                self.user_cache = auth_user
+                self.cleaned_data["username"] = candidate.get_username()
+                self.confirm_login_allowed(self.user_cache)
+                return self.cleaned_data
+
+        # Fallback attempt for standard username if not among candidates
+        if not unique_candidates:
+            auth_user = authenticate(self.request, username=raw_identity, password=raw_password)
+            if auth_user is not None:
+                self.user_cache = auth_user
+                self.confirm_login_allowed(self.user_cache)
+                return self.cleaned_data
+
+        # Second attempt: Flexible mobile-number password check
+        # Handles cases where user enters 10-digit number while DB has "+91 9879879879",
+        # or user's account password was generated from their phone number.
+        pwd_digits = re.sub(r"\D", "", raw_password)
+        pwd_last10 = pwd_digits[-10:] if len(pwd_digits) >= 10 else None
+
+        for candidate in unique_candidates:
+            candidate_phones = []
+            prof = CustomerProfile.objects.filter(user=candidate).first()
+            if prof and prof.phone:
+                candidate_phones.append(prof.phone)
+            for addr in CustomerAddress.objects.filter(user=candidate):
+                if addr.phone:
+                    candidate_phones.append(addr.phone)
+            deliv = DeliveryProfile.objects.filter(user=candidate).first()
+            if deliv and deliv.phone:
+                candidate_phones.append(deliv.phone)
+
+            matched = False
+            for p in candidate_phones:
+                p_digits = re.sub(r"\D", "", p)
+                p_last10 = p_digits[-10:] if len(p_digits) >= 10 else None
+
+                # Does raw password or digits match the user's phone?
+                if (pwd_last10 and p_last10 and pwd_last10 == p_last10) or (pwd_digits and pwd_digits == p_digits):
+                    matched = True
+                    break
+
+                # Does the current DB password hash match any phone variant?
+                if candidate.check_password(p) or (p_last10 and candidate.check_password(p_last10)) or (p_digits and candidate.check_password(p_digits)):
+                    if (pwd_last10 and p_last10 and pwd_last10 == p_last10) or raw_password == p or (p_last10 and raw_password == p_last10):
+                        matched = True
+                        break
+
+            if matched:
+                new_pwd = pwd_last10 or raw_password
+                candidate.set_password(new_pwd)
+                candidate.save(update_fields=["password"])
+                candidate.backend = "django.contrib.auth.backends.ModelBackend"
+                self.user_cache = candidate
+                self.cleaned_data["username"] = candidate.get_username()
+                self.confirm_login_allowed(self.user_cache)
+                return self.cleaned_data
+
+        raise self.get_invalid_login_error()
 
 
 class AdminLoginForm(EmailAuthenticationForm):

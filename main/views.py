@@ -86,6 +86,10 @@ def _create_guest_account(first_name, last_name, email, phone):
     username_max_length = user_model._meta.get_field(username_field).max_length or 150
     username_base = slugify(first_name)[:username_max_length].strip("-") or "customer"
 
+    phone_str = str(phone or "").strip()
+    phone_digits = re.sub(r"\D", "", phone_str)
+    default_password = phone_digits[-10:] if len(phone_digits) >= 10 else (phone_digits or phone_str)
+
     suffix = 0
     while True:
         suffix_text = str(suffix) if suffix else ""
@@ -99,7 +103,7 @@ def _create_guest_account(first_name, last_name, email, phone):
                     "first_name": first_name,
                     "last_name": last_name,
                     "email": email,
-                    "password": phone,
+                    "password": default_password,
                 }
             )
         suffix += 1
@@ -2147,7 +2151,9 @@ def customer_logout(request):
     if request.user.is_authenticated and request.session.get(GUEST_PASSWORD_SETUP_SESSION_KEY, False):
         profile = CustomerProfile.objects.filter(user=request.user).first()
         if profile and profile.phone:
-            request.user.set_password(profile.phone)
+            p_digits = re.sub(r"\D", "", profile.phone)
+            clean_pwd = p_digits[-10:] if len(p_digits) >= 10 else (p_digits or profile.phone)
+            request.user.set_password(clean_pwd)
             request.user.save(update_fields=["password"])
     logout(request)
     return redirect("home")

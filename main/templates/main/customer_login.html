@@ -28,7 +28,7 @@
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next }}">
         <div class="customer-auth-field">
-          <label for="{{ form.username.id_for_label }}">Username or email</label>
+          <label for="{{ form.username.id_for_label }}">Username, email, or mobile number</label>
           {{ form.username }}
         </div>
         <div class="customer-auth-field">
