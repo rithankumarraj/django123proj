@@ -1043,14 +1043,31 @@ class ComboOfferForm(forms.ModelForm):
         uploaded = self.cleaned_data.get("image")
         if uploaded:
             try:
+                from PIL import Image
+                import io, base64
                 uploaded.seek(0)
-                data = uploaded.read()
+                im = Image.open(uploaded)
+                im.thumbnail((400, 400), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+                    im.save(buf, format="PNG", optimize=True)
+                    mime = "image/png"
+                else:
+                    im.convert("RGB").save(buf, format="JPEG", quality=85, optimize=True)
+                    mime = "image/jpeg"
+                data = buf.getvalue()
                 if data:
-                    import base64
-                    mime = getattr(uploaded, "content_type", "image/png") or "image/png"
                     instance.image_data_url = f"data:{mime};base64,{base64.b64encode(data).decode('utf-8')}"
             except Exception:
-                pass
+                try:
+                    uploaded.seek(0)
+                    data = uploaded.read()
+                    if data:
+                        import base64
+                        mime = getattr(uploaded, "content_type", "image/png") or "image/png"
+                        instance.image_data_url = f"data:{mime};base64,{base64.b64encode(data).decode('utf-8')}"
+                except Exception:
+                    pass
         if commit:
             instance.save()
             self.save_m2m()

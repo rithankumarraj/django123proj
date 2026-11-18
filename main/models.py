@@ -711,17 +711,22 @@ class ComboOffer(models.Model):
         if hasattr(self, "image_data_url") and self.image_data_url and self.image_data_url.strip():
             return self.image_data_url.strip()
         if self.image:
-            try:
-                url = self.image.url
-                if url:
-                    return url
-            except Exception:
-                pass
             name = str(self.image).strip()
             if name:
                 if name.startswith("http://") or name.startswith("https://") or name.startswith("/") or name.startswith("data:"):
                     return name
-                return f"/media/{name}"
+                if name.startswith("combos/") or "cans_of_assortment" in name:
+                    return f"/static/main/images/{name}"
+                if name.startswith("main/images/"):
+                    return f"/static/{name}"
+                if name.startswith("static/"):
+                    return f"/{name}"
+                if "/" not in name and (name.endswith(".png") or name.endswith(".jpg") or name.endswith(".webp")):
+                    return f"/static/main/images/{name}"
+                try:
+                    return self.image.url
+                except Exception:
+                    return f"/media/{name}"
         # If combo bundle has a single product, use that product's image
         items = list(self.bundle_items.select_related("product").all()[:2])
         if len(items) == 1 and hasattr(items[0].product, "image_url"):

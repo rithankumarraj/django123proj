@@ -327,7 +327,7 @@
             >
               <td>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" onerror="this.onerror=null; this.src='/static/main/images/combos/cans_of_assortment.png'" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
+                  <img src="{{ combo.image_url }}" alt="{{ combo.name }}" onerror="this.onerror=null; this.src='{% if 'lime' in combo.name|lower %}/static/main/images/lime.png{% else %}/static/main/images/combos/cans_of_assortment.png{% endif %}';" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #ffffff; border: 1px solid rgba(255,255,255,0.18); padding: 2px;">
                   <div style="display: flex; flex-direction: column; gap: 3px;">
                     <span class="combo-name-badge">{{ combo.name }}</span>
                     {% if combo.show_in_announcement %}
