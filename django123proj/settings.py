@@ -157,10 +157,15 @@ else:
     if os.environ.get("VERCEL") == "1":
         sqlite_path = Path("/tmp/db.sqlite3")
         seed_path = BASE_DIR / "seed_db.sqlite3"
-        if seed_path.exists() and not sqlite_path.exists():
+        version_file = Path("/tmp/seed_version.txt")
+        if seed_path.exists():
             import shutil
             try:
-                shutil.copyfile(str(seed_path), str(sqlite_path))
+                seed_mtime = str(seed_path.stat().st_mtime)
+                current_ver = version_file.read_text().strip() if version_file.exists() else ""
+                if not sqlite_path.exists() or current_ver != seed_mtime:
+                    shutil.copyfile(str(seed_path), str(sqlite_path))
+                    version_file.write_text(seed_mtime)
             except Exception:
                 pass
     else:

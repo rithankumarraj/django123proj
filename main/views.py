@@ -3199,6 +3199,17 @@ def admin_combos(request):
         form = ComboOfferForm(request.POST, request.FILES)
         if form.is_valid():
             combo = form.save()
+            uploaded_file = request.FILES.get("image")
+            if uploaded_file:
+                try:
+                    import base64
+                    content = uploaded_file.read()
+                    mime = getattr(uploaded_file, "content_type", "") or "image/png"
+                    b64 = base64.b64encode(content).decode("ascii")
+                    combo.image_data_url = f"data:{mime};base64,{b64}"
+                    combo.save(update_fields=["image_data_url"])
+                except Exception:
+                    pass
             save_bundle_items_from_post(combo, request.POST)
             messages.success(request, f"Combo offer '{combo.name}' created successfully!")
             return redirect("admin_combos")
@@ -3272,6 +3283,17 @@ def admin_edit_combo(request, combo_id):
         form = ComboOfferForm(request.POST, request.FILES, instance=combo)
         if form.is_valid():
             updated = form.save()
+            uploaded_file = request.FILES.get("image")
+            if uploaded_file:
+                try:
+                    import base64
+                    content = uploaded_file.read()
+                    mime = getattr(uploaded_file, "content_type", "") or "image/png"
+                    b64 = base64.b64encode(content).decode("ascii")
+                    updated.image_data_url = f"data:{mime};base64,{b64}"
+                    updated.save(update_fields=["image_data_url"])
+                except Exception:
+                    pass
             save_bundle_items_from_post(updated, request.POST)
             messages.success(request, f"Combo offer '{updated.name}' updated successfully!")
             return redirect("admin_combos")
