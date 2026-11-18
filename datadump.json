@@ -1,0 +1,2523 @@
+[
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$SI9ITEbVTKIQQYPztDXFb2$KN/3Q68Mn6GbwkzKaUFWLHfKBcWK5FOk7bPh1cBjHSs=",
+    "last_login": "2026-11-17T18:47:55.186Z",
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "Test",
+    "last_name": "User",
+    "email": "admin@localhost",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-10-21T08:25:11.746Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$z8XVvMPbQGVD1T7uxfEWFW$3fdvUk7kt9zEJaowKu5UAM3XCMbYI2Xy2a4ksWER1t8=",
+    "last_login": "2026-10-29T09:05:27.748Z",
+    "is_superuser": false,
+    "username": "delivery",
+    "first_name": "",
+    "last_name": "",
+    "email": "delivery@localhost",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-21T08:35:58.357Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$2vyXkpfx08TbGv0NO7tK7f$CkJ9IpoR0uSNLwJPwmwBri8gZ9EqN8ZmLu15AIJ7Ax4=",
+    "last_login": "2026-10-30T05:27:55.759Z",
+    "is_superuser": false,
+    "username": "Rithan_Kumar",
+    "first_name": "RITHAN",
+    "last_name": "Kumar",
+    "email": "rithankumar@karunya.edu.in",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-21T08:43:18.568Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$jlFbkQ6SW5YZ15LM5zxhYi$QkqX5QlwgWwJP2CyG4/VNjNf8x8ylbKt2AUdiaW63dY=",
+    "last_login": "2026-10-23T07:21:31.150Z",
+    "is_superuser": false,
+    "username": "kamal",
+    "first_name": "kamal",
+    "last_name": "hasan",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-23T07:21:30.698Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$xe4KBXJJs6FpImlJnMtS51$b3a6zGy7RlAJBX8cmMqoVLQudy60rkxkJBUa21jZsQM=",
+    "last_login": "2026-10-23T08:44:08.531Z",
+    "is_superuser": false,
+    "username": "demo",
+    "first_name": "demo",
+    "last_name": "demo",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-23T08:44:07.618Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$PLNrgUDTCsnOGkdeFliDVc$NlNNFaXMC4MgFrw/bvmIccCWGzSdMTn6nLF8P4hqqY4=",
+    "last_login": "2026-10-27T09:09:48.235Z",
+    "is_superuser": false,
+    "username": "martin",
+    "first_name": "martin",
+    "last_name": "benati",
+    "email": "martinbenati@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-26T06:41:20.443Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$Hyf388KFwZUwpNwrwaErgj$KbOGaFgPfBrD2a3lBAjLqo8ZtOR+Pm7q6PjWj3S1X1I=",
+    "last_login": "2026-10-26T09:06:14.479Z",
+    "is_superuser": false,
+    "username": "jacob",
+    "first_name": "jacob",
+    "last_name": "jacob",
+    "email": "jacob@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-26T09:05:30.983Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$1UTJNtSJNfpMCRC5jqAvVK$0DS8+buqBKUKmvgvVQ/aEpepVpcqqtODgkMgpI+JAV4=",
+    "last_login": "2026-10-26T09:53:02.382Z",
+    "is_superuser": false,
+    "username": "demo_customer",
+    "first_name": "Alex",
+    "last_name": "Morgan",
+    "email": "alex@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-26T09:52:21.725Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$tlksQZUg3xwZ8cVDyFysif$jU84oN9DOXARKbCphUn8aVG3DZwlWeLQY/yIEmGrlhs=",
+    "last_login": "2026-10-29T10:01:26.283Z",
+    "is_superuser": false,
+    "username": "sanjeev",
+    "first_name": "sanjeev",
+    "last_name": "kanth",
+    "email": "sanjeev@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-10-29T09:28:57.871Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$UqDmS5ZP7V7eEPNMVncI5W$40bPSUHavt9WuVmKJlMY+OFASEP92WugiNhtHBlFJm4=",
+    "last_login": "2026-11-17T07:05:57.552Z",
+    "is_superuser": false,
+    "username": "showcase",
+    "first_name": "Showcase",
+    "last_name": "Tester",
+    "email": "tester@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-11-17T07:05:43.815Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "",
+    "last_login": "2026-11-17T15:44:04.810Z",
+    "is_superuser": false,
+    "username": "showcase_cust",
+    "first_name": "",
+    "last_name": "",
+    "email": "cust@showcase.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-11-17T15:44:04.778Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "",
+    "last_login": "2026-11-17T15:44:04.998Z",
+    "is_superuser": false,
+    "username": "showcase_delivery",
+    "first_name": "",
+    "last_name": "",
+    "email": "deliv@showcase.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-11-17T15:44:04.984Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "026jeju0qorup8i4y9ph2cxahjgoqxcx",
+  "fields": {
+    "session_data": ".eJxVjEEKgzAQRe8yawkmUZO47L4nKEUmM2mTVhRMpAvx7kVw4_a_9_4GhEuBftsrGHAtcVhzWIbE0IODy-aRvmE6AH9wes-C5qksyYtDESfN4j5zGG-nezmImONRa-uZJHrDjfJBO6LaS9WFhi2Hzmr5Io3OtGRqI10tjVGB0XLL7LhRUMEv5TimXKB_PPc_tRxAjw:1xMPu9:MxmC16Xc5T3ut59M4osatBN5fH4u9DbGl1JJDAdMK9c",
+    "expire_date": "2026-11-12T13:10:53.713Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "1m3w021ldl31cdtf21a17lrutw6gbt13",
+  "fields": {
+    "session_data": ".eJxVjMsOgkAMAP-lZ7NpWfYBR-98A2m3VVADCY-T8d8NCQe9zkzmDT3v29Dvqy39qNACweWXCZenTYfQB0_32ZV52pZR3JG4066um9Ve17P9Gwy8DtBCkqBSKvReLDbeYopIdfa3XGuIWKoSkEyRBFHZhC2bJ5IUEnFuPHy-16E3hw:1xSr86:HmeFNM3E3v-TEF4-_skIqPMpuvhAD12rR-r6kMRjmBY",
+    "expire_date": "2026-11-30T07:27:54.642Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "5ufip5q942ozfehvfljwah1alo7ywfty",
+  "fields": {
+    "session_data": ".eJxVjMsKwyAQAP9lz0XUlbXm2Hu_QdZXTVsUYnIK_fcSyKG9zgyzg-dtrX4befFzggkUXH5Z4PjK7RDpye3RRextXeYgjkScdoh7T_l9O9u_QeVRYYKAHKy5SlSanLOxoKbAWrtMnIiQlU6ylOJsNCRLNJhtkKiROTOjg88X1yY38g:1xTODj:DrlYGPMVbBkkE3T6Z5ybvc_oGi-GO-asfY3Tn024tdo",
+    "expire_date": "2026-12-01T18:47:55.197Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "6lgvh7gt4f76t4fabex9ep3ovr9zuz78",
+  "fields": {
+    "session_data": ".eJxVjMsKwyAQAP9lz0XUlbXm2Hu_QdZXTVsUYnIK_fcSyKG9zgyzg-dtrX4befFzggkUXH5Z4PjK7RDpye3RRextXeYgjkScdoh7T_l9O9u_QeVRYYKAHKy5SlSanLOxoKbAWrtMnIiQlU6ylOJsNCRLNJhtkKiROTOjg88X1yY38g:1xTDEy:q0TMiCbNiy70jG4whirzzxH_d_ivSz9JVED9PswoCvA",
+    "expire_date": "2026-12-01T07:04:28.795Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "73ppocmwtt5w5b4xpxfzs9sphrjh2zqx",
+  "fields": {
+    "session_data": ".eJxVjDkOgzAUBe_ya4RwWAyU6XMG69n-BpIIIy9Kgbh7hERDOzOanQxConE_ClLIaVY5clCLpZFETTeoYT68nsa-sU6-NH5NYdHlmZSXjeXLW_4-r_Y2mBFnGgnCAdpUrRseAHTbw0iW3TA4WcFp3dVtJVtuHmgGWN10stK2F7a3XNdCUkFT5pgUjPF5TWpDjD8frIqc8kZjCpmPP_4KSnc:1xTDGC:xcd1s6P-b3up62cZjx-3qI0gBBCn70jYpzanN1G61v4",
+    "expire_date": "2026-12-01T07:05:44.857Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "79in6ow7w3an1fyeki9ar4ilqldm594p",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4ZAkVeP3vsNzQK7UjWQlPZk_HfTpAe9zkzmDTPuW5n3Tuu8ZBhBw-WXRUxPqofID6z3JlKr27pEcSTitF1MLdPrdrZ_g4K9wAhOs5Jau-ytSWytTC6zYqUsWSapTSK-pjgYDtnJwbMn6yQzYkAZXITPF-J9OEY:1xMTmM:M1-d75gjknGM_PQNbCvim8tC1f_kf32YBFuIgvc_6NM",
+    "expire_date": "2026-11-12T17:19:06.896Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "7f0srj8zpbeuw32lrj4y5t7xhp644cus",
+  "fields": {
+    "session_data": "e30:1xMKzZ:k-aan_VOynskDLNY2bUzsVcA5_rgGxHFX69EAlvUYag",
+    "expire_date": "2026-11-12T07:56:09.935Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "7pt8xady1k479c17s9q0truk4o58dvfw",
+  "fields": {
+    "session_data": ".eJxVjEEOwiAQAP-yZ0MQywI9evcNZBcWqRqalPZk_Ltp0oNeZybzhkjbWuPWZYlThhEMnH4ZU3pK20V-ULvPKs1tXSZWe6IO29VtzvK6Hu3foFKvMIKzOSTL4v2gbRBGyUZrDlSwXFxxFISCRxJk1oiaDTvxGs3Z5ME7B58v87436w:1xLzJ1:KsGjspE7hvg_IF9YRuqvIxtbRbsIZ01oaFA5u9krEe4",
+    "expire_date": "2026-11-11T08:46:47.072Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "7zwa2am260cw29f0s1ths1slkyo2yl6l",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7IjEiOjF9fQ:1xTCxJ:E6mP9GAhjT-vklCH8qNRnrX0HDXSqKVK04uOHPFEA24",
+    "expire_date": "2026-12-01T06:46:13.192Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "9cra39xqv47smv6prnlopn01n2snpwa7",
+  "fields": {
+    "session_data": ".eJxVjLsOgzAMAP_FcxXZDQTC2J1vQHbsFNoKJB4T4t8rJBbWu9PtkHheodmPB3S8rX23LTZ3g0IDBDcmnL42nkI_PL4nl6ZxnQdxZ-Iuu7h2Uvu9rvY26HnpoYHEWnohDqGgnNAwcqhyzZ5IGZUqEURfWKYcJBa5ivkpalhrQIu-hOMPPzY7mw:1xLbEG:_R3T0zW9fyZhA_WQowzE5zCKRr6llT1izTj2zxorWNw",
+    "expire_date": "2026-11-10T07:04:16.417Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "bm1innpazom9eiqbjobkcl60858cs69w",
+  "fields": {
+    "session_data": ".eJxVjDsOwjAQBe_iGllO4qy9lPQ5g_XstUkAJVI-FeLuyFIKaN_MvLcKOPYxHFtewyTqqlp1-d0i0jPPFcgD833RaZn3dYq6Kvqkmx4Wya_b6f4djNjGWluwCHnXdK4BW-LsqcD3Bk0ipi6aji2cbY1vk2T0tjBESkpwIKjPF9dfOD4:1xJolU:7Yetm-T5eiq4KZgTxFqlgoz3kWXM5BIy3GVqStTPT0I",
+    "expire_date": "2026-11-05T09:07:12.905Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "c42c48764vzz9tb23lc8j0i5gchjz2c6",
+  "fields": {
+    "session_data": ".eJxVjjsOgzAQBe-yNUI2xh9cpkmVghNY6_UmJokgAlMh7h4hUSTtm9HobRBwLTmsC89hSOBBQvW7RaQXjwdITxwfU03TWOYh1odSn3Spb1Pi9-V0_wIZlwwebNQpUiOUimw6xcYaIVun7q5N2ghqSAvJScgoREKOyI6VlNFqK9F1CiognAv4ba_g-IBUAuGnUEbwcO1d72D_AoEAQzk:1xMj4E:CxpsEomifhDOEgLh6xT3LwGytkVwqIcCAsROowt5HJE",
+    "expire_date": "2026-11-13T09:38:34.200Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ccl5hz3dbnddq2roly65wvspbt8kcxxk",
+  "fields": {
+    "session_data": ".eJxVzMsKwjAQheF3mbWEXIdJl-59hjC51FQlhaZdie8ugS50e76f84bAx17D0csWlgwTKITL7xg5PUsbkh_c7qtIa9u3JYqRiFO7uK25vK5n-3dQuVeYwKEnssxIngtJY4rFbCmpGRVqSd4iGZ1sSeick1KTV0PdHI03keHzBdauNtE:1xTOE6:gPJZHBK2lRJwe2hLDjRyRyG4dzM7Hfi1ZT-0qX-iUiA",
+    "expire_date": "2026-12-01T18:48:18.427Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "embb8fy5a6vuxrx4fkj9fga5eowhq3wz",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7IjMiOjF9fQ:1xKAyD:lhqAq6rbxDE3JGf1NX58Gr1SkbfrwFm8iVTWqNjpIJQ",
+    "expire_date": "2026-11-06T08:49:49.651Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "fcu1czyk9ffoetqqi1jlizyh6ktkq1t3",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7fX0:1xJnOB:I1x54QngGOYE_M6glHzfLH35N4nTWAtKPN7pb4kLjmk",
+    "expire_date": "2026-11-05T07:39:03.875Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ixxf3wpgiygusrfz255k4i9xy2gy9dw4",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4ZQl1d79N5vIMAuUjWQlPZk_HfTpAe9zkzmDT7sW_F759UvBBMMcPllMaQn10PQI9R7E6nVbV2iOBJx2i7mRvy6ne3foIReYALnlKWYVZRGOcNkUSMhKplHHa9ktUanOClLmQY2cbCa2GZNo5QYkODzBdPkN7Y:1xLydA:zlPiINh08S7_SABPjNLiHV0j1o9JVEPrqZjsmJBHg5A",
+    "expire_date": "2026-11-11T08:03:32.927Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "kike1900d08ojwx227unzp41b3yv9s44",
+  "fields": {
+    "session_data": ".eJxVjEEOwiAQAP-yZ0OEhQo9evcNzcIuUjWQlPZk_Ltp0oNeZybzhom2tUxbl2WaGUbQcPplkdJT6i74QfXeVGp1Xeao9kQdtqtbY3ldj_ZvUKgXGIGGHIzT7BB90Gh0DsjCyUvyYrIMTBeSmJzLGJmtFjw7imjZWc2J4PMF9uw46g:1xLycO:TCrWlnFU5UDI8LyOlBmtutKG6F8R2VdbnshtlqSzQzw",
+    "expire_date": "2026-11-11T08:02:44.636Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "mozb4hjeyb40tiggou4dh7cqx17k8byo",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7IjEiOjd9fQ:1xTD53:qurhwDZLTQhtGOPMZE0ZvR4rRgiu0lIOAKkL5m-8yEA",
+    "expire_date": "2026-12-01T06:54:13.261Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "o7dd1taok0fga4ejk7f3voqedlv8hnho",
+  "fields": {
+    "session_data": ".eJxVjDsOgzAQBe-yNbIAm4Bdps8ZrGW9fJLIRv4oBeLuERJFUr43o9nBYsmLLYmjXR0YUFD9fiPSi_0J3BP9HAQFn-M6ilMRF03iERy_75f7F1gwLWCABiLndIeT1j1iN8mpVS0xktIkNcmh1uy0ZDfWrJHONWEv65uSTd-e0blwyhaJQvHZbpjSJ0RnE-eygcmxcAWEMYPZQYFpKujANMfxBTSwTIM:1xKARV:VgtmARJxJi4F7Ex-ysmQiF_vZos3FpIXug0oP2NhTRw",
+    "expire_date": "2026-11-06T08:16:01.550Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "qqp1165tw4vvovj64iqd338xhr4t4hal",
+  "fields": {
+    "session_data": ".eJxVjMsKwjAQAP9lzxLSNM2jR-9-Q9jNLqYqCTTtSfx3KfSg15lh3pBw30rau6xpYZhhgMsvI8xPqYfgB9Z7U7nVbV1IHYk6bVe3xvK6nu3foGAvMINkS5EELUbLQmak4EIg7zLxxMZ5F6eBvXEc0RiPIUoYXWTrWVutA3y-_5k3vw:1xLycB:47nO60iAOQZLga-Ob8Srif1ePMsjUcdWOH5iuVJEEmY",
+    "expire_date": "2026-11-11T08:02:31.631Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "rn17pqk3jrw9b8e4t9wa2s1g836tar65",
+  "fields": {
+    "session_data": ".eJxVjDEOgzAMAP_iuYqCG0jC2J03RHZsCm1FJAJT1b9XSAztene6NyTatyntVdc0C_SAcPllTPmpyyHkQcu9mFyWbZ3ZHIk5bTVDEX3dzvZvMFGdoAf2HJQzWnIBm5hljMqu7SKiMnq8cnAt2TiK7bJHajr1UcgGodg6DvD5AvB5OAg:1xLzEq:1zbELcZ1EL_Q27BBEPh2uS2RmbsDsJgCwbMZFoEuvZo",
+    "expire_date": "2026-11-11T08:42:28.550Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "thpu2n5k040sa0aviqnt6tbs3gab4qdw",
+  "fields": {
+    "session_data": ".eJxVjDsOgzAQBe-ydWTZ2MaYMn3OgN567UASgcSnQtw9QqKhnRnNTgnzSu1-PKjDtvbdtuS5G4RaMpZukJG-eTyNfDC-J5WmcZ0HVmeiLruo1yT597za26DH0lNLMAXgpH2JFQD2DVLIoY6xBI3CXFuvg8-ugosQdnXQLI2RRrK1JtDxB4aYPDc:1xTDGP:9WGd6H725Lr79VXIbTYKrFdGdxjT2g1M9FlrsME_GC0",
+    "expire_date": "2026-12-01T07:05:57.562Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "tnoxkkwpqpcpm2mslwcm45yfduyywldn",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4ZAkVeP3vsNzQK7UjWQlPZk_HfTpAe9zkzmDTPuW5n3Tuu8ZBhBw-WXRUxPqofID6z3JlKr27pEcSTitF1MLdPrdrZ_g4K9wAhOs5Jau-ytSWytTC6zYqUsWSapTSK-pjgYDtnJwbMn6yQzYkAZXITPF-J9OEY:1xMTTP:wZwLhFCJ2GePSHNaZIX_prt40xugyS3vprNWmeocGyE",
+    "expire_date": "2026-11-12T16:59:31.407Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "ujpn6zx9x2fqp9ph4d50ivwaezal31gv",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7IjEiOjF9fQ:1xTDFW:Xhg-LPh-Jd600ciI81zM0UePfQkkADmHT0noiMsPGOQ",
+    "expire_date": "2026-12-01T07:05:02.952Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "wel6fq1bsytkw0pdsnjj9e9tlwpvmdbi",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4YIlFeP3vsNZJcFqRqalPZk_HfTpAe9zkzmDRH3rca95zXODCNICZdfSJieuR2GH9jui0hL29aZxJGI03YxLZxft7P9G1TsFUZwEkswgQdH2l4HK31hFbxxSQZSTgergyLlLbFxhJSsYtaYEhWprUb4fAHpKDfe:1xTDES:07vOOTK1Tw71ake22A3tpf47xRrQVJwswi3s68MFqgQ",
+    "expire_date": "2026-12-01T07:03:56.553Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "wvab3urph4ydeafgguglmazigyfo9jaa",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQAP9lz4ZAkVeP3vsNzQK7UjWQlPZk_HfTpAe9zkzmDTPuW5n3Tuu8ZBhBw-WXRUxPqofID6z3JlKr27pEcSTitF1MLdPrdrZ_g4K9wAhOs5Jau-ytSWytTC6zYqUsWSapTSK-pjgYDtnJwbMn6yQzYkAZXITPF-J9OEY:1xMf9f:Ff-UadDH8VzooRG3pe3Le_V1u21AR9yyt9j5js570HU",
+    "expire_date": "2026-11-13T05:27:55.763Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "x9so2f01b8h8mqgw8v9kebrtfnn6f9dx",
+  "fields": {
+    "session_data": ".eJxVjMsKwyAQAP9lz0XUlbXm2Hu_QdZXTVsUYnIK_fcSyKG9zgyzg-dtrX4befFzggkUXH5Z4PjK7RDpye3RRextXeYgjkScdoh7T_l9O9u_QeVRYYKAHKy5SlSanLOxoKbAWrtMnIiQlU6ylOJsNCRLNJhtkKiROTOjg88X1yY38g:1xTLLp:vlkvrP9Mu_G8mKYcDp0FxbnaeP85bTmwvz9amYeSlpk",
+    "expire_date": "2026-12-01T15:44:05.043Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "xj9101zish6lmyq64w99w1gcvv2esy7c",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7IjEiOjJ9fQ:1xMSES:GaO00N6IXK1lnMixpalrTbSaOZj1DD9BRC3chSgHAj0",
+    "expire_date": "2026-11-12T15:40:00.568Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "yqcydio26mdtgs67kn6455tlbvzoslq6",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7IjEiOjF9fQ:1xTDFm:ypEhBRkQUWIFrPgjHkn2EaTr_y4zurJNuSq8-RPKTL4",
+    "expire_date": "2026-12-01T07:05:18.091Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "zy7k3t7ysax0aczkjxsaln1vnqslrcty",
+  "fields": {
+    "session_data": "eyJjYXJ0Ijp7fX0:1xJp8A:LQPQfSjbwxHVynP4Rk9VULJh4RpVhImg7hp27oGc0AY",
+    "expire_date": "2026-11-05T09:30:38.365Z"
+  }
+},
+{
+  "model": "sites.site",
+  "fields": {
+    "domain": "example.com",
+    "name": "example.com"
+  }
+},
+{
+  "model": "main.productcategory",
+  "pk": 1,
+  "fields": {
+    "name": "Cola",
+    "slug": "cola",
+    "created_at": "2026-10-30T07:25:02.463Z"
+  }
+},
+{
+  "model": "main.productcategory",
+  "pk": 2,
+  "fields": {
+    "name": "Energy Drink",
+    "slug": "energy_drink",
+    "created_at": "2026-10-30T07:25:02.495Z"
+  }
+},
+{
+  "model": "main.productcategory",
+  "pk": 3,
+  "fields": {
+    "name": "Others",
+    "slug": "others",
+    "created_at": "2026-10-30T07:25:02.499Z"
+  }
+},
+{
+  "model": "main.product",
+  "pk": 1,
+  "fields": {
+    "name": "Classic Cola",
+    "category": "cola",
+    "description": "Deep, familiar cola flavour with a clean, refreshing finish.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/cola.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 2,
+  "fields": {
+    "name": "Bubblegum",
+    "category": "others",
+    "description": "Bright, playful sweetness made for an easy everyday refresh.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/bubblegum.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 3,
+  "fields": {
+    "name": "Fresh Lime",
+    "category": "others",
+    "description": "Crisp lime flavour with a sharp, refreshing lift.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/lime.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 4,
+  "fields": {
+    "name": "Energy Drink",
+    "category": "energy_drink",
+    "description": "Bold energy flavour for whenever you want to keep moving.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/energydrink.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 5,
+  "fields": {
+    "name": "J Workout Drink",
+    "category": "others",
+    "description": "Zero-sugar workout drink with energy, focus, endurance and hydration.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/j-workout-drink.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 6,
+  "fields": {
+    "name": "J Cola Zero Sugar",
+    "category": "cola",
+    "description": "Bold cola taste with zero sugar and no artificial sweeteners.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/j-cola-zero-sugar.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 7,
+  "fields": {
+    "name": "J Energy Lime",
+    "category": "energy_drink",
+    "description": "Bright lime energy drink with a crisp citrus finish.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/j-energy-lime.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.product",
+  "pk": 8,
+  "fields": {
+    "name": "J Cyberpunk Energy Drink",
+    "category": "energy_drink",
+    "description": "Bold cyberpunk-inspired energy drink with a bright, refreshing taste.",
+    "cost_price": "60.00",
+    "gst_rate": 18,
+    "base_price": "76.27",
+    "price": "90.00",
+    "volume": "330 ml",
+    "image": "main/images/j-cyberpunk-energy.png",
+    "available_pincodes": "",
+    "available": true
+  }
+},
+{
+  "model": "main.deliveryprofile",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "delivery"
+    ],
+    "phone": "",
+    "address": "",
+    "aadhar_number": "",
+    "driving_license": "",
+    "vehicle_type": "bike",
+    "vehicle_number": "",
+    "serviceable_pincodes": "",
+    "is_approved": true,
+    "status": "approved",
+    "rejection_reason": "",
+    "created_at": "2026-10-21T08:35:58.903Z",
+    "updated_at": "2026-11-02T06:56:10.279Z"
+  }
+},
+{
+  "model": "main.deliveryprofile",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "showcase_delivery"
+    ],
+    "phone": "9876543210",
+    "address": "",
+    "aadhar_number": "",
+    "driving_license": "",
+    "vehicle_type": "bike",
+    "vehicle_number": "",
+    "serviceable_pincodes": "600001",
+    "is_approved": true,
+    "status": "approved",
+    "rejection_reason": "",
+    "created_at": "2026-11-17T15:44:04.989Z",
+    "updated_at": "2026-11-17T15:44:04.989Z"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "Rithan_Kumar"
+    ],
+    "avatar": "",
+    "phone": "",
+    "address": "",
+    "city": "",
+    "state": "",
+    "postal_code": ""
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "kamal"
+    ],
+    "avatar": "",
+    "phone": "9843038888",
+    "address": "testing",
+    "city": "testing",
+    "state": "testing",
+    "postal_code": "1234"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "demo"
+    ],
+    "avatar": "",
+    "phone": "9843038888",
+    "address": "test",
+    "city": "demo",
+    "state": "demo",
+    "postal_code": "1244"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 4,
+  "fields": {
+    "user": [
+      "martin"
+    ],
+    "avatar": "",
+    "phone": "9876543210",
+    "address": "123 Main Street",
+    "city": "City",
+    "state": "State",
+    "postal_code": "123456"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 5,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "avatar": "",
+    "phone": "9876543210",
+    "address": "123 Test St",
+    "city": "Madurai",
+    "state": "Tamil Nadu",
+    "postal_code": "625018"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 6,
+  "fields": {
+    "user": [
+      "jacob"
+    ],
+    "avatar": "",
+    "phone": "8870576666",
+    "address": "testing",
+    "city": "testing",
+    "state": "testing",
+    "postal_code": "1335"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 7,
+  "fields": {
+    "user": [
+      "demo_customer"
+    ],
+    "avatar": "",
+    "phone": "",
+    "address": "",
+    "city": "",
+    "state": "",
+    "postal_code": ""
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 8,
+  "fields": {
+    "user": [
+      "delivery"
+    ],
+    "avatar": "",
+    "phone": "",
+    "address": "",
+    "city": "",
+    "state": "",
+    "postal_code": ""
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 9,
+  "fields": {
+    "user": [
+      "sanjeev"
+    ],
+    "avatar": "",
+    "phone": "+91 9879879879",
+    "address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "city": "madurai",
+    "state": "Tamil Nadu",
+    "postal_code": "625018"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 12,
+  "fields": {
+    "user": [
+      "showcase"
+    ],
+    "avatar": "",
+    "phone": "+91 9876543210",
+    "address": "123 Main St",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "postal_code": "600001"
+  }
+},
+{
+  "model": "main.customerprofile",
+  "pk": 13,
+  "fields": {
+    "user": [
+      "showcase_cust"
+    ],
+    "avatar": "",
+    "phone": "",
+    "address": "",
+    "city": "",
+    "state": "",
+    "postal_code": ""
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "demo_customer"
+    ],
+    "full_name": "Home",
+    "phone": "+91 98765 43210",
+    "address": "12 Palm Boulevard, Apt 4B",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "postal_code": "400050",
+    "is_default": true,
+    "created_at": "2026-10-26T09:52:22.168Z",
+    "updated_at": "2026-10-26T09:52:22.168Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "demo_customer"
+    ],
+    "full_name": "Workplace",
+    "phone": "+91 98765 43211",
+    "address": "88 Business Hub, 5th Floor",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "postal_code": "411001",
+    "is_default": false,
+    "created_at": "2026-10-26T09:52:22.171Z",
+    "updated_at": "2026-10-26T09:52:22.171Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "demo_customer"
+    ],
+    "full_name": "Parents Home",
+    "phone": "+91 98765 43212",
+    "address": "24 Green Valley Road",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "postal_code": "560001",
+    "is_default": false,
+    "created_at": "2026-10-26T09:52:22.174Z",
+    "updated_at": "2026-10-26T09:52:22.174Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 4,
+  "fields": {
+    "user": [
+      "martin"
+    ],
+    "full_name": "martin benati",
+    "phone": "9842176565",
+    "address": "testing",
+    "city": "testing",
+    "state": "testing",
+    "postal_code": "testing",
+    "is_default": false,
+    "created_at": "2026-10-26T09:56:26.773Z",
+    "updated_at": "2026-10-27T09:14:33.743Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 5,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "full_name": "",
+    "phone": "9876543210",
+    "address": "123 Main Street",
+    "city": "City",
+    "state": "State",
+    "postal_code": "123456",
+    "is_default": false,
+    "created_at": "2026-10-26T10:10:06.648Z",
+    "updated_at": "2026-10-26T10:10:06.648Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 6,
+  "fields": {
+    "user": [
+      "martin"
+    ],
+    "full_name": "RITHAN RAKSHAN",
+    "phone": "9876543210",
+    "address": "123 Main Street",
+    "city": "City",
+    "state": "State",
+    "postal_code": "123456",
+    "is_default": true,
+    "created_at": "2026-10-27T08:46:41.411Z",
+    "updated_at": "2026-10-27T08:46:41.411Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 9,
+  "fields": {
+    "user": [
+      "sanjeev"
+    ],
+    "full_name": "sanjeev kanth",
+    "phone": "+91 9879879879",
+    "address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "city": "madurai",
+    "state": "Tamil Nadu",
+    "postal_code": "625018",
+    "is_default": true,
+    "created_at": "2026-10-29T10:01:26.267Z",
+    "updated_at": "2026-10-30T10:01:40.140Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 10,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "full_name": "admin 1",
+    "phone": "+91 9876543210",
+    "address": "123 Main Street",
+    "city": "City",
+    "state": "Tamil Nadu",
+    "postal_code": "123456",
+    "is_default": false,
+    "created_at": "2026-10-29T16:37:54.695Z",
+    "updated_at": "2026-10-29T17:00:31.671Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 11,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "full_name": "Test User",
+    "phone": "9876543210",
+    "address": "123 Test St",
+    "city": "Madurai",
+    "state": "Tamil Nadu",
+    "postal_code": "625018",
+    "is_default": true,
+    "created_at": "2026-10-30T10:39:19.245Z",
+    "updated_at": "2026-10-30T10:39:19.245Z"
+  }
+},
+{
+  "model": "main.customeraddress",
+  "pk": 12,
+  "fields": {
+    "user": [
+      "showcase"
+    ],
+    "full_name": "Showcase Tester",
+    "phone": "+91 9876543210",
+    "address": "123 Main St",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "postal_code": "600001",
+    "is_default": true,
+    "created_at": "2026-11-17T07:05:44.827Z",
+    "updated_at": "2026-11-17T07:05:57.505Z"
+  }
+},
+{
+  "model": "main.combooffer",
+  "pk": 1,
+  "fields": {
+    "name": "Cans of Assortment",
+    "slug": "cans-of-assortment",
+    "offer_type": "multiple_products",
+    "usage_limit": null,
+    "discount_type": "percentage",
+    "discount_value": "15.00",
+    "max_discount_cap": "100.00",
+    "min_order_amount": "6.00",
+    "min_quantity": 6,
+    "min_distinct_products": 6,
+    "expire_date": null,
+    "image": "combos/cans_of_assortment.png",
+    "image_data_url": "",
+    "show_in_announcement": true,
+    "announcement_text": "",
+    "times_used": 0,
+    "is_active": true,
+    "description": "Mix & Match any 6 different cans to unlock the Cans of Assortment combo offer with 15% instant discount!",
+    "badge_text": "Cans of Assortment",
+    "created_at": "2026-11-10T09:13:17.874Z",
+    "applicable_categories": [],
+    "applicable_products": []
+  }
+},
+{
+  "model": "main.combooffer",
+  "pk": 2,
+  "fields": {
+    "name": "lime blast",
+    "slug": "lime-blast",
+    "offer_type": "bundle",
+    "usage_limit": null,
+    "discount_type": "percentage",
+    "discount_value": "15.00",
+    "max_discount_cap": null,
+    "min_order_amount": "0.00",
+    "min_quantity": 1,
+    "min_distinct_products": 1,
+    "expire_date": null,
+    "image": "",
+    "image_data_url": "",
+    "show_in_announcement": true,
+    "announcement_text": "",
+    "times_used": 0,
+    "is_active": true,
+    "description": "Mix and match our handcrafted cans to unlock special combo bundle pricing!",
+    "badge_text": "",
+    "created_at": "2026-11-11T09:49:08.995Z",
+    "applicable_categories": [],
+    "applicable_products": []
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 1,
+  "fields": {
+    "combo_offer": 1,
+    "product": 1,
+    "quantity": 1
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 2,
+  "fields": {
+    "combo_offer": 1,
+    "product": 2,
+    "quantity": 1
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 3,
+  "fields": {
+    "combo_offer": 1,
+    "product": 3,
+    "quantity": 1
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 4,
+  "fields": {
+    "combo_offer": 1,
+    "product": 4,
+    "quantity": 1
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 5,
+  "fields": {
+    "combo_offer": 1,
+    "product": 5,
+    "quantity": 1
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 6,
+  "fields": {
+    "combo_offer": 1,
+    "product": 6,
+    "quantity": 1
+  }
+},
+{
+  "model": "main.combobundleitem",
+  "pk": 7,
+  "fields": {
+    "combo_offer": 2,
+    "product": 1,
+    "quantity": 6
+  }
+},
+{
+  "model": "main.order",
+  "pk": 1,
+  "fields": {
+    "product": 6,
+    "customer": [
+      "Rithan_Kumar"
+    ],
+    "delivery_user": null,
+    "customer_name": "RITHAN Kumar",
+    "customer_phone": "",
+    "delivery_address": "dsayubao",
+    "delivery_city": "ewkj",
+    "delivery_state": "disun",
+    "delivery_postal_code": "248847",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "18325574-0555-462b-8cb4-8709cd431ee6",
+    "order_number": "797298",
+    "payment_event_id": "344c7aa4-d960-46cb-82d5-437da510957d",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-21T08:53:02.027Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 2,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "Rithan_Kumar"
+    ],
+    "delivery_user": null,
+    "customer_name": "RITHAN Kumar",
+    "customer_phone": "",
+    "delivery_address": "dsayubao",
+    "delivery_city": "ewkj",
+    "delivery_state": "disun",
+    "delivery_postal_code": "248847",
+    "quantity": 8,
+    "status": "pending",
+    "payment_status": "pending",
+    "payment_method": "online",
+    "total_amount": "720.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "5a2d2f12-f09f-4ffb-8573-8d30fcd2dead",
+    "order_number": "776196",
+    "payment_event_id": null,
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-21T09:01:58.972Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 3,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "Rithan_Kumar"
+    ],
+    "delivery_user": null,
+    "customer_name": "RITHAN Kumar",
+    "customer_phone": "",
+    "delivery_address": "dsayubao",
+    "delivery_city": "ewkj",
+    "delivery_state": "disun",
+    "delivery_postal_code": "12345",
+    "quantity": 2,
+    "status": "pending",
+    "payment_status": "pending",
+    "payment_method": "online",
+    "total_amount": "180.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "6cbb2ab2-9d84-4447-b228-5fcbd2cbea55",
+    "order_number": "188468",
+    "payment_event_id": null,
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-21T09:07:40.004Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 4,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "Rithan_Kumar"
+    ],
+    "delivery_user": null,
+    "customer_name": "RITHAN Kumar",
+    "customer_phone": "",
+    "delivery_address": "dsayubao",
+    "delivery_city": "ewkj",
+    "delivery_state": "disun",
+    "delivery_postal_code": "248847",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "c73190e6-e64a-4948-bfa1-72186d1af1e1",
+    "order_number": "512952",
+    "payment_event_id": "4149f761-ef57-4d0e-963f-1cdd2f94175f",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-21T09:09:22.473Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 5,
+  "fields": {
+    "product": 7,
+    "customer": [
+      "Rithan_Kumar"
+    ],
+    "delivery_user": null,
+    "customer_name": "RITHAN Kumar",
+    "customer_phone": "",
+    "delivery_address": "test",
+    "delivery_city": "test",
+    "delivery_state": "test",
+    "delivery_postal_code": "`1234",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "4d2a8ee9-e582-4e8e-85c7-46ff762df9e9",
+    "order_number": "922496",
+    "payment_event_id": "a54b1532-33df-4c46-b889-35429291a8a4",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-22T09:05:57.526Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 6,
+  "fields": {
+    "product": 8,
+    "customer": null,
+    "delivery_user": null,
+    "customer_name": "jason samuvel",
+    "customer_phone": "9843038888",
+    "delivery_address": "testing",
+    "delivery_city": "testing",
+    "delivery_state": "testing",
+    "delivery_postal_code": "1234",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "3ff6b7f1-2cd2-4328-ae6f-dda79f247b8b",
+    "order_number": "587660",
+    "payment_event_id": "e7b1d274-8cdc-4336-a49d-9b25e894dd0f",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-23T07:03:28.808Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 7,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "kamal"
+    ],
+    "delivery_user": null,
+    "customer_name": "kamal hasan",
+    "customer_phone": "9843038888",
+    "delivery_address": "testing",
+    "delivery_city": "testing",
+    "delivery_state": "testing",
+    "delivery_postal_code": "1234",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "2aad1d58-82ac-4af4-ad63-844d75e84557",
+    "order_number": "210072",
+    "payment_event_id": "d5abf252-0460-4581-8257-849ff9b8cbfe",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-23T07:21:31.142Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 8,
+  "fields": {
+    "product": 3,
+    "customer": [
+      "demo"
+    ],
+    "delivery_user": null,
+    "customer_name": "demo demo",
+    "customer_phone": "9843038888",
+    "delivery_address": "test",
+    "delivery_city": "demo",
+    "delivery_state": "demo",
+    "delivery_postal_code": "1244",
+    "quantity": 2,
+    "status": "packed",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "180.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "6868eccf-2d3e-479e-b687-471df8c21104",
+    "order_number": "919167",
+    "payment_event_id": "65352cba-d240-49be-9e15-2b741e3f12aa",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-23T08:44:08.514Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 9,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "martin"
+    ],
+    "delivery_user": null,
+    "customer_name": "martin benati",
+    "customer_phone": "9842176565",
+    "delivery_address": "demo",
+    "delivery_city": "demo",
+    "delivery_state": "demo",
+    "delivery_postal_code": "098",
+    "quantity": 1,
+    "status": "packed",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "257c016f-3cad-4334-982e-a9c3f9bc53e0",
+    "order_number": "175396",
+    "payment_event_id": "aac88921-06df-428d-8833-60bd56f034bb",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-26T06:41:21.294Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 10,
+  "fields": {
+    "product": 8,
+    "customer": [
+      "martin"
+    ],
+    "delivery_user": null,
+    "customer_name": "martin benati",
+    "customer_phone": "9842176565",
+    "delivery_address": "demo",
+    "delivery_city": "demo",
+    "delivery_state": "demo",
+    "delivery_postal_code": "098",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "pending",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "ea45fded-c0fc-4360-86cc-e502fba60ae7",
+    "order_number": "108085",
+    "payment_event_id": null,
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-26T06:44:47.440Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 11,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "admin"
+    ],
+    "delivery_user": null,
+    "customer_name": "Admin User",
+    "customer_phone": "9876543210",
+    "delivery_address": "123 Main Street",
+    "delivery_city": "City",
+    "delivery_state": "State",
+    "delivery_postal_code": "123456",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "pending",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "7f0e7d35-c86e-4bff-855a-8f9cb435693e",
+    "order_number": "969898",
+    "payment_event_id": null,
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-26T07:28:38.547Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 12,
+  "fields": {
+    "product": 3,
+    "customer": [
+      "jacob"
+    ],
+    "delivery_user": null,
+    "customer_name": "jacob jacob",
+    "customer_phone": "8870576666",
+    "delivery_address": "testing",
+    "delivery_city": "testing",
+    "delivery_state": "testing",
+    "delivery_postal_code": "1335",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "d8ec4484-b59d-47a2-887d-de41b10ed70b",
+    "order_number": "231752",
+    "payment_event_id": "ee6768db-8f08-42b3-9779-22322525a25a",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-26T09:05:31.947Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 13,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "martin"
+    ],
+    "delivery_user": null,
+    "customer_name": "martin benati",
+    "customer_phone": "9842176565",
+    "delivery_address": "testing",
+    "delivery_city": "testing",
+    "delivery_state": "testing",
+    "delivery_postal_code": "testing",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "c63c1b49-30e5-4f5c-b5c0-c92c0524d6a9",
+    "order_number": "327383",
+    "payment_event_id": "7c53ece9-53f3-4e98-8586-d17558feb6b5",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-26T09:10:56.733Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 14,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "martin"
+    ],
+    "delivery_user": [
+      "delivery"
+    ],
+    "customer_name": "martin benati",
+    "customer_phone": "9842176565",
+    "delivery_address": "testing",
+    "delivery_city": "testing",
+    "delivery_state": "testing",
+    "delivery_postal_code": "testing",
+    "quantity": 1,
+    "status": "cancelled",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "90.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "125fef05-eb7e-48d5-b8c7-6296c4ec7fcb",
+    "order_number": "357073",
+    "payment_event_id": "f70e0b2d-d67f-494d-ae6d-57190b5797bb",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-27T09:14:33.747Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 15,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "sanjeev"
+    ],
+    "delivery_user": null,
+    "customer_name": "sanjeev kanth",
+    "customer_phone": "+91 9879879879",
+    "delivery_address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "delivery_city": "madurai",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "6250018",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "140.00",
+    "shipping_fee": "50.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "317e5f84-80f7-4b73-961d-ce4fcd4500d6",
+    "order_number": "922327",
+    "payment_event_id": "b822a041-44fa-4e93-b63b-05a73bd11db1",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T09:28:58.864Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 16,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "sanjeev"
+    ],
+    "delivery_user": null,
+    "customer_name": "sanjeev kanth",
+    "customer_phone": "+91 9879879879",
+    "delivery_address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "delivery_city": "madurai",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "6250018",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "140.00",
+    "shipping_fee": "50.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "84d1b4c3-dee1-41c8-b356-aa46ff33acfa",
+    "order_number": "223146",
+    "payment_event_id": "f0a88b53-7a97-4b1e-9c95-001a66a39dda",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T09:30:24.816Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 17,
+  "fields": {
+    "product": 2,
+    "customer": [
+      "sanjeev"
+    ],
+    "delivery_user": null,
+    "customer_name": "sanjeev kanth",
+    "customer_phone": "+91 9879879879",
+    "delivery_address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "delivery_city": "madurai",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "625018",
+    "quantity": 3,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "320.00",
+    "shipping_fee": "50.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "601d65e2-9bb8-4b68-a3ed-00acfbb28650",
+    "order_number": "587644",
+    "payment_event_id": "33d9cea7-3b21-45dd-a6c5-c9895f596725",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T10:01:26.270Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 18,
+  "fields": {
+    "product": 2,
+    "customer": [
+      "sanjeev"
+    ],
+    "delivery_user": null,
+    "customer_name": "sanjeev kanth",
+    "customer_phone": "+91 9879879879",
+    "delivery_address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "delivery_city": "madurai",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "625018",
+    "quantity": 13,
+    "status": "pending",
+    "payment_status": "pending",
+    "payment_method": "online",
+    "total_amount": "1260.00",
+    "shipping_fee": "50.00",
+    "packing_fee": "40.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "c3121615-81c5-457a-a89d-bb552bcc225a",
+    "order_number": "862773",
+    "payment_event_id": null,
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T13:10:53.703Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 19,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "admin"
+    ],
+    "delivery_user": null,
+    "customer_name": "admin 1",
+    "customer_phone": "+91 9876543210",
+    "delivery_address": "123 Main Street",
+    "delivery_city": "City",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "123456",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "140.00",
+    "shipping_fee": "50.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "1a342e38-bace-470e-9311-3b9e5b307cf3",
+    "order_number": "239548",
+    "payment_event_id": "0ab75217-7ccf-4af2-8082-3cd1a965a3f3",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T16:37:54.699Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 20,
+  "fields": {
+    "product": 1,
+    "customer": [
+      "admin"
+    ],
+    "delivery_user": null,
+    "customer_name": "admin 1",
+    "customer_phone": "+91 9876543210",
+    "delivery_address": "123 Main Street",
+    "delivery_city": "City",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "123456",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "140.00",
+    "shipping_fee": "50.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "7dd345ea-a5dd-4b6b-afdd-009678e3df1d",
+    "order_number": "819353",
+    "payment_event_id": "3c2d3a6b-9080-4131-8e42-50ba14032258",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T17:00:31.673Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 21,
+  "fields": {
+    "product": 1,
+    "customer": null,
+    "delivery_user": null,
+    "customer_name": "Test Tester",
+    "customer_phone": "",
+    "delivery_address": "",
+    "delivery_city": "",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "",
+    "quantity": 2,
+    "status": "pending",
+    "payment_status": "failed",
+    "payment_method": "online",
+    "total_amount": "180.00",
+    "shipping_fee": "0.00",
+    "packing_fee": "0.00",
+    "gst_amount": "0.00",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "20ca1fee-272c-4e07-bb3a-b8d016483417",
+    "order_number": "275122",
+    "payment_event_id": null,
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-29T17:19:06.905Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.order",
+  "pk": 22,
+  "fields": {
+    "product": 6,
+    "customer": [
+      "sanjeev"
+    ],
+    "delivery_user": null,
+    "customer_name": "sanjeev kanth",
+    "customer_phone": "+91 9879879879",
+    "delivery_address": "No. 326, Athalai Main Road, Sikkandar Savadi, Koodal Nagar,",
+    "delivery_city": "madurai",
+    "delivery_state": "Tamil Nadu",
+    "delivery_postal_code": "625018",
+    "quantity": 1,
+    "status": "pending",
+    "payment_status": "paid",
+    "payment_method": "online",
+    "total_amount": "156.20",
+    "shipping_fee": "50.00",
+    "packing_fee": "0.00",
+    "gst_amount": "16.20",
+    "discount_amount": "0.00",
+    "combo_offer": null,
+    "combo_name": "",
+    "combo_discount": "0.00",
+    "coupon": null,
+    "coupon_code": "",
+    "payment_reference": "80222ce0-2669-45ea-b569-96199ebf4cd2",
+    "order_number": "295032",
+    "payment_event_id": "2a95feb0-6a4e-401d-879f-1da0dc248611",
+    "cashfree_order_id": "",
+    "cashfree_payment_session_id": "",
+    "razorpay_order_id": "",
+    "razorpay_payment_id": "",
+    "razorpay_signature": "",
+    "created_at": "2026-10-30T09:59:22.304Z",
+    "delivered_at": null
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 1,
+  "fields": {
+    "order": 1,
+    "product": 6,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 2,
+  "fields": {
+    "order": 2,
+    "product": 1,
+    "quantity": 5,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 3,
+  "fields": {
+    "order": 2,
+    "product": 6,
+    "quantity": 3,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 4,
+  "fields": {
+    "order": 3,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 5,
+  "fields": {
+    "order": 3,
+    "product": 3,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 6,
+  "fields": {
+    "order": 4,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 7,
+  "fields": {
+    "order": 5,
+    "product": 7,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 8,
+  "fields": {
+    "order": 6,
+    "product": 8,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 9,
+  "fields": {
+    "order": 7,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 10,
+  "fields": {
+    "order": 8,
+    "product": 3,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 11,
+  "fields": {
+    "order": 8,
+    "product": 6,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 12,
+  "fields": {
+    "order": 9,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 13,
+  "fields": {
+    "order": 10,
+    "product": 8,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 14,
+  "fields": {
+    "order": 11,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 15,
+  "fields": {
+    "order": 12,
+    "product": 3,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 16,
+  "fields": {
+    "order": 13,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 17,
+  "fields": {
+    "order": 14,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 18,
+  "fields": {
+    "order": 15,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 19,
+  "fields": {
+    "order": 16,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 20,
+  "fields": {
+    "order": 17,
+    "product": 2,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 21,
+  "fields": {
+    "order": 17,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 22,
+  "fields": {
+    "order": 17,
+    "product": 3,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 23,
+  "fields": {
+    "order": 18,
+    "product": 2,
+    "quantity": 2,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 24,
+  "fields": {
+    "order": 18,
+    "product": 4,
+    "quantity": 4,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 25,
+  "fields": {
+    "order": 18,
+    "product": 3,
+    "quantity": 3,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 26,
+  "fields": {
+    "order": 18,
+    "product": 6,
+    "quantity": 2,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 27,
+  "fields": {
+    "order": 18,
+    "product": 8,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 28,
+  "fields": {
+    "order": 18,
+    "product": 7,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 29,
+  "fields": {
+    "order": 19,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 30,
+  "fields": {
+    "order": 20,
+    "product": 1,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.orderitem",
+  "pk": 31,
+  "fields": {
+    "order": 22,
+    "product": 6,
+    "quantity": 1,
+    "unit_price": "90.00"
+  }
+},
+{
+  "model": "main.sitedetails",
+  "pk": 1,
+  "fields": {
+    "about_kicker": "About J CSD",
+    "about_title": "Better drinks.<br>Less noise.",
+    "about_lead": "We make refreshing canned drinks for everyday moments. Bold flavours, clean design, and nothing unnecessary.",
+    "about_note": "Pick a flavour, make it yours, and enjoy the moment.",
+    "about_action_text": "Explore the lineup",
+    "about_action_url": "/#shop",
+    "contact_kicker": "Get in touch",
+    "contact_title": "Let's connect.",
+    "contact_lead": "Have questions about our flavours, bulk wholesale, or an active order? Reach out via direct channels or send us a quick note.",
+    "support_email": "support@jcsd.com",
+    "support_phone": "+91 80568 38888",
+    "whatsapp_number": "+91 80568 38888",
+    "operating_hours": "Monday – Saturday: 9:00 AM – 8:00 PM IST\nSunday: 10:00 AM – 6:00 PM IST\nEveryday order dispatch & delivery tracking.",
+    "shipping_fee_local": "50.00",
+    "shipping_fee_other": "100.00",
+    "shipping_local_states": "Tamil Nadu, Kerala ,Andhra Pradesh",
+    "packing_free_cans": 6,
+    "packing_cost_per_batch": "20.00",
+    "packing_batch_size": 6,
+    "gst_rate": "18.00",
+    "popup_enabled": true,
+    "popup_offer_type": "combo",
+    "popup_combo": null,
+    "popup_coupon": null,
+    "popup_title": "Special Deal of the Day!",
+    "popup_message": "Mix and match handcrafted canned drinks to unlock special bundle savings!",
+    "popup_badge_text": "TODAY'S SPECIAL",
+    "homepage_video_enabled": true,
+    "homepage_video_id": "74djFvJjPkc",
+    "homepage_video_autoplay": true,
+    "homepage_video_loop": true,
+    "homepage_video_mute": true,
+    "homepage_video_heading": "EXPERIENCE THE STREET FIZZ",
+    "homepage_video_subheading": "Raw carbonation. Pure attitude. Built for everyday moments.",
+    "updated_at": "2026-11-16T07:37:41.225Z"
+  }
+},
+{
+  "model": "main.contactmessage",
+  "pk": 1,
+  "fields": {
+    "name": "Alex Mercer",
+    "email": "alex@mercerdrinks.com",
+    "subject": "General inquiry",
+    "message": "Hello J CSD team, we would love to stock your drinks in our 5 cafe locations!",
+    "is_read": false,
+    "created_at": "2026-10-27T10:09:24.160Z"
+  }
+},
+{
+  "model": "main.contactmessage",
+  "pk": 2,
+  "fields": {
+    "name": "Test User",
+    "email": "test@example.com",
+    "subject": "General inquiry",
+    "message": "Hello there",
+    "is_read": false,
+    "created_at": "2026-10-29T07:56:09.930Z"
+  }
+},
+{
+  "model": "main.contactmessage",
+  "pk": 3,
+  "fields": {
+    "name": "sanjeev kanth",
+    "email": "sanjeev@gmail.com",
+    "subject": "General inquiry",
+    "message": "hello",
+    "is_read": false,
+    "created_at": "2026-10-29T09:32:44.801Z"
+  }
+},
+{
+  "model": "main.websiteview",
+  "pk": 1,
+  "fields": {
+    "ip_address": "127.0.0.1",
+    "user": [
+      "admin"
+    ],
+    "username_display": "admin",
+    "user_email": "admin@localhost",
+    "date": "2026-11-16",
+    "first_visit": "2026-11-16T07:27:36.071Z",
+    "last_visit": "2026-11-16T07:41:41.800Z",
+    "view_count": 4,
+    "last_page": "/",
+    "device": "Desktop • Browser",
+    "user_agent": "",
+    "session_key": ""
+  }
+},
+{
+  "model": "main.websiteview",
+  "pk": 2,
+  "fields": {
+    "ip_address": "127.0.0.1",
+    "user": null,
+    "username_display": "admin_setup_test",
+    "user_email": "test@example.com",
+    "date": "2026-11-17",
+    "first_visit": "2026-11-17T06:44:42.936Z",
+    "last_visit": "2026-11-17T18:48:18.422Z",
+    "view_count": 161,
+    "last_page": "/admin-login/",
+    "device": "Desktop • Browser",
+    "user_agent": "",
+    "session_key": ""
+  }
+},
+{
+  "model": "main.story",
+  "pk": 1,
+  "fields": {
+    "title": "Sandro Dias breaks two world records on the biggest skate ramp ever",
+    "slug": "sandro-dias-breaks-two-world-records-on-the-biggest-skate-ramp-ever",
+    "excerpt": "Skateboarding history made: Sandro Dias drops in from a 22 storey building and shatters the high-speed ramp barrier.",
+    "content": "Brazilian skateboarding legend Sandro Dias etched his name into history by conquering the world's most daunting mega ramp, establishing new world records for vertical drop-in height and top speed on four wheels.",
+    "image": "",
+    "image_data_url": "https://images.unsplash.com/photo-1520045884218-a66e955d041c?auto=format&fit=crop&w=800&q=80",
+    "category": "SKATEBOARDING",
+    "read_time": "6 min read",
+    "link_url": "",
+    "order": 1,
+    "is_active": true,
+    "created_at": "2026-11-16T10:17:15.352Z",
+    "updated_at": "2026-11-16T10:17:15.352Z"
+  }
+},
+{
+  "model": "main.story",
+  "pk": 2,
+  "fields": {
+    "title": "What is Red Bull 64 Bars?",
+    "slug": "what-is-red-bull-64-bars",
+    "excerpt": "A quick and simple explanation to the concept of a unique global project that is challenging rap artists around the globe.",
+    "content": "Red Bull 64 Bars is an unadulterated freestyle cipher format: no chorus, no hooks, no distractions — just straight raw lyrical talent over hard-hitting production.",
+    "image": "",
+    "image_data_url": "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=800&q=80",
+    "category": "MUSIC",
+    "read_time": "2 min read",
+    "link_url": "",
+    "order": 2,
+    "is_active": true,
+    "created_at": "2026-11-16T10:17:15.358Z",
+    "updated_at": "2026-11-16T10:17:15.358Z"
+  }
+},
+{
+  "model": "main.story",
+  "pk": 3,
+  "fields": {
+    "title": "Back with a bang: B-Girl Bar-B's road to Red Bull BC One World Final Tokyo",
+    "slug": "back-with-a-bang-b-girl-bar-bs-road-to-red-bull-bc-one-world-final-tokyo",
+    "excerpt": "After two years of near misses, Bar-B stormed back to claim the Red Bull BC One Cypher India championship.",
+    "content": "With electrifying footwork and gravity-defying freezes, B-Girl Bar-B took the national breaking scene by storm on her way to representing on the global stage in Tokyo.",
+    "image": "",
+    "image_data_url": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+    "category": "BREAKING",
+    "read_time": "5 min read",
+    "link_url": "",
+    "order": 3,
+    "is_active": true,
+    "created_at": "2026-11-16T10:17:15.361Z",
+    "updated_at": "2026-11-16T10:17:15.361Z"
+  }
+},
+{
+  "model": "main.story",
+  "pk": 4,
+  "fields": {
+    "title": "Lyrics to '43 Ki Hawa' by Vijay DK x Karan Kanchan",
+    "slug": "lyrics-to-43-ki-hawa-by-vijay-dk-x-karan-kanchan",
+    "excerpt": "Lyrics and exclusive track breakdown of the high-octane collaboration from season 3 of Red Bull 64 Bars India.",
+    "content": "A bar-for-bar breakdown of the cultural punchlines and street metaphors driving the explosive sonic explosion created by Vijay DK and Karan Kanchan.",
+    "image": "",
+    "image_data_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80",
+    "category": "MUSIC",
+    "read_time": "3 min read",
+    "link_url": "",
+    "order": 4,
+    "is_active": true,
+    "created_at": "2026-11-16T10:17:15.365Z",
+    "updated_at": "2026-11-16T10:17:15.365Z"
+  }
+}
+]
