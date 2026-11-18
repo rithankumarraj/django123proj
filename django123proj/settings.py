@@ -157,11 +157,10 @@ else:
     if os.environ.get("VERCEL") == "1":
         sqlite_path = Path("/tmp/db.sqlite3")
         seed_path = BASE_DIR / "seed_db.sqlite3"
-        if seed_path.exists():
+        if seed_path.exists() and not sqlite_path.exists():
             import shutil
             try:
-                if not sqlite_path.exists() or sqlite_path.stat().st_size != seed_path.stat().st_size:
-                    shutil.copyfile(str(seed_path), str(sqlite_path))
+                shutil.copyfile(str(seed_path), str(sqlite_path))
             except Exception:
                 pass
     else:
@@ -174,6 +173,10 @@ else:
             "CONN_MAX_AGE": 0,
         }
     }
+
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_COOKIE_AGE = 1209600
+SESSION_COOKIE_HTTPONLY = True
 
 LOGGING = {
     "version": 1,
