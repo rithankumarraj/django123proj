@@ -55,21 +55,27 @@ def health_debug(request):
             pg_probe_status = "FAILED"
             pg_probe_error = str(e)
     
+    all_db_vars = {}
+    for k, v in os.environ.items():
+        if any(w in k.upper() for w in ["DATABASE", "POSTGRES", "NEON", "SQL"]):
+            all_db_vars[k] = re.sub(r"://([^:]+):([^@]+)@", r"://\1:****@", v)
+
     html = f"""<!DOCTYPE html>
 <html>
 <body style="font-family: monospace; background: #08080a; color: #fff; padding: 24px;">
     <h2>System Health & Diagnostics</h2>
-    <p><strong>Build Version:</strong> v7-db-probe</p>
+    <p><strong>Build Version:</strong> v8-env-inspect</p>
     <p><strong>Django:</strong> {django.get_version()}</p>
     <p><strong>Active Database Engine:</strong> {connection.settings_dict.get('ENGINE')}</p>
     <p><strong>Active Database Name:</strong> {connection.settings_dict.get('NAME')}</p>
     <p><strong>Active Database Status:</strong> <span style="color: {'#4ade80' if db_status == 'CONNECTED' else '#f43f5e'}; font-weight: bold;">{db_status}</span></p>
     <p><strong>USE_POSTGRES env:</strong> {os.environ.get('USE_POSTGRES')}</p>
-    <p><strong>PostgreSQL URL present:</strong> {'YES' if bool(db_url) else 'NO'}</p>
-    <p><strong>PostgreSQL URL:</strong> {pg_masked}</p>
+    <h3>All Database Env Variables in Vercel:</h3>
+    <ul>
+        {"".join(f"<li><strong>{k}:</strong> {v}</li>" for k, v in all_db_vars.items())}
+    </ul>
     <p><strong>PostgreSQL Probe:</strong> <span style="color: {'#4ade80' if pg_probe_status == 'SUCCESS_REACHABLE' else '#f43f5e'}; font-weight: bold;">{pg_probe_status}</span></p>
     <p><strong>PostgreSQL Probe Error:</strong> {pg_probe_error or 'None'}</p>
-    <p><strong>VERCEL Env:</strong> {os.environ.get('VERCEL')}</p>
 </body>
 </html>"""
     return HttpResponse(html, content_type="text/html")
