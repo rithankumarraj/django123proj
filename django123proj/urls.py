@@ -36,18 +36,39 @@ def health_debug(request):
     except Exception as e:
         db_status = "ERROR"
         db_error = str(e)
+
+    db_url = os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL_UNPOOLED") or ""
+    pg_probe_status = "NO_DATABASE_URL"
+    pg_probe_error = ""
+    pg_masked = ""
+    if db_url:
+        import re
+        pg_masked = re.sub(r"://([^:]+):([^@]+)@", r"://\1:****@", db_url)
+        try:
+            import psycopg
+            conn = psycopg.connect(db_url, connect_timeout=4)
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1;")
+            conn.close()
+            pg_probe_status = "SUCCESS_REACHABLE"
+        except Exception as e:
+            pg_probe_status = "FAILED"
+            pg_probe_error = str(e)
     
     html = f"""<!DOCTYPE html>
 <html>
 <body style="font-family: monospace; background: #08080a; color: #fff; padding: 24px;">
     <h2>System Health & Diagnostics</h2>
-    <p><strong>Build Version:</strong> v6-resilient-sqlite-ready</p>
+    <p><strong>Build Version:</strong> v7-db-probe</p>
     <p><strong>Django:</strong> {django.get_version()}</p>
-    <p><strong>Database Status:</strong> <span style="color: {'#4ade80' if db_status == 'CONNECTED' else '#f43f5e'}; font-weight: bold;">{db_status}</span></p>
-    <p><strong>Database Error:</strong> {db_error or 'None'}</p>
-    <p><strong>Database Engine:</strong> {connection.settings_dict.get('ENGINE')}</p>
-    <p><strong>Database Host:</strong> {connection.settings_dict.get('HOST')}</p>
-    <p><strong>Database Name:</strong> {connection.settings_dict.get('NAME')}</p>
+    <p><strong>Active Database Engine:</strong> {connection.settings_dict.get('ENGINE')}</p>
+    <p><strong>Active Database Name:</strong> {connection.settings_dict.get('NAME')}</p>
+    <p><strong>Active Database Status:</strong> <span style="color: {'#4ade80' if db_status == 'CONNECTED' else '#f43f5e'}; font-weight: bold;">{db_status}</span></p>
+    <p><strong>USE_POSTGRES env:</strong> {os.environ.get('USE_POSTGRES')}</p>
+    <p><strong>PostgreSQL URL present:</strong> {'YES' if bool(db_url) else 'NO'}</p>
+    <p><strong>PostgreSQL URL:</strong> {pg_masked}</p>
+    <p><strong>PostgreSQL Probe:</strong> <span style="color: {'#4ade80' if pg_probe_status == 'SUCCESS_REACHABLE' else '#f43f5e'}; font-weight: bold;">{pg_probe_status}</span></p>
+    <p><strong>PostgreSQL Probe Error:</strong> {pg_probe_error or 'None'}</p>
     <p><strong>VERCEL Env:</strong> {os.environ.get('VERCEL')}</p>
 </body>
 </html>"""
