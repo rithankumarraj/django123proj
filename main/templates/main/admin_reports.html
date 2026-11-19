@@ -5,16 +5,16 @@
 {% block page_description %}Full-fledged store analytics: gross revenue, product cost of goods sold, net profit margins, top selling products by volume, and customer purchase frequency.{% endblock %}
 
 {% block topbar_actions %}
-  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-    <a href="{% url 'admin_reports_export_csv' %}?table=all{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;" title="Export complete multi-table financial report to CSV">
+  <div class="report-topbar-actions">
+    <a href="{% url 'admin_reports_export_csv' %}?table=all{% if range_filter %}&range={{ range_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn-secondary report-action-btn" title="Export complete multi-table financial report to CSV">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
         <polyline points="7 10 12 15 17 10"></polyline>
         <line x1="12" y1="15" x2="12" y2="3"></line>
       </svg>
-      <span>Export Full Report (CSV)</span>
+      <span>Export CSV</span>
     </a>
-    <button type="button" onclick="window.print()" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.8rem; cursor: pointer;">
+    <button type="button" onclick="window.print()" class="btn-secondary report-action-btn" title="Print or save PDF">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="6 9 6 2 18 2 18 9"></polyline>
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -22,7 +22,7 @@
       </svg>
       <span>Print / PDF</span>
     </button>
-    <a href="{% url 'admin_reports' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+    <a href="{% url 'admin_reports' %}" class="btn-secondary report-action-btn" title="Refresh report">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="23 4 23 10 17 10"></polyline>
         <polyline points="1 20 1 14 7 14"></polyline>
@@ -35,6 +35,23 @@
 
 {% block admin_content %}
 <style>
+  .report-topbar-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .report-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    border-radius: 8px;
+  }
+
   .report-toolbar {
     background: #14191c;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -80,6 +97,17 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+  }
+  .custom-date-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .custom-date-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .date-picker-input {
     background: rgba(255, 255, 255, 0.05);
@@ -132,7 +160,7 @@
   /* Financial KPI Cards */
   .report-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 26px;
   }
@@ -204,6 +232,31 @@
     align-items: center;
     gap: 10px;
   }
+
+  /* Table Scroll Container & Mobile Hints */
+  .report-table-scroll-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-table-hint {
+    display: none;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.025);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    font-weight: 600;
+    align-items: center;
+    gap: 6px;
+  }
+  .report-table-wide {
+    min-width: 820px;
+  }
+  .report-table-mid {
+    min-width: 580px;
+  }
+
   .report-table {
     width: 100%;
     border-collapse: collapse;
@@ -318,21 +371,179 @@
     }
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1100px) {
     .report-kpi-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
   }
-  @media (max-width: 640px) {
-    .report-kpi-grid {
-      grid-template-columns: 1fr;
+
+  @media (max-width: 768px) {
+    .report-topbar-actions {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr 0.95fr;
+      gap: 6px;
+      width: 100%;
     }
-    .profit-equation-banner {
+    .report-action-btn {
+      padding: 7px 6px;
+      font-size: 0.74rem;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .report-toolbar {
       flex-direction: column;
-      align-items: flex-start;
+      align-items: stretch;
+      padding: 12px 14px;
+      gap: 12px;
+    }
+    .time-pills-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+    }
+    .time-pill {
+      padding: 6px 12px;
+      font-size: 0.74rem;
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    .custom-date-form {
+      width: 100%;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 10px;
+    }
+    .custom-date-container {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+    }
+    .custom-date-inputs {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+    }
+    .date-picker-input {
+      width: 100%;
+      padding: 7px 8px;
+      font-size: 0.76rem;
+      box-sizing: border-box;
+    }
+
+    /* Profit equation banner on tablets/phones */
+    .profit-equation-banner {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 14px;
+    }
+    .eq-block {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
     }
     .eq-op {
       display: none;
+    }
+    .eq-val {
+      font-size: 1.3rem;
+    }
+    .eq-net-block {
+      grid-column: 1 / -1;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+    }
+    .eq-net-block.loss {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.28);
+    }
+    .eq-aov-box {
+      grid-column: 1 / -1;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* KPI grid */
+    .report-kpi-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px !important;
+      margin-bottom: 20px;
+    }
+    .report-kpi-card {
+      padding: 14px;
+    }
+    .report-kpi-card:nth-child(5) {
+      grid-column: 1 / -1;
+    }
+    .report-kpi-card .kpi-num {
+      font-size: 1.45rem;
+    }
+    .report-kpi-card .kpi-title {
+      font-size: 0.68rem;
+    }
+
+    /* Section headers */
+    .report-section-header {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 14px 16px;
+      gap: 10px;
+    }
+    .report-section-title {
+      font-size: 0.98rem;
+    }
+    .report-section-header .btn-secondary {
+      width: 100%;
+      justify-content: center;
+      padding: 8px 12px;
+    }
+
+    /* Table styling & sticky name column */
+    .mobile-table-hint {
+      display: flex;
+    }
+    .report-table th {
+      padding: 10px 12px;
+      font-size: 0.68rem;
+      white-space: nowrap;
+    }
+    .report-table td {
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .report-table th:nth-child(2),
+    .report-table td:nth-child(2) {
+      position: sticky;
+      left: 0;
+      background: #14191c;
+      z-index: 2;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .custom-date-container {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .custom-date-submit {
+      width: 100%;
+      justify-content: center;
+      padding: 8px 12px;
+    }
+    .profit-equation-banner {
+      grid-template-columns: 1fr;
+    }
+    .eq-block {
+      grid-column: 1 / -1;
     }
   }
 </style>
@@ -349,11 +560,15 @@
 
   <form method="get" action="{% url 'admin_reports' %}" class="custom-date-form">
     <input type="hidden" name="range" value="custom">
-    <span style="font-size: 0.76rem; color: rgba(255,255,255,0.5);">Custom:</span>
-    <input type="date" name="start_date" value="{{ start_date }}" class="date-picker-input" required>
-    <span style="color: rgba(255,255,255,0.4);">to</span>
-    <input type="date" name="end_date" value="{{ end_date }}" class="date-picker-input" required>
-    <button type="submit" class="btn-primary" style="padding: 6px 12px; font-size: 0.78rem; border-radius: 8px;">Filter</button>
+    <div class="custom-date-container">
+      <span class="custom-date-label" style="font-size: 0.76rem; color: rgba(255,255,255,0.5);">Custom:</span>
+      <div class="custom-date-inputs">
+        <input type="date" name="start_date" value="{{ start_date }}" class="date-picker-input" required>
+        <span style="color: rgba(255,255,255,0.4); font-size: 0.76rem;">to</span>
+        <input type="date" name="end_date" value="{{ end_date }}" class="date-picker-input" required>
+      </div>
+      <button type="submit" class="btn-primary custom-date-submit" style="padding: 6px 14px; font-size: 0.78rem; border-radius: 8px;">Filter</button>
+    </div>
   </form>
 </div>
 
@@ -383,7 +598,7 @@
 
   <div class="eq-op">=</div>
 
-  <div class="eq-block">
+  <div class="eq-block eq-net-block {% if not is_profitable %}loss{% endif %}">
     <div class="eq-label">Net Profit ({{ overall_margin_pct }}% Net Margin)</div>
     <div class="eq-val" style="color: {% if is_profitable %}#10b981{% else %}#ef4444{% endif %};">
       {% if is_profitable %}+{% endif %}₹{{ net_profit|floatformat:2 }}
@@ -393,7 +608,7 @@
     </div>
   </div>
 
-  <div style="background: rgba(255,255,255,0.06); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+  <div class="eq-aov-box" style="background: rgba(255,255,255,0.06); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
     <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 800;">Average Order Value</div>
     <div style="font-size: 1.3rem; font-weight: 800; color: #f6be5d; margin-top: 2px;">₹{{ avg_order_value }}</div>
     <div style="font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 2px;">{{ filter_label }}</div>
@@ -401,7 +616,7 @@
 </div>
 
 <!-- 5 Summary KPI Cards -->
-<div class="report-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+<div class="report-kpi-grid">
   <!-- 1. Gross Sales -->
   <div class="report-kpi-card" style="--kpi-accent: #3b82f6;">
     <div class="kpi-title">
@@ -490,8 +705,14 @@
     </a>
   </div>
 
-  <div style="overflow-x: auto;">
-    <table class="report-table">
+  <div class="mobile-table-hint">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>Swipe horizontally to view all volume & profit metrics &rarr;</span>
+  </div>
+  <div class="report-table-scroll-container">
+    <table class="report-table report-table-wide">
       <thead>
         <tr>
           <th style="width: 50px;">Rank</th>
@@ -608,12 +829,14 @@
     </a>
   </div>
 
-  <div style="overflow-x: auto;">
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Orders Appeared In</th>
+  <div class="mobile-table-hint">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>Swipe horizontally to view inclusion rates & basket size &rarr;</span>
+  </div>
+  <div class="report-table-scroll-container">
+    <table class="report-table report-table-mid">
           <th>Order Inclusion Rate</th>
           <th>Average Cans / Order</th>
           <th>Cart Popularity Status</th>
@@ -687,8 +910,14 @@
     </a>
   </div>
 
-  <div style="overflow-x: auto;">
-    <table class="report-table">
+  <div class="mobile-table-hint">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>Swipe horizontally to view category margins & tax totals &rarr;</span>
+  </div>
+  <div class="report-table-scroll-container">
+    <table class="report-table report-table-wide">
       <thead>
         <tr>
           <th>Category</th>
@@ -755,8 +984,14 @@
     </a>
   </div>
 
-  <div style="overflow-x: auto;">
-    <table class="report-table">
+  <div class="mobile-table-hint">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>Swipe horizontally to view order profitability audit log &rarr;</span>
+  </div>
+  <div class="report-table-scroll-container">
+    <table class="report-table report-table-wide">
       <thead>
         <tr>
           <th>Order</th>

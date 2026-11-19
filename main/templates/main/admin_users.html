@@ -5,28 +5,45 @@
 {% block page_description %}Track registered customer accounts, delivery partners, staff roles, purchase counts, lifetime spending, and verified contact details.{% endblock %}
 
 {% block topbar_actions %}
-  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-    <a href="{% url 'admin_reports' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+  <div class="users-topbar-actions">
+    <a href="{% url 'admin_reports' %}" class="btn-secondary users-action-btn" title="View Sales & Profit Report">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"></line>
         <line x1="12" y1="20" x2="12" y2="4"></line>
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
-      <span>View Sales Report</span>
+      <span>Sales Report</span>
     </a>
-    <a href="{% url 'admin_users' %}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; padding: 8px 14px; font-size: 0.8rem;">
+    <a href="{% url 'admin_users' %}" class="btn-secondary users-action-btn" title="Refresh User Directory">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="23 4 23 10 17 10"></polyline>
         <polyline points="1 20 1 14 7 14"></polyline>
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
       </svg>
-      <span>Refresh Users</span>
+      <span>Refresh</span>
     </a>
   </div>
 {% endblock %}
 
 {% block admin_content %}
 <style>
+  .users-topbar-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .users-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    border-radius: 8px;
+  }
+
   .users-stats-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -144,6 +161,17 @@
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+  .mobile-table-hint {
+    display: none;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.025);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    font-weight: 600;
+    align-items: center;
+    gap: 6px;
   }
   .users-table-responsive {
     width: 100%;
@@ -326,13 +354,126 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
-  @media (max-width: 640px) {
+
+  @media (max-width: 768px) {
+    .users-topbar-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      width: 100%;
+    }
+    .users-action-btn {
+      padding: 7px 10px;
+      font-size: 0.74rem;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .users-stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stat-card-kpi {
+      padding: 12px 14px;
+    }
+    .stat-card-kpi .kpi-label {
+      font-size: 0.68rem;
+      margin-bottom: 4px;
+    }
+    .stat-card-kpi .kpi-number {
+      font-size: 1.45rem;
+      margin-bottom: 4px;
+    }
+    .stat-card-kpi .kpi-sub {
+      font-size: 0.68rem;
+      line-height: 1.35;
+    }
+
+    .users-filter-card {
+      padding: 12px 14px;
+      gap: 10px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .users-search-form {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      gap: 6px;
+    }
+    .users-search-input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+    .role-pills-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .role-pill {
+      padding: 6px 8px;
+      font-size: 0.72rem;
+      text-align: center;
+      justify-content: center;
+    }
+
+    .mobile-table-hint {
+      display: flex;
+    }
+    .users-table {
+      min-width: 720px;
+      font-size: 0.8rem;
+    }
+    .users-table th {
+      padding: 10px 12px;
+      font-size: 0.68rem;
+      white-space: nowrap;
+    }
+    .users-table td {
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .users-table th:first-child,
+    .users-table td:first-child {
+      position: sticky;
+      left: 0;
+      background: #14191c;
+      z-index: 2;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .user-modal-box {
+      width: 100%;
+      max-height: 94vh;
+      border-radius: 14px;
+      margin: 8px;
+    }
+    .user-modal-header {
+      padding: 14px 16px;
+    }
+    .user-modal-body {
+      padding: 14px 16px;
+    }
+    .modal-account-meta-grid {
+      grid-template-columns: 1fr !important;
+      gap: 8px !important;
+    }
+    .modal-account-meta-grid > div {
+      grid-column: 1 / -1 !important;
+    }
+  }
+
+  @media (max-width: 360px) {
     .users-stats-grid {
       grid-template-columns: 1fr;
     }
-    .users-filter-card {
-      flex-direction: column;
-      align-items: stretch;
+    .role-pills-bar {
+      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -411,6 +552,12 @@
 
 <!-- Users Table -->
 <div class="users-table-card">
+  <div class="mobile-table-hint">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>Swipe horizontally to view role, contact & spend &rarr;</span>
+  </div>
   <div class="users-table-responsive">
     <table class="users-table">
       <thead>
@@ -558,7 +705,7 @@
 
     <div class="user-modal-body">
       <!-- Contact & Account Meta -->
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 22px;">
+      <div class="modal-account-meta-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 22px;">
         <div style="background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
           <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 800; margin-bottom: 4px;">Role & Status</div>
           <div id="modalUserRole" style="font-size: 0.88rem; font-weight: 700; color: #f6be5d;">Customer</div>
