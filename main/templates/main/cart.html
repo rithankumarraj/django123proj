@@ -1833,7 +1833,7 @@
           }
           if (cartPostBadge) {
             cartPostBadge.className = 'small mt-1 text-success fw-medium';
-            cartPostBadge.innerHTML = '✓ Verified by India Post: ' + dist + ', ' + stName;
+            cartPostBadge.innerHTML = '✓ Verified Location: ' + dist + ', ' + stName;
             cartPostBadge.style.display = 'block';
           }
         }
@@ -1859,7 +1859,7 @@
             .then(function(data) {
               if (!data || !data.is_valid) {
                 cartPostBadge.className = 'small mt-1 text-warning';
-                cartPostBadge.innerHTML = '⚠️ PIN code not found in India Post directory';
+                cartPostBadge.innerHTML = '⚠️ Invalid or unserviceable PIN code';
                 cartPostBadge.style.display = 'block';
                 return;
               }
@@ -1882,11 +1882,11 @@
 
               if (data.matches_state && data.matches_city) {
                 cartPostBadge.className = 'small mt-1 text-success fw-medium';
-                cartPostBadge.innerHTML = '✓ Verified by India Post: ' + dist + (st ? ', ' + st : '');
+                cartPostBadge.innerHTML = '✓ Verified Location: ' + dist + (st ? ', ' + st : '');
                 cartPostBadge.style.display = 'block';
               } else if (dist || st) {
                 cartPostBadge.className = 'small mt-1 text-info';
-                cartPostBadge.innerHTML = 'ℹ️ India Post Directory: <strong>' + dist + ', ' + st + '</strong> <button type="button" onclick="applyCartIndiaPostAddress(\'' + dist.replace(/'/g, "\\'") + '\', \'' + st.replace(/'/g, "\\'") + '\')" style="background: none; border: none; color: #5aa3ff; text-decoration: underline; font-size: inherit; cursor: pointer; padding: 0 4px;">Update City & State</button>';
+                cartPostBadge.innerHTML = 'ℹ️ Detected Location: <strong>' + dist + ', ' + st + '</strong> <button type="button" onclick="applyCartIndiaPostAddress(\'' + dist.replace(/'/g, "\\'") + '\', \'' + st.replace(/'/g, "\\'") + '\')" style="background: none; border: none; color: #5aa3ff; text-decoration: underline; font-size: inherit; cursor: pointer; padding: 0 4px;">Update City & State</button>';
                 cartPostBadge.style.display = 'block';
               }
             })

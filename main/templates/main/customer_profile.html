@@ -655,7 +655,7 @@
             .then(function(data) {
               if (!data || !data.is_valid) {
                 badgeEl.style.color = '#f6be5d';
-                badgeEl.innerHTML = '⚠️ PIN code not found in India Post directory';
+                badgeEl.innerHTML = '⚠️ Invalid or unserviceable PIN code';
                 badgeEl.style.display = 'block';
                 return;
               }
@@ -672,11 +672,11 @@
 
               if (data.matches_state && data.matches_city) {
                 badgeEl.style.color = '#2fcf7a';
-                badgeEl.innerHTML = '✓ Verified by India Post: ' + dist + (st ? ', ' + st : '');
+                badgeEl.innerHTML = '✓ Verified Location: ' + dist + (st ? ', ' + st : '');
                 badgeEl.style.display = 'block';
               } else if (dist || st) {
                 badgeEl.style.color = '#5aa3ff';
-                badgeEl.innerHTML = 'ℹ️ India Post Directory: <strong>' + dist + ', ' + st + '</strong>';
+                badgeEl.innerHTML = 'ℹ️ Detected Location: <strong>' + dist + ', ' + st + '</strong>';
                 badgeEl.style.display = 'block';
               }
             })

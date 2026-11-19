@@ -965,7 +965,7 @@
                 }
                 if (postBadge) {
                     postBadge.className = 'small mt-1 text-success fw-medium';
-                    postBadge.innerHTML = '✓ Verified by India Post: ' + district + ', ' + stateName;
+                    postBadge.innerHTML = '✓ Verified Location: ' + district + ', ' + stateName;
                     postBadge.style.display = 'block';
                 }
             }
@@ -994,7 +994,7 @@
                     .then(function(data) {
                         if (!data || !data.is_valid) {
                             postBadge.className = 'small mt-1 text-warning';
-                            postBadge.innerHTML = '⚠️ PIN code not found in India Post directory';
+                            postBadge.innerHTML = '⚠️ Invalid or unserviceable PIN code';
                             postBadge.style.display = 'block';
                             return;
                         }
@@ -1020,11 +1020,11 @@
 
                         if (data.matches_state && data.matches_city) {
                             postBadge.className = 'small mt-1 text-success fw-medium';
-                            postBadge.innerHTML = '✓ Verified by India Post: ' + dist + (st ? ', ' + st : '');
+                            postBadge.innerHTML = '✓ Verified Location: ' + dist + (st ? ', ' + st : '');
                             postBadge.style.display = 'block';
                         } else if (dist || st) {
                             postBadge.className = 'small mt-1 text-info';
-                            postBadge.innerHTML = 'ℹ️ India Post Directory: <strong>' + dist + ', ' + st + '</strong> <button type="button" onclick="applyIndiaPostSuggestedAddress(\'' + dist.replace(/'/g, "\\'") + '\', \'' + st.replace(/'/g, "\\'") + '\')" style="background: none; border: none; color: #5aa3ff; text-decoration: underline; font-size: inherit; cursor: pointer; padding: 0 4px;">Update City & State</button>';
+                            postBadge.innerHTML = 'ℹ️ Detected Location: <strong>' + dist + ', ' + st + '</strong> <button type="button" onclick="applyIndiaPostSuggestedAddress(\'' + dist.replace(/'/g, "\\'") + '\', \'' + st.replace(/'/g, "\\'") + '\')" style="background: none; border: none; color: #5aa3ff; text-decoration: underline; font-size: inherit; cursor: pointer; padding: 0 4px;">Update City & State</button>';
                             postBadge.style.display = 'block';
                         }
                     })
