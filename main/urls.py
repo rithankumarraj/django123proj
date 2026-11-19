@@ -74,6 +74,26 @@ urlpatterns = [
         name="check_pincode_availability",
     ),
     path(
+        "api/postal/pincode/<str:pincode>/",
+        views.api_postal_pincode_lookup,
+        name="api_postal_pincode_lookup",
+    ),
+    path(
+        "api/postal/district-pincodes/",
+        views.api_postal_district_pincodes,
+        name="api_postal_district_pincodes",
+    ),
+    path(
+        "api/postal/states-districts/",
+        views.api_postal_states_districts,
+        name="api_postal_states_districts",
+    ),
+    path(
+        "api/postal/verify-address/",
+        views.api_postal_verify_address,
+        name="api_postal_verify_address",
+    ),
+    path(
         "admin-profile/delivery-users/",
         views.admin_delivery_users,
         name="admin_delivery_users",

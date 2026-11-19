@@ -1165,6 +1165,7 @@
                 value="{% if customer_profile %}{{ customer_profile.postal_code }}{% endif %}"
                 autocomplete="postal-code" required>
               <div id="cartZipFeedback" class="small mt-1" style="display: none;"></div>
+              <div id="cartIndiaPostBadge" class="small mt-1" style="display: none; font-size: 0.76rem;"></div>
             </div>
 
             {% if user.is_authenticated %}
@@ -1813,6 +1814,85 @@
           }
         }
 
+        const cartPostBadge = document.getElementById('cartIndiaPostBadge');
+        const cartCityInput = document.getElementById('delivery-city');
+        const cartStateSelect = document.getElementById('delivery-state');
+
+        function applyCartIndiaPostAddress(dist, stName) {
+          if (cartCityInput && dist) {
+            cartCityInput.value = dist;
+          }
+          if (cartStateSelect && stName) {
+            for (let i = 0; i < cartStateSelect.options.length; i++) {
+              if (cartStateSelect.options[i].value.toLowerCase() === stName.toLowerCase()) {
+                cartStateSelect.selectedIndex = i;
+                break;
+              }
+            }
+            window.updateCartCalculations();
+          }
+          if (cartPostBadge) {
+            cartPostBadge.className = 'small mt-1 text-success fw-medium';
+            cartPostBadge.innerHTML = '✓ Verified by India Post: ' + dist + ', ' + stName;
+            cartPostBadge.style.display = 'block';
+          }
+        }
+        window.applyCartIndiaPostAddress = applyCartIndiaPostAddress;
+
+        let lastCheckedCartPostalPin = '';
+        function checkCartIndiaPostAddress() {
+          if (!cartZipInput || !cartPostBadge) return;
+          const cleanPin = cartZipInput.value.replace(/\D/g, '').slice(0, 6);
+          if (cleanPin.length !== 6) {
+            cartPostBadge.style.display = 'none';
+            return;
+          }
+          if (cleanPin === lastCheckedCartPostalPin && cartPostBadge.style.display !== 'none') return;
+          lastCheckedCartPostalPin = cleanPin;
+
+          const cityVal = cartCityInput ? cartCityInput.value.trim() : '';
+          const stateVal = cartStateSelect ? cartStateSelect.value.trim() : '';
+          const url = '/api/postal/verify-address/?pincode=' + encodeURIComponent(cleanPin) + '&city=' + encodeURIComponent(cityVal) + '&state=' + encodeURIComponent(stateVal);
+
+          fetch(url)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (!data || !data.is_valid) {
+                cartPostBadge.className = 'small mt-1 text-warning';
+                cartPostBadge.innerHTML = '⚠️ PIN code not found in India Post directory';
+                cartPostBadge.style.display = 'block';
+                return;
+              }
+
+              const dist = data.suggested_district || '';
+              const st = data.suggested_state || '';
+
+              if (cartCityInput && !cartCityInput.value.trim() && dist) {
+                cartCityInput.value = dist;
+              }
+              if (cartStateSelect && !cartStateSelect.value && st) {
+                for (let j = 0; j < cartStateSelect.options.length; j++) {
+                  if (cartStateSelect.options[j].value.toLowerCase() === st.toLowerCase()) {
+                    cartStateSelect.selectedIndex = j;
+                    break;
+                  }
+                }
+                window.updateCartCalculations();
+              }
+
+              if (data.matches_state && data.matches_city) {
+                cartPostBadge.className = 'small mt-1 text-success fw-medium';
+                cartPostBadge.innerHTML = '✓ Verified by India Post: ' + dist + (st ? ', ' + st : '');
+                cartPostBadge.style.display = 'block';
+              } else if (dist || st) {
+                cartPostBadge.className = 'small mt-1 text-info';
+                cartPostBadge.innerHTML = 'ℹ️ India Post Directory: <strong>' + dist + ', ' + st + '</strong> <button type="button" onclick="applyCartIndiaPostAddress(\'' + dist.replace(/'/g, "\\'") + '\', \'' + st.replace(/'/g, "\\'") + '\')" style="background: none; border: none; color: #5aa3ff; text-decoration: underline; font-size: inherit; cursor: pointer; padding: 0 4px;">Update City & State</button>';
+                cartPostBadge.style.display = 'block';
+              }
+            })
+            .catch(function(err) { console.warn(err); });
+        }
+
         if (cartZipInput) {
           cartZipInput.addEventListener('input', function () {
             let digits = this.value.replace(/\D/g, '');
@@ -1821,8 +1901,32 @@
             }
             this.value = digits;
             validateCartPincode();
+            if (digits.length === 6) {
+              checkCartIndiaPostAddress();
+            } else if (cartPostBadge) {
+              cartPostBadge.style.display = 'none';
+            }
           });
-          cartZipInput.addEventListener('change', validateCartPincode);
+          cartZipInput.addEventListener('change', function() {
+            validateCartPincode();
+            checkCartIndiaPostAddress();
+          });
+        }
+        if (cartCityInput) {
+          cartCityInput.addEventListener('blur', function() {
+            if (cartZipInput && cartZipInput.value.length === 6) {
+              lastCheckedCartPostalPin = '';
+              checkCartIndiaPostAddress();
+            }
+          });
+        }
+        if (cartStateSelect) {
+          cartStateSelect.addEventListener('change', function() {
+            if (cartZipInput && cartZipInput.value.length === 6) {
+              lastCheckedCartPostalPin = '';
+              checkCartIndiaPostAddress();
+            }
+          });
         }
         validateCartPincode();
 

@@ -651,7 +651,66 @@
         </div>
       </div>
 
-      <!-- 2. EDIT PINS SECTION (Add / Edit / Paste 200+ PINs) -->
+      <!-- 2. INDIA POST DIRECTORY SELECTOR (Official data.gov.in directory) -->
+      <div style="margin-bottom: 18px; padding: 14px; border-radius: 12px; background: rgba(90, 163, 255, 0.05); border: 1px solid rgba(90, 163, 255, 0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: #5aa3ff; text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              India Post PIN Directory
+            </span>
+            <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; background: rgba(47, 207, 122, 0.15); color: #2fcf7a; font-weight: 700;">
+              data.gov.in
+            </span>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--admin-text-muted);">Select State & District to populate official PIN codes</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: flex-end;">
+          <div>
+            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; text-transform: uppercase;">
+              State / UT
+            </label>
+            <select id="modalPostalStateSelect" onchange="onModalPostalStateChange()" style="width: 100%; font-size: 0.8rem; padding: 7px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--admin-line); color: #fff;">
+              <option value="">-- Choose State --</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; text-transform: uppercase;">
+              District
+            </label>
+            <select id="modalPostalDistrictSelect" style="width: 100%; font-size: 0.8rem; padding: 7px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--admin-line); color: #fff;">
+              <option value="">-- Choose District --</option>
+            </select>
+          </div>
+          <div>
+            <button type="button" id="btnFetchDistrictPins" onclick="fetchDistrictPinsForModal()" class="btn-primary" style="padding: 7px 14px; font-size: 0.8rem; white-space: nowrap; height: 35px; display: inline-flex; align-items: center; gap: 6px;">
+              <span id="fetchPinsBtnText">Fetch District PINs</span>
+              <span id="fetchPinsSpinner" style="display: none;">⏳</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- District PIN Results & Quick-Add Strip -->
+        <div id="modalDistrictPinsBox" style="display: none; margin-top: 12px; padding: 10px 12px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+            <div id="modalDistrictPinsSummary" style="font-size: 0.78rem; font-weight: 600; color: #fff;"></div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-action-green" onclick="addAllFetchedDistrictPins()" style="font-size: 0.72rem; padding: 4px 10px;">
+                + Add All District PINs
+              </button>
+              <button type="button" class="btn-mini" onclick="document.getElementById('modalDistrictPinsBox').style.display='none'" style="font-size: 0.72rem; padding: 4px 8px;">
+                Close
+              </button>
+            </div>
+          </div>
+          <!-- Clickable district PIN badges -->
+          <div id="modalDistrictPinsList" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 130px; overflow-y: auto; padding: 4px 0;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. EDIT PINS SECTION (Add / Edit / Paste 200+ PINs) -->
       <form method="post" id="editProductPincodesForm" action="">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -768,6 +827,9 @@
       document.getElementById('modalAvailablePincodes').value = pincodes || '';
       document.getElementById('modalPinsSearchInput').value = '';
       parseAndRenderModalPins(pincodes || '');
+      initPostalDirectoryDropdowns();
+      var box = document.getElementById('modalDistrictPinsBox');
+      if (box) box.style.display = 'none';
       document.getElementById('productPincodesModal').classList.add('active');
     }
 
@@ -862,6 +924,159 @@
       currentModalPins = parsePins(document.getElementById('modalAvailablePincodes').value);
       document.getElementById('modalAvailablePincodes').value = currentModalPins.join(', ');
       renderPinsList(currentModalPins, document.getElementById('modalPinsSearchInput').value);
+    }
+
+    // India Post Directory Integration
+    var postalStatesDistrictsData = null;
+    var fetchedDistrictPins = [];
+
+    function initPostalDirectoryDropdowns() {
+      var stateSelect = document.getElementById('modalPostalStateSelect');
+      if (!stateSelect || stateSelect.options.length > 1) return;
+
+      fetch('/api/postal/states-districts/')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.states_districts) {
+            postalStatesDistrictsData = data.states_districts;
+            var states = Object.keys(data.states_districts).sort();
+            states.forEach(function(st) {
+              var opt = document.createElement('option');
+              opt.value = st;
+              opt.textContent = st;
+              stateSelect.appendChild(opt);
+            });
+          }
+        })
+        .catch(function(err) {
+          console.warn('Could not load postal states/districts:', err);
+        });
+    }
+
+    function onModalPostalStateChange() {
+      var stateSelect = document.getElementById('modalPostalStateSelect');
+      var distSelect = document.getElementById('modalPostalDistrictSelect');
+      var box = document.getElementById('modalDistrictPinsBox');
+      if (box) box.style.display = 'none';
+
+      distSelect.innerHTML = '<option value="">-- Choose District --</option>';
+      var selectedState = stateSelect.value;
+      if (!selectedState || !postalStatesDistrictsData || !postalStatesDistrictsData[selectedState]) {
+        return;
+      }
+
+      var districts = postalStatesDistrictsData[selectedState].slice().sort();
+      districts.forEach(function(d) {
+        var opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        distSelect.appendChild(opt);
+      });
+    }
+
+    function fetchDistrictPinsForModal() {
+      var stateSelect = document.getElementById('modalPostalStateSelect');
+      var distSelect = document.getElementById('modalPostalDistrictSelect');
+      var state = stateSelect ? stateSelect.value : '';
+      var district = distSelect ? distSelect.value : '';
+
+      if (!district) {
+        alert('Please select both a State and District first.');
+        return;
+      }
+
+      var btn = document.getElementById('btnFetchDistrictPins');
+      var btnText = document.getElementById('fetchPinsBtnText');
+      var spinner = document.getElementById('fetchPinsSpinner');
+      if (btnText) btnText.textContent = 'Fetching...';
+      if (spinner) spinner.style.display = 'inline';
+      if (btn) btn.disabled = true;
+
+      var url = '/api/postal/district-pincodes/?district=' + encodeURIComponent(district) + '&state=' + encodeURIComponent(state);
+      fetch(url)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (btnText) btnText.textContent = 'Fetch District PINs';
+          if (spinner) spinner.style.display = 'none';
+          if (btn) btn.disabled = false;
+
+          var box = document.getElementById('modalDistrictPinsBox');
+          var summary = document.getElementById('modalDistrictPinsSummary');
+          var list = document.getElementById('modalDistrictPinsList');
+
+          if (!data || !data.success || !data.pincodes || data.pincodes.length === 0) {
+            summary.textContent = 'No PIN codes returned for ' + district + '. You can enter PINs manually below.';
+            list.innerHTML = '';
+            box.style.display = 'block';
+            return;
+          }
+
+          fetchedDistrictPins = data.pincodes;
+          summary.innerHTML = '<span style="color: #5aa3ff; font-weight: 700;">' + data.count + ' PIN codes found in ' + data.district + ', ' + data.state + '</span> <span style="font-size: 0.72rem; color: #9aa2a9;">(Click any PIN to toggle)</span>';
+          list.innerHTML = '';
+
+          data.pincodes.forEach(function(pin) {
+            var isAdded = currentModalPins.indexOf(pin) !== -1;
+            var btnPin = document.createElement('button');
+            btnPin.type = 'button';
+            btnPin.id = 'distPinBtn_' + pin;
+            btnPin.className = isAdded ? 'btn-action-green' : 'btn-mini';
+            btnPin.style.cssText = 'font-size: 0.75rem; padding: 2px 7px; border-radius: 5px; cursor: pointer;';
+            btnPin.textContent = (isAdded ? '✓ ' : '+ ') + pin;
+            btnPin.onclick = function() {
+              toggleDistrictPinInModal(pin);
+            };
+            list.appendChild(btnPin);
+          });
+
+          box.style.display = 'block';
+        })
+        .catch(function(err) {
+          if (btnText) btnText.textContent = 'Fetch District PINs';
+          if (spinner) spinner.style.display = 'none';
+          if (btn) btn.disabled = false;
+          alert('Failed to connect to India Post directory. Please try again.');
+        });
+    }
+
+    function toggleDistrictPinInModal(pin) {
+      var idx = currentModalPins.indexOf(pin);
+      if (idx !== -1) {
+        currentModalPins.splice(idx, 1);
+      } else {
+        currentModalPins.push(pin);
+        currentModalPins.sort();
+      }
+      document.getElementById('modalAvailablePincodes').value = currentModalPins.join(', ');
+      renderPinsList(currentModalPins, document.getElementById('modalPinsSearchInput').value);
+
+      var btnPin = document.getElementById('distPinBtn_' + pin);
+      if (btnPin) {
+        var isNowAdded = currentModalPins.indexOf(pin) !== -1;
+        btnPin.className = isNowAdded ? 'btn-action-green' : 'btn-mini';
+        btnPin.textContent = (isNowAdded ? '✓ ' : '+ ') + pin;
+      }
+    }
+
+    function addAllFetchedDistrictPins() {
+      if (!fetchedDistrictPins || fetchedDistrictPins.length === 0) return;
+      fetchedDistrictPins.forEach(function(p) {
+        if (currentModalPins.indexOf(p) === -1) {
+          currentModalPins.push(p);
+        }
+      });
+      currentModalPins.sort();
+      document.getElementById('modalAvailablePincodes').value = currentModalPins.join(', ');
+      renderPinsList(currentModalPins, document.getElementById('modalPinsSearchInput').value);
+
+      // Update badge states in district list
+      fetchedDistrictPins.forEach(function(pin) {
+        var btnPin = document.getElementById('distPinBtn_' + pin);
+        if (btnPin) {
+          btnPin.className = 'btn-action-green';
+          btnPin.textContent = '✓ ' + pin;
+        }
+      });
     }
 
     function copyAllModalPins() {

@@ -617,6 +617,26 @@
 
         <div class="form-group">
           <label class="form-label" for="id_serviceable_pincodes">Serviceable PIN Codes</label>
+          <!-- India Post Selector for Add Partner -->
+          <div style="background: rgba(90, 163, 255, 0.05); border: 1px solid rgba(90, 163, 255, 0.2); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.72rem; font-weight: 700; color: #5aa3ff; text-transform: uppercase;">
+                📍 India Post Directory Picker
+              </span>
+              <span style="font-size: 0.68rem; color: var(--admin-text-muted);">data.gov.in</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;">
+              <select id="addDriverPostalState" onchange="onDriverStateChange('addDriverPostalState', 'addDriverPostalDistrict')" class="form-control" style="font-size: 0.78rem; padding: 6px 8px;">
+                <option value="">State</option>
+              </select>
+              <select id="addDriverPostalDistrict" class="form-control" style="font-size: 0.78rem; padding: 6px 8px;">
+                <option value="">District</option>
+              </select>
+              <button type="button" class="btn-primary" onclick="fetchAndAddDriverDistrictPins('addDriverPostalState', 'addDriverPostalDistrict', 'id_serviceable_pincodes')" style="font-size: 0.74rem; padding: 6px 10px; white-space: nowrap;">
+                + Add District PINs
+              </button>
+            </div>
+          </div>
           {{ delivery_form.serviceable_pincodes }}
           <span class="form-help">Comma-separated PIN codes (e.g. <code>625018, 625001</code>). Partner will <strong>only</strong> see and pick orders for these codes.</span>
           {% if delivery_form.serviceable_pincodes.errors %}
@@ -674,6 +694,26 @@
 
         <div class="form-group" style="margin-bottom: 14px;">
           <label class="form-label" for="modalServiceablePincodes">Serviceable PIN Codes</label>
+          <!-- India Post Selector for Edit Partner -->
+          <div style="background: rgba(90, 163, 255, 0.05); border: 1px solid rgba(90, 163, 255, 0.2); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.72rem; font-weight: 700; color: #5aa3ff; text-transform: uppercase;">
+                📍 India Post Directory Picker
+              </span>
+              <span style="font-size: 0.68rem; color: var(--admin-text-muted);">data.gov.in</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;">
+              <select id="editDriverPostalState" onchange="onDriverStateChange('editDriverPostalState', 'editDriverPostalDistrict')" class="form-control" style="font-size: 0.78rem; padding: 6px 8px;">
+                <option value="">State</option>
+              </select>
+              <select id="editDriverPostalDistrict" class="form-control" style="font-size: 0.78rem; padding: 6px 8px;">
+                <option value="">District</option>
+              </select>
+              <button type="button" class="btn-primary" onclick="fetchAndAddDriverDistrictPins('editDriverPostalState', 'editDriverPostalDistrict', 'modalServiceablePincodes')" style="font-size: 0.74rem; padding: 6px 10px; white-space: nowrap;">
+                + Add District PINs
+              </button>
+            </div>
+          </div>
           <input type="text" name="serviceable_pincodes" id="modalServiceablePincodes" class="form-control" placeholder="e.g. 625018, 625001, 625020">
           <span class="form-help" style="font-size: 0.75rem; color: #9aa2a9;">Driver can only view & pick orders within these comma-separated PIN codes.</span>
         </div>
@@ -723,7 +763,86 @@
   </div>
 
   <script>
+    var deliveryPostalData = null;
+
+    function initDeliveryPostalData() {
+      if (deliveryPostalData) return;
+      fetch('/api/postal/states-districts/')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.states_districts) {
+            deliveryPostalData = data.states_districts;
+            var states = Object.keys(data.states_districts).sort();
+            ['addDriverPostalState', 'editDriverPostalState'].forEach(function(selId) {
+              var el = document.getElementById(selId);
+              if (el && el.options.length <= 1) {
+                states.forEach(function(st) {
+                  var opt = document.createElement('option');
+                  opt.value = st;
+                  opt.textContent = st;
+                  el.appendChild(opt);
+                });
+              }
+            });
+          }
+        })
+        .catch(function(err) { console.warn(err); });
+    }
+
+    function onDriverStateChange(stateSelId, distSelId) {
+      var stateEl = document.getElementById(stateSelId);
+      var distEl = document.getElementById(distSelId);
+      if (!stateEl || !distEl) return;
+
+      distEl.innerHTML = '<option value="">District</option>';
+      var st = stateEl.value;
+      if (!st || !deliveryPostalData || !deliveryPostalData[st]) return;
+
+      deliveryPostalData[st].slice().sort().forEach(function(d) {
+        var opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        distEl.appendChild(opt);
+      });
+    }
+
+    function fetchAndAddDriverDistrictPins(stateSelId, distSelId, targetInputId) {
+      var stateEl = document.getElementById(stateSelId);
+      var distEl = document.getElementById(distSelId);
+      var targetInput = document.getElementById(targetInputId);
+      if (!distEl || !targetInput) return;
+
+      var state = stateEl ? stateEl.value : '';
+      var district = distEl.value;
+      if (!district) {
+        alert('Please choose a State and District first.');
+        return;
+      }
+
+      fetch('/api/postal/district-pincodes/?district=' + encodeURIComponent(district) + '&state=' + encodeURIComponent(state))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || !data.success || !data.pincodes || data.pincodes.length === 0) {
+            alert('No PIN codes found for ' + district);
+            return;
+          }
+
+          var raw = targetInput.value || '';
+          var existing = raw.match(/\b\d{6}\b/g) || [];
+          data.pincodes.forEach(function(p) {
+            if (existing.indexOf(p) === -1) existing.push(p);
+          });
+          existing.sort();
+          targetInput.value = existing.join(', ');
+          alert('Added ' + data.pincodes.length + ' PIN codes from ' + data.district + ' (' + data.state + ') to serviceable area.');
+        })
+        .catch(function(err) {
+          alert('Failed to connect to India Post directory.');
+        });
+    }
+
     function openAddPartnerModal() {
+      initDeliveryPostalData();
       document.getElementById('addPartnerModal').classList.add('active');
     }
     function closeAddPartnerModal() {
@@ -731,6 +850,7 @@
     }
 
     function openEditPartnerModal(id, username, pincodes, vehicleType, vehicleNumber, phone, address, aadhar, dl) {
+      initDeliveryPostalData();
       document.getElementById('modalDriverName').textContent = username;
       document.getElementById('editPartnerForm').action = '/admin-profile/delivery-users/' + id + '/update-pincodes/';
       document.getElementById('modalServiceablePincodes').value = pincodes || '';
@@ -745,5 +865,7 @@
     function closeEditPartnerModal() {
       document.getElementById('editPartnerModal').classList.remove('active');
     }
+
+    document.addEventListener('DOMContentLoaded', initDeliveryPostalData);
   </script>
 {% endblock %}

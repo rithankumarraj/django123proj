@@ -466,6 +466,7 @@
                                         <label for="zip">ZIP</label>
                                         <input id="zip" name="postal_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN" value="{{ customer_address_form.postal_code }}" autocomplete="postal-code" required>
                                         <div id="zipAvailabilityFeedback" class="small mt-1" style="display: none;"></div>
+                                        <div id="indiaPostVerificationBadge" class="small mt-1" style="display: none;"></div>
                                     </div>
 
                                     {% if user.is_authenticated %}
@@ -946,6 +947,92 @@
                 }
             }
 
+            var postBadge = document.getElementById('indiaPostVerificationBadge');
+            var cityInput = document.getElementById('city');
+
+            function applyIndiaPostSuggestedAddress(district, stateName) {
+                if (cityInput && district) {
+                    cityInput.value = district;
+                }
+                if (stateSelect && stateName) {
+                    for (var i = 0; i < stateSelect.options.length; i++) {
+                        if (stateSelect.options[i].value.toLowerCase() === stateName.toLowerCase()) {
+                            stateSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                    updateShippingFee();
+                }
+                if (postBadge) {
+                    postBadge.className = 'small mt-1 text-success fw-medium';
+                    postBadge.innerHTML = '✓ Verified by India Post: ' + district + ', ' + stateName;
+                    postBadge.style.display = 'block';
+                }
+            }
+            window.applyIndiaPostSuggestedAddress = applyIndiaPostSuggestedAddress;
+
+            var lastCheckedPostalPin = '';
+            function checkIndiaPostAddress() {
+                if (!zipInput || !postBadge) return;
+                var rawVal = zipInput.value.trim();
+                var cleanPin = rawVal.replace(/\D/g, '').slice(0, 6);
+                if (cleanPin.length !== 6) {
+                    postBadge.style.display = 'none';
+                    return;
+                }
+                if (cleanPin === lastCheckedPostalPin && postBadge.style.display !== 'none') {
+                    return;
+                }
+                lastCheckedPostalPin = cleanPin;
+
+                var cityVal = cityInput ? cityInput.value.trim() : '';
+                var stateVal = stateSelect ? stateSelect.value.trim() : '';
+                var url = '/api/postal/verify-address/?pincode=' + encodeURIComponent(cleanPin) + '&city=' + encodeURIComponent(cityVal) + '&state=' + encodeURIComponent(stateVal);
+
+                fetch(url)
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (!data || !data.is_valid) {
+                            postBadge.className = 'small mt-1 text-warning';
+                            postBadge.innerHTML = '⚠️ PIN code not found in India Post directory';
+                            postBadge.style.display = 'block';
+                            return;
+                        }
+
+                        var dist = data.suggested_district || '';
+                        var st = data.suggested_state || '';
+
+                        // Auto-fill city if empty
+                        if (cityInput && !cityInput.value.trim() && dist) {
+                            cityInput.value = dist;
+                        }
+
+                        // Auto-fill state if empty
+                        if (stateSelect && !stateSelect.value && st) {
+                            for (var j = 0; j < stateSelect.options.length; j++) {
+                                if (stateSelect.options[j].value.toLowerCase() === st.toLowerCase()) {
+                                    stateSelect.selectedIndex = j;
+                                    break;
+                                }
+                            }
+                            updateShippingFee();
+                        }
+
+                        if (data.matches_state && data.matches_city) {
+                            postBadge.className = 'small mt-1 text-success fw-medium';
+                            postBadge.innerHTML = '✓ Verified by India Post: ' + dist + (st ? ', ' + st : '');
+                            postBadge.style.display = 'block';
+                        } else if (dist || st) {
+                            postBadge.className = 'small mt-1 text-info';
+                            postBadge.innerHTML = 'ℹ️ India Post Directory: <strong>' + dist + ', ' + st + '</strong> <button type="button" onclick="applyIndiaPostSuggestedAddress(\'' + dist.replace(/'/g, "\\'") + '\', \'' + st.replace(/'/g, "\\'") + '\')" style="background: none; border: none; color: #5aa3ff; text-decoration: underline; font-size: inherit; cursor: pointer; padding: 0 4px;">Update City & State</button>';
+                            postBadge.style.display = 'block';
+                        }
+                    })
+                    .catch(function(err) {
+                        console.warn('Postal verification failed:', err);
+                    });
+            }
+
             if (zipInput) {
                 zipInput.addEventListener('input', function () {
                     var digits = this.value.replace(/\D/g, '');
@@ -954,8 +1041,33 @@
                     }
                     this.value = digits;
                     validatePincodeDelivery();
+                    if (digits.length === 6) {
+                        checkIndiaPostAddress();
+                    } else if (postBadge) {
+                        postBadge.style.display = 'none';
+                    }
                 });
-                zipInput.addEventListener('change', validatePincodeDelivery);
+                zipInput.addEventListener('change', function() {
+                    validatePincodeDelivery();
+                    checkIndiaPostAddress();
+                });
+            }
+
+            if (cityInput) {
+                cityInput.addEventListener('blur', function() {
+                    if (zipInput && zipInput.value.length === 6) {
+                        lastCheckedPostalPin = '';
+                        checkIndiaPostAddress();
+                    }
+                });
+            }
+            if (stateSelect) {
+                stateSelect.addEventListener('change', function() {
+                    if (zipInput && zipInput.value.length === 6) {
+                        lastCheckedPostalPin = '';
+                        checkIndiaPostAddress();
+                    }
+                });
             }
 
             if (checkoutForm) {

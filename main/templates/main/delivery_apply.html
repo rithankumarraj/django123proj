@@ -339,6 +339,52 @@
 
         <div class="apply-field">
           <label for="id_serviceable_pincodes">PIN Codes You Can Deliver To <span class="required">*</span></label>
+          
+          <!-- India Post Directory Picker Box -->
+          <div style="background: rgba(90, 163, 255, 0.06); border: 1px solid rgba(90, 163, 255, 0.25); border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #5aa3ff; text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                Select from India Post Directory
+              </span>
+              <span style="font-size: 0.72rem; color: #9aa2a9;">Pick State & District instead of typing numbers</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: flex-end;">
+              <div>
+                <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; text-transform: uppercase;">
+                  State / UT
+                </label>
+                <select id="applyPostalStateSelect" onchange="onApplyPostalStateChange()" style="padding: 8px 12px; font-size: 0.85rem;">
+                  <option value="">-- Choose State --</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; text-transform: uppercase;">
+                  District
+                </label>
+                <select id="applyPostalDistrictSelect" style="padding: 8px 12px; font-size: 0.85rem;">
+                  <option value="">-- Choose District --</option>
+                </select>
+              </div>
+              <div>
+                <button type="button" id="btnApplyFetchPins" onclick="fetchDistrictPinsForApply()" style="padding: 9px 14px; background: #5aa3ff; color: #000; border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; height: 42px;">
+                  Load PINs
+                </button>
+              </div>
+            </div>
+
+            <!-- District PINs Results -->
+            <div id="applyDistrictPinsBox" style="display: none; margin-top: 12px; padding: 10px; background: rgba(0, 0, 0, 0.4); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <span id="applyDistrictPinsSummary" style="font-size: 0.78rem; font-weight: 600; color: #fff;"></span>
+                <button type="button" onclick="addAllDistrictPinsToApply()" style="background: rgba(47, 207, 122, 0.2); color: #2fcf7a; border: 1px solid rgba(47, 207, 122, 0.4); padding: 3px 10px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                  + Add All to My Delivery Zone
+                </button>
+              </div>
+              <div id="applyDistrictPinsList" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto;"></div>
+            </div>
+          </div>
+
           {{ form.serviceable_pincodes }}
           <div class="field-hint">
             <strong>Important:</strong> Enter comma-separated 6-digit postal codes (e.g. <code>625018, 625001, 625020</code>). You will <strong>only</strong> see and be authorized to pick customer orders destined for these PIN codes.
@@ -410,5 +456,167 @@
       <a href="{% url 'home' %}">Back to Storefront</a>
     </div>
   </div>
+
+  <script>
+    var applyPostalData = null;
+    var applyFetchedPins = [];
+
+    function initApplyPostal() {
+      var stateSelect = document.getElementById('applyPostalStateSelect');
+      if (!stateSelect) return;
+      fetch('/api/postal/states-districts/')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.states_districts) {
+            applyPostalData = data.states_districts;
+            var states = Object.keys(data.states_districts).sort();
+            states.forEach(function(st) {
+              var opt = document.createElement('option');
+              opt.value = st;
+              opt.textContent = st;
+              stateSelect.appendChild(opt);
+            });
+          }
+        })
+        .catch(function(e) { console.warn('Could not load states:', e); });
+    }
+
+    function onApplyPostalStateChange() {
+      var stateSelect = document.getElementById('applyPostalStateSelect');
+      var distSelect = document.getElementById('applyPostalDistrictSelect');
+      var box = document.getElementById('applyDistrictPinsBox');
+      if (box) box.style.display = 'none';
+
+      distSelect.innerHTML = '<option value="">-- Choose District --</option>';
+      var selectedState = stateSelect.value;
+      if (!selectedState || !applyPostalData || !applyPostalData[selectedState]) return;
+
+      applyPostalData[selectedState].slice().sort().forEach(function(d) {
+        var opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        distSelect.appendChild(opt);
+      });
+    }
+
+    function fetchDistrictPinsForApply() {
+      var stateSelect = document.getElementById('applyPostalStateSelect');
+      var distSelect = document.getElementById('applyPostalDistrictSelect');
+      var state = stateSelect ? stateSelect.value : '';
+      var district = distSelect ? distSelect.value : '';
+
+      if (!district) {
+        alert('Please choose a State and District first.');
+        return;
+      }
+
+      var btn = document.getElementById('btnApplyFetchPins');
+      btn.textContent = 'Loading...';
+      btn.disabled = true;
+
+      fetch('/api/postal/district-pincodes/?district=' + encodeURIComponent(district) + '&state=' + encodeURIComponent(state))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          btn.textContent = 'Load PINs';
+          btn.disabled = false;
+          var box = document.getElementById('applyDistrictPinsBox');
+          var summary = document.getElementById('applyDistrictPinsSummary');
+          var list = document.getElementById('applyDistrictPinsList');
+
+          if (!data || !data.success || !data.pincodes || data.pincodes.length === 0) {
+            summary.textContent = 'No PIN codes found for ' + district;
+            list.innerHTML = '';
+            box.style.display = 'block';
+            return;
+          }
+
+          applyFetchedPins = data.pincodes;
+          summary.textContent = data.count + ' PIN codes in ' + data.district + ', ' + data.state;
+          list.innerHTML = '';
+
+          var inputEl = document.getElementById('id_serviceable_pincodes');
+          var currentPins = parsePinsApply(inputEl ? inputEl.value : '');
+
+          data.pincodes.forEach(function(pin) {
+            var isAdded = currentPins.indexOf(pin) !== -1;
+            var pill = document.createElement('button');
+            pill.type = 'button';
+            pill.id = 'applyPin_' + pin;
+            pill.style.cssText = 'padding: 4px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: 1px solid ' + (isAdded ? '#2fcf7a' : 'rgba(255,255,255,0.2)') + '; background: ' + (isAdded ? 'rgba(47,207,122,0.2)' : 'rgba(255,255,255,0.05)') + '; color: ' + (isAdded ? '#2fcf7a' : '#fff') + ';';
+            pill.textContent = (isAdded ? '✓ ' : '+ ') + pin;
+            pill.onclick = function() {
+              togglePinInApply(pin);
+            };
+            list.appendChild(pill);
+          });
+
+          box.style.display = 'block';
+        })
+        .catch(function(e) {
+          btn.textContent = 'Load PINs';
+          btn.disabled = false;
+          alert('Could not connect to India Post directory.');
+        });
+    }
+
+    function parsePinsApply(str) {
+      if (!str) return [];
+      var matches = str.match(/\b\d{6}\b/g);
+      if (!matches) {
+        matches = str.split(/[,;\s]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+      }
+      var unique = [];
+      matches.forEach(function(item) {
+        if (item && unique.indexOf(item) === -1) unique.push(item);
+      });
+      return unique;
+    }
+
+    function togglePinInApply(pin) {
+      var inputEl = document.getElementById('id_serviceable_pincodes');
+      if (!inputEl) return;
+      var pins = parsePinsApply(inputEl.value);
+      var idx = pins.indexOf(pin);
+      if (idx !== -1) {
+        pins.splice(idx, 1);
+      } else {
+        pins.push(pin);
+        pins.sort();
+      }
+      inputEl.value = pins.join(', ');
+
+      var pill = document.getElementById('applyPin_' + pin);
+      if (pill) {
+        var isNow = pins.indexOf(pin) !== -1;
+        pill.style.borderColor = isNow ? '#2fcf7a' : 'rgba(255,255,255,0.2)';
+        pill.style.background = isNow ? 'rgba(47,207,122,0.2)' : 'rgba(255,255,255,0.05)';
+        pill.style.color = isNow ? '#2fcf7a' : '#fff';
+        pill.textContent = (isNow ? '✓ ' : '+ ') + pin;
+      }
+    }
+
+    function addAllDistrictPinsToApply() {
+      var inputEl = document.getElementById('id_serviceable_pincodes');
+      if (!inputEl || !applyFetchedPins.length) return;
+      var pins = parsePinsApply(inputEl.value);
+      applyFetchedPins.forEach(function(p) {
+        if (pins.indexOf(p) === -1) pins.push(p);
+      });
+      pins.sort();
+      inputEl.value = pins.join(', ');
+
+      applyFetchedPins.forEach(function(pin) {
+        var pill = document.getElementById('applyPin_' + pin);
+        if (pill) {
+          pill.style.borderColor = '#2fcf7a';
+          pill.style.background = 'rgba(47,207,122,0.2)';
+          pill.style.color = '#2fcf7a';
+          pill.textContent = '✓ ' + pin;
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initApplyPostal);
+  </script>
 </body>
 </html>

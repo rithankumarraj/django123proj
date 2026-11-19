@@ -26,6 +26,12 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from .postal_service import (
+    get_district_pincodes,
+    get_states_and_districts,
+    lookup_pincode,
+    verify_address_pincode,
+)
 from .forms import (
     AboutDetailsForm,
     AdminLoginForm,
@@ -2451,18 +2457,74 @@ def check_pincode_availability(request, product_id):
     if not pin:
         return JsonResponse({"available": False, "pincode": "", "message": "Please enter a PIN code."})
     is_available = product.is_available_for_pincode(pin)
-    pins_list = product.get_available_pincodes_list()
+
+    # Enrich with India Post directory details
+    postal_info = lookup_pincode(pin)
+    location_str = ""
+    district = ""
+    state = ""
+    if postal_info.get("valid"):
+        district = postal_info.get("district", "")
+        state = postal_info.get("state", "")
+        if district and state:
+            location_str = f"{district}, {state}"
+        elif state:
+            location_str = state
+
     if is_available:
-        msg = f"Delivery is available for PIN code {pin}!"
+        if location_str:
+            msg = f"Delivery available to {location_str} (PIN {pin})!"
+        else:
+            msg = f"Delivery is available for PIN code {pin}!"
     else:
-        msg = f"Sorry, {product.name} is not deliverable to PIN code {pin}."
+        if location_str:
+            msg = f"Sorry, {product.name} is currently not deliverable to {location_str} ({pin})."
+        else:
+            msg = f"Sorry, {product.name} is not deliverable to PIN code {pin}."
+
     return JsonResponse({
         "available": is_available,
         "pincode": pin,
         "product_id": product.id,
         "product_name": product.name,
+        "location": location_str,
+        "district": district,
+        "state": state,
+        "source": postal_info.get("source", "India Post Directory (data.gov.in)"),
         "message": msg,
     })
+
+
+def api_postal_pincode_lookup(request, pincode):
+    """Lookup 6-digit PIN code against official India Post directory."""
+    data = lookup_pincode(pincode)
+    return JsonResponse(data)
+
+
+def api_postal_district_pincodes(request):
+    """Fetch all PIN codes under a specific District from India Post directory."""
+    district = (request.GET.get("district") or "").strip()
+    state = (request.GET.get("state") or "").strip()
+    if not district:
+        return JsonResponse({"success": False, "error": "District parameter is required."}, status=400)
+    data = get_district_pincodes(district, state=state)
+    return JsonResponse(data)
+
+
+def api_postal_states_districts(request):
+    """Return complete list of Indian States and Districts."""
+    return JsonResponse({"states_districts": get_states_and_districts()})
+
+
+def api_postal_verify_address(request):
+    """Verify if entered city/state match the India Post directory for the given PIN."""
+    pin = (request.GET.get("pincode") or request.GET.get("pin") or "").strip()
+    city = (request.GET.get("city") or "").strip()
+    state = (request.GET.get("state") or "").strip()
+    if not pin:
+        return JsonResponse({"is_valid": False, "error": "PIN code is required."}, status=400)
+    data = verify_address_pincode(pin, city=city, state=state)
+    return JsonResponse(data)
 
 
 @login_required
