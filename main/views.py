@@ -2865,8 +2865,11 @@ def admin_details(request):
         elif action == "save_popup":
             popup_form = DailyPromoPopupForm(request.POST, instance=details)
             if popup_form.is_valid():
-                popup_form.save()
-                messages.success(request, "Daily promotional popup settings updated successfully.")
+                saved_details = popup_form.save(commit=False)
+                saved_details.popup_enabled = bool(request.POST.get("popup_enabled"))
+                saved_details.save()
+                status_text = "ON (Active on Storefront)" if saved_details.popup_enabled else "OFF (Disabled)"
+                messages.success(request, f"Daily promotional popup settings saved. Status: {status_text}.")
                 return redirect(f"{reverse('admin_details')}?tab=popup")
             else:
                 active_tab = "popup"
@@ -2876,14 +2879,29 @@ def admin_details(request):
         elif action == "save_video":
             video_form = HomepageVideoForm(request.POST, instance=details)
             if video_form.is_valid():
-                video_form.save()
-                messages.success(request, "Homepage fullscreen YouTube video settings updated successfully.")
+                saved_details = video_form.save(commit=False)
+                saved_details.homepage_video_enabled = bool(request.POST.get("homepage_video_enabled"))
+                saved_details.save()
+                status_text = "ON (Active on Homepage)" if saved_details.homepage_video_enabled else "OFF (Disabled)"
+                messages.success(request, f"Homepage video settings saved. Status: {status_text}.")
                 return redirect(f"{reverse('admin_details')}?tab=video")
             else:
                 active_tab = "video"
                 for err_list in video_form.errors.values():
                     for err in err_list:
                         messages.error(request, err)
+        elif action == "toggle_popup":
+            details.popup_enabled = not details.popup_enabled
+            details.save()
+            status_text = "ON (Active on Storefront)" if details.popup_enabled else "OFF (Disabled)"
+            messages.success(request, f"Daily promotional popup is now turned {status_text}.")
+            return redirect(f"{reverse('admin_details')}?tab=popup")
+        elif action == "toggle_video":
+            details.homepage_video_enabled = not details.homepage_video_enabled
+            details.save()
+            status_text = "ON (Active on Homepage)" if details.homepage_video_enabled else "OFF (Disabled)"
+            messages.success(request, f"Fullscreen homepage video section is now turned {status_text}.")
+            return redirect(f"{reverse('admin_details')}?tab=video")
 
     contact_messages = ContactMessage.objects.all().order_by("-created_at")
     total_messages_count = contact_messages.count()

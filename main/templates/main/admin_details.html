@@ -24,6 +24,82 @@
 {% endblock %}
 
 {% block admin_content %}
+<style>
+  .switch-toggle {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    margin: 0;
+  }
+  .switch-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+  .switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transition: 0.25s ease;
+    border-radius: 34px;
+  }
+  .switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: 0.25s ease;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  }
+  .switch-toggle input:checked + .switch-slider {
+    background-color: #10b981;
+    border-color: #10b981;
+  }
+  .switch-toggle input:checked + .switch-slider:before {
+    transform: translateX(22px);
+  }
+  .toggle-status-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 15px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: none;
+  }
+  .toggle-status-btn.btn-turn-off {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #f87171;
+  }
+  .toggle-status-btn.btn-turn-off:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #ffffff;
+  }
+  .toggle-status-btn.btn-turn-on {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+  }
+  .toggle-status-btn.btn-turn-on:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    color: #ffffff;
+  }
+</style>
   <!-- Stats Section -->
   <section class="stats-grid stats-grid-3">
     <div class="stat-card">
@@ -403,7 +479,7 @@
     <div class="admin-split-grid">
       <!-- Edit Popup Settings Form -->
       <section class="admin-panel">
-        <div class="panel-header">
+        <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
           <div>
             <h2 class="panel-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -415,6 +491,22 @@
               Configure the promotional popup shown to visitors once per day. Choose whether to feature an active Combo Offer, a Coupon Code, or a custom announcement.
             </p>
           </div>
+          <!-- 1-Click Instant ON / OFF Toggle Button -->
+          <form method="post" action="{% url 'admin_details' %}?tab=popup" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_popup">
+            {% if details.popup_enabled %}
+              <button type="submit" class="toggle-status-btn btn-turn-off" title="Click to immediately disable the daily promotional popup">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
+                <span>Turn OFF Popup</span>
+              </button>
+            {% else %}
+              <button type="submit" class="toggle-status-btn btn-turn-on" title="Click to immediately enable the daily promotional popup">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                <span>Turn ON Popup</span>
+              </button>
+            {% endif %}
+          </form>
         </div>
 
         <form method="post" action="{% url 'admin_details' %}?tab=popup" class="admin-form">
@@ -422,17 +514,25 @@
           <input type="hidden" name="action" value="save_popup">
 
           <!-- Enable / Disable Toggle -->
-          <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="document.getElementById('{{ popup_form.popup_enabled.id_for_label }}').click();">
             <div>
-              <label for="{{ popup_form.popup_enabled.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer; display: block;">
-                Enable Daily Promotional Popup
-              </label>
-              <div style="font-size: 0.8rem; color: var(--admin-text-muted); margin-top: 2px;">
+              <div style="font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>Enable Daily Promotional Popup</span>
+                {% if details.popup_enabled %}
+                  <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.2); color: #34d399; font-weight: 800;">ACTIVE</span>
+                {% else %}
+                  <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(239,68,68,0.2); color: #f87171; font-weight: 800;">INACTIVE</span>
+                {% endif %}
+              </div>
+              <div style="font-size: 0.8rem; color: var(--admin-text-muted); margin-top: 4px;">
                 When active, storefront visitors will see this modal once per calendar day (will not repeat).
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              {{ popup_form.popup_enabled }}
+            <div style="display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation();">
+              <label class="switch-toggle" style="position: relative; display: inline-block; width: 48px; height: 26px; margin: 0; cursor: pointer;">
+                {{ popup_form.popup_enabled }}
+                <span class="switch-slider"></span>
+              </label>
             </div>
           </div>
 
@@ -506,7 +606,7 @@
 
       <!-- Live Preview Card -->
       <section class="admin-panel">
-        <div class="panel-header">
+        <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
           <h2 class="panel-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -514,7 +614,18 @@
             </svg>
             Active Popup Status
           </h2>
-          <span class="brand-badge">{% if details.popup_enabled %}ACTIVE{% else %}DISABLED{% endif %}</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="brand-badge" style="{% if details.popup_enabled %}background: rgba(16,185,129,0.2); color: #34d399; border-color: rgba(16,185,129,0.4);{% else %}background: rgba(239,68,68,0.2); color: #f87171; border-color: rgba(239,68,68,0.4);{% endif %}">
+              {% if details.popup_enabled %}● ACTIVE{% else %}○ DISABLED{% endif %}
+            </span>
+            <form method="post" action="{% url 'admin_details' %}?tab=popup" style="margin: 0;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="toggle_popup">
+              <button type="submit" class="toggle-status-btn {% if details.popup_enabled %}btn-turn-off{% else %}btn-turn-on{% endif %}" style="padding: 4px 12px; font-size: 0.74rem;">
+                {% if details.popup_enabled %}Turn OFF{% else %}Turn ON{% endif %}
+              </button>
+            </form>
+          </div>
         </div>
 
         {% if current_popup_offer %}
@@ -605,7 +716,7 @@
     <div class="admin-split-grid">
       <!-- Edit Video Settings Form -->
       <section class="admin-panel">
-        <div class="panel-header">
+        <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
           <div>
             <h2 class="panel-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -618,6 +729,22 @@
               Configure the cinematic edge-to-edge YouTube video displayed between the Hero banner and the Product lineup ("Pick your flavour").
             </p>
           </div>
+          <!-- 1-Click Instant ON / OFF Toggle Button -->
+          <form method="post" action="{% url 'admin_details' %}?tab=video" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle_video">
+            {% if details.homepage_video_enabled %}
+              <button type="submit" class="toggle-status-btn btn-turn-off" title="Click to immediately disable the fullscreen homepage video">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
+                <span>Turn OFF Video</span>
+              </button>
+            {% else %}
+              <button type="submit" class="toggle-status-btn btn-turn-on" title="Click to immediately enable the fullscreen homepage video">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                <span>Turn ON Video</span>
+              </button>
+            {% endif %}
+          </form>
         </div>
 
         <form method="post" action="{% url 'admin_details' %}?tab=video" class="admin-form">
@@ -625,17 +752,25 @@
           <input type="hidden" name="action" value="save_video">
 
           <!-- Enable / Disable Toggle -->
-          <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;" onclick="document.getElementById('{{ video_form.homepage_video_enabled.id_for_label }}').click();">
             <div>
-              <label for="{{ video_form.homepage_video_enabled.id_for_label }}" style="font-weight: 700; color: #fff; margin: 0; cursor: pointer; display: block;">
-                Enable Fullscreen Video Section
-              </label>
-              <div style="font-size: 0.8rem; color: var(--admin-text-muted); margin-top: 2px;">
+              <div style="font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>Enable Fullscreen Video Section</span>
+                {% if details.homepage_video_enabled %}
+                  <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.2); color: #34d399; font-weight: 800;">ACTIVE</span>
+                {% else %}
+                  <span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(239,68,68,0.2); color: #f87171; font-weight: 800;">INACTIVE</span>
+                {% endif %}
+              </div>
+              <div style="font-size: 0.8rem; color: var(--admin-text-muted); margin-top: 4px;">
                 When active, a full-viewport cinematic YouTube video appears right between the hero banner and the product lineup.
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              {{ video_form.homepage_video_enabled }}
+            <div style="display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation();">
+              <label class="switch-toggle" style="position: relative; display: inline-block; width: 48px; height: 26px; margin: 0; cursor: pointer;">
+                {{ video_form.homepage_video_enabled }}
+                <span class="switch-slider"></span>
+              </label>
             </div>
           </div>
 
@@ -724,11 +859,22 @@
 
       <!-- Live YouTube Video Preview Card -->
       <section class="admin-panel" style="background: #0d1012; border: 1px solid rgba(255,255,255,0.12);">
-        <div class="panel-header">
+        <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
           <h2 class="panel-title" style="font-size: 0.95rem; color: var(--admin-text-muted);">
             Live Video Preview
           </h2>
-          <span class="brand-badge">ID: {{ details.clean_homepage_video_id }}</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="brand-badge" style="{% if details.homepage_video_enabled %}background: rgba(16,185,129,0.2); color: #34d399; border-color: rgba(16,185,129,0.4);{% else %}background: rgba(239,68,68,0.2); color: #f87171; border-color: rgba(239,68,68,0.4);{% endif %}">
+              {% if details.homepage_video_enabled %}● ACTIVE ON HOMEPAGE{% else %}○ DISABLED{% endif %}
+            </span>
+            <form method="post" action="{% url 'admin_details' %}?tab=video" style="margin: 0;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="toggle_video">
+              <button type="submit" class="toggle-status-btn {% if details.homepage_video_enabled %}btn-turn-off{% else %}btn-turn-on{% endif %}" style="padding: 4px 12px; font-size: 0.74rem;">
+                {% if details.homepage_video_enabled %}Turn OFF{% else %}Turn ON{% endif %}
+              </button>
+            </form>
+          </div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 14px; padding: 8px 0;">
